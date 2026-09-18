@@ -1,5 +1,11 @@
-import React, { ReactNode } from 'react';
-import { createRoot } from 'react-dom/client';
+import React, {
+  ReactNode,
+} from 'react';
+
+import {
+  createRoot,
+} from 'react-dom/client';
+
 import {
   BrowserRouter,
   Navigate,
@@ -9,8 +15,17 @@ import {
 
 import './styles.css';
 
-import { AuthProvider, useAuth } from './auth';
+import {
+  AuthProvider,
+  useAuth,
+} from './auth';
+
 import Layout from './layout';
+import RoleGuard from './RoleGuard';
+
+import {
+  ROLES,
+} from './roles';
 
 import {
   Audit,
@@ -36,18 +51,26 @@ type GuardProps = {
   children: ReactNode;
 };
 
-function Guard({ children }: GuardProps) {
-  const { user } = useAuth();
+function Guard({
+  children,
+}: GuardProps) {
+  const { user } =
+    useAuth();
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return (
+      <Navigate
+        to="/login"
+        replace
+      />
+    );
   }
 
   return <>{children}</>;
 }
 
 /* =========================================================
-   APLICACIÓN / RUTAS
+   APLICACIÓN
 ========================================================= */
 
 function App() {
@@ -59,7 +82,7 @@ function App() {
         element={<Login />}
       />
 
-      {/* RUTAS PROTEGIDAS */}
+      {/* ÁREA AUTENTICADA */}
       <Route
         path="/"
         element={
@@ -68,103 +91,250 @@ function App() {
           </Guard>
         }
       >
-        {/* DASHBOARD */}
+        {/* INICIO */}
         <Route
           index
           element={<Dashboard />}
         />
 
-        {/* CORRESPONDENCIA */}
+        {/* =================================================
+            CORRESPONDENCIA
+            ADMIN + EDITOR
+        ================================================= */}
+
         <Route
           path="correspondencia"
-          element={<CorrespondenceList />}
+          element={
+            <RoleGuard
+              roles={[
+                ROLES.ADMIN,
+                ROLES.EDITOR,
+              ]}
+            >
+              <CorrespondenceList />
+            </RoleGuard>
+          }
         />
 
         <Route
           path="correspondencia/nueva"
-          element={<NewCorrespondence />}
+          element={
+            <RoleGuard
+              roles={[
+                ROLES.ADMIN,
+                ROLES.EDITOR,
+              ]}
+            >
+              <NewCorrespondence />
+            </RoleGuard>
+          }
         />
 
         <Route
           path="correspondencia/:id"
-          element={<CorrespondenceDetail />}
+          element={
+            <RoleGuard
+              roles={[
+                ROLES.ADMIN,
+                ROLES.EDITOR,
+              ]}
+            >
+              <CorrespondenceDetail />
+            </RoleGuard>
+          }
         />
 
-        {/* REPOSITORIO */}
+        {/* =================================================
+            REPOSITORIO
+            TODOS
+        ================================================= */}
+
         <Route
           path="repositorio"
-          element={<Repository />}
+          element={
+            <RoleGuard
+              roles={[
+                ROLES.ADMIN,
+                ROLES.EDITOR,
+                ROLES.CONSULTOR,
+              ]}
+            >
+              <Repository />
+            </RoleGuard>
+          }
         />
 
-        {/* PROCEDIMIENTOS */}
+        {/* =================================================
+            PROCEDIMIENTOS
+            TODOS
+        ================================================= */}
+
         <Route
           path="procedimientos"
-          element={<Procedures />}
+          element={
+            <RoleGuard
+              roles={[
+                ROLES.ADMIN,
+                ROLES.EDITOR,
+                ROLES.CONSULTOR,
+              ]}
+            >
+              <Procedures />
+            </RoleGuard>
+          }
         />
 
         <Route
           path="procedimientos/:id"
-          element={<ProcedureDetail />}
+          element={
+            <RoleGuard
+              roles={[
+                ROLES.ADMIN,
+                ROLES.EDITOR,
+                ROLES.CONSULTOR,
+              ]}
+            >
+              <ProcedureDetail />
+            </RoleGuard>
+          }
         />
 
-        {/* FORMULARIOS */}
+        {/* =================================================
+            FORMULARIOS
+            TODOS
+        ================================================= */}
+
         <Route
           path="formularios"
-          element={<Forms />}
+          element={
+            <RoleGuard
+              roles={[
+                ROLES.ADMIN,
+                ROLES.EDITOR,
+                ROLES.CONSULTOR,
+              ]}
+            >
+              <Forms />
+            </RoleGuard>
+          }
         />
 
-        {/* ENLACES */}
+        {/* =================================================
+            ENLACES
+            TODOS
+        ================================================= */}
+
         <Route
           path="enlaces"
-          element={<Links />}
+          element={
+            <RoleGuard
+              roles={[
+                ROLES.ADMIN,
+                ROLES.EDITOR,
+                ROLES.CONSULTOR,
+              ]}
+            >
+              <Links />
+            </RoleGuard>
+          }
         />
 
-        {/* NOTICIAS */}
+        {/* =================================================
+            NOTICIAS
+            TODOS
+        ================================================= */}
+
         <Route
           path="noticias"
-          element={<News />}
+          element={
+            <RoleGuard
+              roles={[
+                ROLES.ADMIN,
+                ROLES.EDITOR,
+                ROLES.CONSULTOR,
+              ]}
+            >
+              <News />
+            </RoleGuard>
+          }
         />
 
-        {/* USUARIOS */}
+        {/* =================================================
+            USUARIOS
+            SOLO ADMIN
+        ================================================= */}
+
         <Route
           path="usuarios"
-          element={<Users />}
+          element={
+            <RoleGuard
+              roles={[
+                ROLES.ADMIN,
+              ]}
+            >
+              <Users />
+            </RoleGuard>
+          }
         />
 
-        {/* HISTORIAL */}
+        {/* =================================================
+            HISTORIAL
+            TODOS - la pantalla decide si puede ver ALL
+        ================================================= */}
+
         <Route
           path="historial"
-          element={<Audit />}
+          element={
+            <RoleGuard
+              roles={[
+                ROLES.ADMIN,
+                ROLES.EDITOR,
+                ROLES.CONSULTOR,
+              ]}
+            >
+              <Audit />
+            </RoleGuard>
+          }
         />
       </Route>
 
       {/* RUTA NO ENCONTRADA */}
       <Route
         path="*"
-        element={<Navigate to="/" replace />}
+        element={
+          <Navigate
+            to="/"
+            replace
+          />
+        }
       />
     </Routes>
   );
 }
 
 /* =========================================================
-   RENDER PRINCIPAL
+   RENDER
 ========================================================= */
 
-const rootElement = document.getElementById('root');
+const rootElement =
+  document.getElementById(
+    'root',
+  );
 
 if (!rootElement) {
   throw new Error(
-    'No se encontró el elemento #root en index.html'
+    'No se encontró #root en index.html',
   );
 }
 
-createRoot(rootElement).render(
+createRoot(
+  rootElement,
+).render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
         <App />
       </AuthProvider>
     </BrowserRouter>
-  </React.StrictMode>
+  </React.StrictMode>,
 );

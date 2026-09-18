@@ -22,75 +22,163 @@ import {
 } from 'lucide-react';
 
 import { useState } from 'react';
+
 import { useAuth } from './auth';
+
+import {
+  hasAnyRole,
+} from './permissions';
+
+import {
+  ROLES,
+  ROLE_LABELS,
+} from './roles';
+
+/* =========================================================
+   TIPOS
+========================================================= */
+
+type MenuItem = {
+  to: string;
+  label: string;
+  icon: any;
+  roles: string[];
+  end?: boolean;
+};
 
 /* =========================================================
    LAYOUT PRINCIPAL
 ========================================================= */
 
 export default function Layout() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const {
+    user,
+    logout,
+  } = useAuth();
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate =
+    useNavigate();
 
-  const admin =
-    user?.roles?.includes('ADMIN') ?? false;
+  const [
+    sidebarOpen,
+    setSidebarOpen,
+  ] = useState(false);
 
-  const items = [
+  /* =======================================================
+     MENÚ SEGÚN ROL
+  ======================================================= */
+
+  const items: MenuItem[] = [
     {
       to: '/',
       label: 'Inicio',
       icon: Home,
       end: true,
+      roles: [
+        ROLES.ADMIN,
+        ROLES.EDITOR,
+        ROLES.CONSULTOR,
+      ],
     },
+
     {
       to: '/correspondencia',
       label: 'Correspondencia',
       icon: Mail,
+      roles: [
+        ROLES.ADMIN,
+        ROLES.EDITOR,
+      ],
     },
+
     {
       to: '/repositorio',
       label: 'Repositorio',
       icon: FileText,
+      roles: [
+        ROLES.ADMIN,
+        ROLES.EDITOR,
+        ROLES.CONSULTOR,
+      ],
     },
+
     {
       to: '/procedimientos',
       label: 'Procedimientos',
       icon: ClipboardList,
+      roles: [
+        ROLES.ADMIN,
+        ROLES.EDITOR,
+        ROLES.CONSULTOR,
+      ],
     },
+
     {
       to: '/formularios',
       label: 'Formularios',
       icon: BookOpen,
+      roles: [
+        ROLES.ADMIN,
+        ROLES.EDITOR,
+        ROLES.CONSULTOR,
+      ],
     },
+
     {
       to: '/enlaces',
       label: 'Enlaces a sistemas',
       icon: Link2,
+      roles: [
+        ROLES.ADMIN,
+        ROLES.EDITOR,
+        ROLES.CONSULTOR,
+      ],
     },
+
     {
       to: '/noticias',
       label: 'Noticias',
       icon: Newspaper,
+      roles: [
+        ROLES.ADMIN,
+        ROLES.EDITOR,
+        ROLES.CONSULTOR,
+      ],
     },
 
-    ...(admin
-      ? [
-          {
-            to: '/usuarios',
-            label: 'Usuarios',
-            icon: Users,
-          },
-        ]
-      : []),
+    {
+      to: '/usuarios',
+      label: 'Usuarios',
+      icon: Users,
+      roles: [
+        ROLES.ADMIN,
+      ],
+    },
 
     {
       to: '/historial',
       label: 'Historial',
       icon: History,
+      roles: [
+        ROLES.ADMIN,
+        ROLES.EDITOR,
+        ROLES.CONSULTOR,
+      ],
     },
   ];
+
+  /* =======================================================
+     FILTRAR MENÚ
+  ======================================================= */
+
+  const visibleItems =
+    items.filter(
+      (item) =>
+        hasAnyRole(
+          user,
+          item.roles,
+        ),
+    );
 
   /* =======================================================
      CERRAR SESIÓN
@@ -99,9 +187,12 @@ export default function Layout() {
   const handleLogout = () => {
     logout();
 
-    navigate('/login', {
-      replace: true,
-    });
+    navigate(
+      '/login',
+      {
+        replace: true,
+      },
+    );
   };
 
   /* =======================================================
@@ -112,25 +203,50 @@ export default function Layout() {
     user?.name
       ?.split(' ')
       .filter(Boolean)
-      .map((word: string) => word[0])
+      .map(
+        (word: string) =>
+          word[0],
+      )
       .slice(0, 2)
       .join('')
-      .toUpperCase() || 'U';
+      .toUpperCase() ||
+    'U';
+
+  /* =======================================================
+     ROL PRINCIPAL
+  ======================================================= */
+
+  const mainRole =
+    user?.roles?.[0];
+
+  const roleLabel =
+    mainRole &&
+    mainRole in ROLE_LABELS
+      ? ROLE_LABELS[
+          mainRole as keyof typeof ROLE_LABELS
+        ]
+      : 'Usuario';
 
   return (
     <div className="app">
+
       {/* ===================================================
           SIDEBAR
       =================================================== */}
 
       <aside
         className={`app-sidebar ${
-          sidebarOpen ? 'open' : ''
+          sidebarOpen
+            ? 'open'
+            : ''
         }`}
       >
+
         {/* LOGO */}
         <div className="sidebar-header">
+
           <div className="sidebar-brand">
+
             <span className="sidebar-tec">
               TEC
             </span>
@@ -142,139 +258,239 @@ export default function Layout() {
               <br />
               de Costa Rica
             </span>
+
           </div>
 
           <p className="sidebar-campus">
             Campus Tecnológico de San José
           </p>
+
         </div>
 
-        {/* MENÚ */}
+        {/* =================================================
+            MENÚ DINÁMICO
+        ================================================= */}
+
         <nav className="sidebar-nav">
-          {items.map(
+
+          {visibleItems.map(
             ({
               to,
               label,
               icon: Icon,
               end,
             }) => (
+
               <NavLink
                 key={to}
                 to={to}
                 end={end}
-                className={({ isActive }) =>
+                className={({
+                  isActive,
+                }) =>
                   `sidebar-link ${
-                    isActive ? 'active' : ''
+                    isActive
+                      ? 'active'
+                      : ''
                   }`
                 }
                 onClick={() =>
-                  setSidebarOpen(false)
+                  setSidebarOpen(
+                    false,
+                  )
                 }
               >
-                <Icon size={21} />
-                <span>{label}</span>
+
+                <Icon
+                  size={21}
+                />
+
+                <span>
+                  {label}
+                </span>
+
               </NavLink>
-            )
+            ),
           )}
+
         </nav>
 
-        {/* PARTE INFERIOR */}
+        {/* =================================================
+            PARTE INFERIOR
+        ================================================= */}
+
         <div className="sidebar-bottom">
+
           <button
             type="button"
             className="sidebar-secondary-action"
+            onClick={() => {
+              alert(
+                'Módulo de ayuda pendiente de implementar.',
+              );
+            }}
           >
-            <HelpCircle size={20} />
-            <span>Ayuda</span>
+
+            <HelpCircle
+              size={20}
+            />
+
+            <span>
+              Ayuda
+            </span>
+
           </button>
 
           <button
             type="button"
             className="sidebar-secondary-action"
+            onClick={() => {
+              alert(
+                'Sistema de Gestión de Información Institucional - Campus Tecnológico de San José.',
+              );
+            }}
           >
-            <Info size={20} />
-            <span>Acerca del sistema</span>
+
+            <Info
+              size={20}
+            />
+
+            <span>
+              Acerca del sistema
+            </span>
+
           </button>
 
           <button
             type="button"
             className="sidebar-logout"
-            onClick={handleLogout}
+            onClick={
+              handleLogout
+            }
           >
-            <LogOut size={20} />
-            <span>Cerrar sesión</span>
+
+            <LogOut
+              size={20}
+            />
+
+            <span>
+              Cerrar sesión
+            </span>
+
           </button>
+
         </div>
+
       </aside>
 
-      {/* Fondo móvil */}
+      {/* ===================================================
+          FONDO PARA MÓVIL
+      =================================================== */}
+
       {sidebarOpen && (
+
         <button
           type="button"
           aria-label="Cerrar menú"
           className="sidebar-backdrop"
           onClick={() =>
-            setSidebarOpen(false)
+            setSidebarOpen(
+              false,
+            )
           }
         />
+
       )}
 
       {/* ===================================================
-          CONTENIDO
+          ÁREA PRINCIPAL
       =================================================== */}
 
       <div className="app-body">
-        {/* HEADER */}
+
+        {/* =================================================
+            HEADER
+        ================================================= */}
+
         <header className="app-header">
+
           <div className="header-left">
+
             <button
               type="button"
               className="mobile-menu-button"
               onClick={() =>
-                setSidebarOpen((value) => !value)
+                setSidebarOpen(
+                  (value) =>
+                    !value,
+                )
               }
               aria-label="Abrir menú"
             >
-              <Menu size={23} />
+
+              <Menu
+                size={23}
+              />
+
             </button>
 
             <div className="header-search">
-              <Search size={20} />
+
+              <Search
+                size={20}
+              />
 
               <input
                 type="search"
                 placeholder="Buscar en el sistema..."
                 aria-label="Buscar en el sistema"
               />
+
             </div>
+
           </div>
 
-          {/* USUARIO */}
+          {/* =================================================
+              PERFIL
+          ================================================= */}
+
           <div className="profile">
+
             <div className="avatar">
               {initials}
             </div>
 
             <div className="profile-info">
+
               <strong>
-                {user?.name || 'Usuario'}
+                {user?.name ||
+                  'Usuario'}
               </strong>
 
               <span>
-                {user?.roles?.join(', ') ||
-                  'Usuario'}
+                {roleLabel}
               </span>
+
             </div>
+
           </div>
+
         </header>
 
-        {/* PÁGINAS */}
+        {/* =================================================
+            PÁGINAS
+        ================================================= */}
+
         <main className="app-main">
+
           <section className="content">
             <Outlet />
           </section>
+
         </main>
+
       </div>
+
     </div>
   );
 }
