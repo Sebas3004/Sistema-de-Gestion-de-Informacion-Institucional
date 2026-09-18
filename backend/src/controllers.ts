@@ -1,33 +1,629 @@
-import { Body, Controller, Get, Param, Patch, Post, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import { AuthService, JwtAuthGuard, Roles, RolesGuard } from './auth';
-import { RoleName } from './entities';
-import { AuditService, CorrespondenceService, FormsService, LinksService, NewsService, ProcedureService, RepositoryService, UsersService } from './services';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Req,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 
-@Controller('auth') export class AuthController{constructor(private auth:AuthService){} @Post('login') login(@Body() b:any){return this.auth.login(b.email,b.password)}}
+import {
+  FileInterceptor,
+} from '@nestjs/platform-express';
 
-@UseGuards(JwtAuthGuard,RolesGuard)
-@Controller('users') export class UsersController{constructor(private s:UsersService){} @Get() @Roles(RoleName.ADMIN) list(){return this.s.list()} @Post() @Roles(RoleName.ADMIN) create(@Body() b:any,@Req() r:any){return this.s.create(b,r.user)} @Patch(':id') @Roles(RoleName.ADMIN) update(@Param('id') id:string,@Body() b:any,@Req() r:any){return this.s.update(id,b,r.user)}}
+import {
+  diskStorage,
+} from 'multer';
 
-@UseGuards(JwtAuthGuard,RolesGuard)
-@Controller('correspondence') export class CorrespondenceController{constructor(private s:CorrespondenceService){} @Get() list(){return this.s.list()} @Get(':id') get(@Param('id') id:string){return this.s.get(id)} @Post() create(@Body() b:any,@Req() r:any){return this.s.create(b,r.user)} @Patch(':id') update(@Param('id') id:string,@Body() b:any,@Req() r:any){return this.s.update(id,b,r.user)} @Post(':id/comments') comment(@Param('id') id:string,@Body() b:any,@Req() r:any){return this.s.addComment(id,b.body,r.user)} @Post(':id/attachments') @UseInterceptors(FileInterceptor('file',{storage:diskStorage({destination:process.env.UPLOAD_DIR||'./uploads',filename:(_,f,cb)=>cb(null,`${Date.now()}-${Math.round(Math.random()*1e9)}${extname(f.originalname)}`)})})) attachment(@Param('id') id:string,@UploadedFile() file:any,@Req() r:any){return this.s.addAttachment(id,file,r.user)}}
+import {
+  extname,
+} from 'path';
 
-@UseGuards(JwtAuthGuard,RolesGuard)
-@Controller('repository') export class RepositoryController{constructor(private s:RepositoryService){} @Get() list(){return this.s.list()} @Post() @Roles(RoleName.ADMIN,RoleName.EDITOR) create(@Body() b:any,@Req() r:any){return this.s.create(b,r.user)} @Patch(':id') @Roles(RoleName.ADMIN,RoleName.EDITOR) update(@Param('id') id:string,@Body() b:any,@Req() r:any){return this.s.update(id,b,r.user)}}
+/* =========================================================
+   AUTENTICACIÓN
+========================================================= */
 
-@UseGuards(JwtAuthGuard,RolesGuard)
-@Controller('procedures') export class ProcedureController{constructor(private s:ProcedureService){} @Get() list(){return this.s.list()} @Get(':id') get(@Param('id') id:string){return this.s.get(id)} @Post() @Roles(RoleName.ADMIN,RoleName.EDITOR) create(@Body() b:any,@Req() r:any){return this.s.create(b,r.user)}}
+import {
+  AuthService,
+  JwtAuthGuard,
+} from './auth';
 
-@UseGuards(JwtAuthGuard,RolesGuard)
-@Controller('forms') export class FormsController{constructor(private s:FormsService){} @Get() list(){return this.s.list()} @Post() @Roles(RoleName.ADMIN,RoleName.EDITOR) create(@Body() b:any,@Req() r:any){return this.s.create(b,r.user)} @Post(':id/download') download(@Param('id') id:string,@Req() r:any){return this.s.download(id,r.user)}}
+/* =========================================================
+   ROLES
+========================================================= */
 
-@UseGuards(JwtAuthGuard,RolesGuard)
-@Controller('links') export class LinksController{constructor(private s:LinksService){} @Get() list(){return this.s.list()} @Post() @Roles(RoleName.ADMIN,RoleName.EDITOR) create(@Body() b:any){return this.s.create(b)}}
+import {
+  Role,
+} from './roles';
 
-@UseGuards(JwtAuthGuard,RolesGuard)
-@Controller('news') export class NewsController{constructor(private s:NewsService){} @Get() list(){return this.s.list()} @Post() @Roles(RoleName.ADMIN,RoleName.EDITOR) create(@Body() b:any,@Req() r:any){return this.s.create(b,r.user)}}
+import {
+  Roles,
+} from './roles.decorator';
 
-@UseGuards(JwtAuthGuard,RolesGuard)
-@Controller('audit') export class AuditController{constructor(private s:AuditService){} @Get('mine') mine(@Req() r:any){return this.s.list(r.user,false)} @Get('all') @Roles(RoleName.ADMIN) all(@Req() r:any){return this.s.list(r.user,true)}}
+import {
+  RolesGuard,
+} from './roles.guard';
+
+/* =========================================================
+   SERVICIOS
+========================================================= */
+
+import {
+  AuditService,
+  CorrespondenceService,
+  FormsService,
+  LinksService,
+  NewsService,
+  ProcedureService,
+  RepositoryService,
+  UsersService,
+} from './services';
+
+/* =========================================================
+   AUTH
+========================================================= */
+
+@Controller('auth')
+export class AuthController {
+  constructor(
+    private readonly auth: AuthService,
+  ) {}
+
+  @Post('login')
+  login(
+    @Body()
+    body: {
+      email: string;
+      password: string;
+    },
+  ) {
+    return this.auth.login(
+      body.email,
+      body.password,
+    );
+  }
+}
+
+/* =========================================================
+   USUARIOS
+   SOLO ADMIN
+========================================================= */
+
+@Controller('users')
+@UseGuards(
+  JwtAuthGuard,
+  RolesGuard,
+)
+@Roles(Role.ADMIN)
+export class UsersController {
+  constructor(
+    private readonly service:
+      UsersService,
+  ) {}
+
+  @Get()
+  list() {
+    return this.service.list();
+  }
+
+  @Post()
+  create(
+    @Body() body: any,
+    @Req() request: any,
+  ) {
+    return this.service.create(
+      body,
+      request.user,
+    );
+  }
+
+  @Patch(':id')
+  update(
+    @Param('id')
+    id: string,
+
+    @Body()
+    body: any,
+
+    @Req()
+    request: any,
+  ) {
+    return this.service.update(
+      id,
+      body,
+      request.user,
+    );
+  }
+}
+
+/* =========================================================
+   CORRESPONDENCIA
+   ADMIN + EDITOR
+========================================================= */
+
+@Controller('correspondence')
+@UseGuards(
+  JwtAuthGuard,
+  RolesGuard,
+)
+@Roles(
+  Role.ADMIN,
+  Role.EDITOR,
+)
+export class CorrespondenceController {
+  constructor(
+    private readonly service:
+      CorrespondenceService,
+  ) {}
+
+  @Get()
+  list() {
+    return this.service.list();
+  }
+
+  @Get(':id')
+  get(
+    @Param('id')
+    id: string,
+  ) {
+    return this.service.get(
+      id,
+    );
+  }
+
+  @Post()
+  create(
+    @Body()
+    body: any,
+
+    @Req()
+    request: any,
+  ) {
+    return this.service.create(
+      body,
+      request.user,
+    );
+  }
+
+  @Patch(':id')
+  update(
+    @Param('id')
+    id: string,
+
+    @Body()
+    body: any,
+
+    @Req()
+    request: any,
+  ) {
+    return this.service.update(
+      id,
+      body,
+      request.user,
+    );
+  }
+
+  /* =======================================================
+     COMENTARIOS
+  ======================================================= */
+
+  @Post(':id/comments')
+  comment(
+    @Param('id')
+    id: string,
+
+    @Body()
+    body: {
+      body: string;
+    },
+
+    @Req()
+    request: any,
+  ) {
+    return this.service.addComment(
+      id,
+      body.body,
+      request.user,
+    );
+  }
+
+  /* =======================================================
+     ARCHIVOS ADJUNTOS
+  ======================================================= */
+
+  @Post(':id/attachments')
+  @UseInterceptors(
+    FileInterceptor(
+      'file',
+      {
+        storage:
+          diskStorage({
+            destination:
+              process.env
+                .UPLOAD_DIR ||
+              './uploads',
+
+            filename: (
+              _request,
+              file,
+              callback,
+            ) => {
+              const uniqueName =
+                `${Date.now()}-` +
+                `${Math.round(
+                  Math.random() *
+                    1e9,
+                )}` +
+                `${extname(
+                  file.originalname,
+                )}`;
+
+              callback(
+                null,
+                uniqueName,
+              );
+            },
+          }),
+      },
+    ),
+  )
+  attachment(
+    @Param('id')
+    id: string,
+
+    @UploadedFile()
+    file: any,
+
+    @Req()
+    request: any,
+  ) {
+    return this.service
+      .addAttachment(
+        id,
+        file,
+        request.user,
+      );
+  }
+}
+
+/* =========================================================
+   REPOSITORIO
+
+   CONSULTA:
+   ADMIN / EDITOR / CONSULTOR
+
+   CREAR / EDITAR:
+   ADMIN / EDITOR
+========================================================= */
+
+@Controller('repository')
+@UseGuards(
+  JwtAuthGuard,
+  RolesGuard,
+)
+export class RepositoryController {
+  constructor(
+    private readonly service:
+      RepositoryService,
+  ) {}
+
+  @Get()
+  @Roles(
+    Role.ADMIN,
+    Role.EDITOR,
+    Role.CONSULTOR,
+  )
+  list() {
+    return this.service.list();
+  }
+
+  @Post()
+  @Roles(
+    Role.ADMIN,
+    Role.EDITOR,
+  )
+  create(
+    @Body()
+    body: any,
+
+    @Req()
+    request: any,
+  ) {
+    return this.service.create(
+      body,
+      request.user,
+    );
+  }
+
+  @Patch(':id')
+  @Roles(
+    Role.ADMIN,
+    Role.EDITOR,
+  )
+  update(
+    @Param('id')
+    id: string,
+
+    @Body()
+    body: any,
+
+    @Req()
+    request: any,
+  ) {
+    return this.service.update(
+      id,
+      body,
+      request.user,
+    );
+  }
+}
+
+/* =========================================================
+   PROCEDIMIENTOS
+========================================================= */
+
+@Controller('procedures')
+@UseGuards(
+  JwtAuthGuard,
+  RolesGuard,
+)
+export class ProcedureController {
+  constructor(
+    private readonly service:
+      ProcedureService,
+  ) {}
+
+  @Get()
+  @Roles(
+    Role.ADMIN,
+    Role.EDITOR,
+    Role.CONSULTOR,
+  )
+  list() {
+    return this.service.list();
+  }
+
+  @Get(':id')
+  @Roles(
+    Role.ADMIN,
+    Role.EDITOR,
+    Role.CONSULTOR,
+  )
+  get(
+    @Param('id')
+    id: string,
+  ) {
+    return this.service.get(
+      id,
+    );
+  }
+
+  @Post()
+  @Roles(
+    Role.ADMIN,
+    Role.EDITOR,
+  )
+  create(
+    @Body()
+    body: any,
+
+    @Req()
+    request: any,
+  ) {
+    return this.service.create(
+      body,
+      request.user,
+    );
+  }
+}
+
+/* =========================================================
+   FORMULARIOS
+========================================================= */
+
+@Controller('forms')
+@UseGuards(
+  JwtAuthGuard,
+  RolesGuard,
+)
+export class FormsController {
+  constructor(
+    private readonly service:
+      FormsService,
+  ) {}
+
+  @Get()
+  @Roles(
+    Role.ADMIN,
+    Role.EDITOR,
+    Role.CONSULTOR,
+  )
+  list() {
+    return this.service.list();
+  }
+
+  @Post()
+  @Roles(
+    Role.ADMIN,
+    Role.EDITOR,
+  )
+  create(
+    @Body()
+    body: any,
+
+    @Req()
+    request: any,
+  ) {
+    return this.service.create(
+      body,
+      request.user,
+    );
+  }
+
+  /*
+   * Por ahora este endpoint registra
+   * la descarga según FormsService.
+   *
+   * Más adelante conectaremos el
+   * archivo físico para que el navegador
+   * realmente lo descargue.
+   */
+  @Post(':id/download')
+  @Roles(
+    Role.ADMIN,
+    Role.EDITOR,
+    Role.CONSULTOR,
+  )
+  download(
+    @Param('id')
+    id: string,
+
+    @Req()
+    request: any,
+  ) {
+    return this.service.download(
+      id,
+      request.user,
+    );
+  }
+}
+
+/* =========================================================
+   ENLACES A SISTEMAS
+========================================================= */
+
+@Controller('links')
+@UseGuards(
+  JwtAuthGuard,
+  RolesGuard,
+)
+export class LinksController {
+  constructor(
+    private readonly service:
+      LinksService,
+  ) {}
+
+  @Get()
+  @Roles(
+    Role.ADMIN,
+    Role.EDITOR,
+    Role.CONSULTOR,
+  )
+  list() {
+    return this.service.list();
+  }
+
+  @Post()
+  @Roles(
+    Role.ADMIN,
+    Role.EDITOR,
+  )
+  create(
+    @Body()
+    body: any,
+  ) {
+    return this.service.create(
+      body,
+    );
+  }
+}
+
+/* =========================================================
+   NOTICIAS
+========================================================= */
+
+@Controller('news')
+@UseGuards(
+  JwtAuthGuard,
+  RolesGuard,
+)
+export class NewsController {
+  constructor(
+    private readonly service:
+      NewsService,
+  ) {}
+
+  @Get()
+  @Roles(
+    Role.ADMIN,
+    Role.EDITOR,
+    Role.CONSULTOR,
+  )
+  list() {
+    return this.service.list();
+  }
+
+  @Post()
+  @Roles(
+    Role.ADMIN,
+    Role.EDITOR,
+  )
+  create(
+    @Body()
+    body: any,
+
+    @Req()
+    request: any,
+  ) {
+    return this.service.create(
+      body,
+      request.user,
+    );
+  }
+}
+
+/* =========================================================
+   HISTORIAL
+========================================================= */
+
+@Controller('audit')
+@UseGuards(
+  JwtAuthGuard,
+  RolesGuard,
+)
+export class AuditController {
+  constructor(
+    private readonly service:
+      AuditService,
+  ) {}
+
+  /*
+   * Cualquier usuario autenticado
+   * puede consultar SU historial.
+   */
+  @Get('mine')
+  @Roles(
+    Role.ADMIN,
+    Role.EDITOR,
+    Role.CONSULTOR,
+  )
+  mine(
+    @Req()
+    request: any,
+  ) {
+    return this.service.list(
+      request.user,
+      false,
+    );
+  }
+
+  /*
+   * Solamente ADMIN puede consultar
+   * el historial completo.
+   */
+  @Get('all')
+  @Roles(Role.ADMIN)
+  all(
+    @Req()
+    request: any,
+  ) {
+    return this.service.list(
+      request.user,
+      true,
+    );
+  }
+}
