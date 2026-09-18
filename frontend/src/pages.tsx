@@ -11,69 +11,301 @@ import { useAuth } from './auth';
 
 export function Login() {
   const { login } = useAuth();
-  const nav = useNavigate();
+  const navigate = useNavigate();
 
-  const [email, setEmail] = useState('admin@itcr.ac.cr');
-  const [password, setPassword] = useState('Admin123!');
-  const [err, setErr] = useState('');
+  const [email, setEmail] = useState("admin@itcr.ac.cr");
+  const [password, setPassword] = useState("Admin123!");
+  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const go = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    try {
-      await login(email, password);
-      nav('/');
-    } catch {
-      setErr('Credenciales inválidas');
+    if (loading) {
+      return;
     }
-  };
+
+    try {
+      setLoading(true);
+      setError("");
+
+      await login(email.trim(), password);
+
+      // Después de iniciar sesión correctamente,
+      // enviamos al usuario al inicio/dashboard.
+      navigate("/", { replace: true });
+    } catch (err) {
+      console.error("Error al iniciar sesión:", err);
+
+      setError(
+        "No se pudo iniciar sesión. Verifique el correo y la contraseña."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
-    <div className="login">
-      <div className="loginBox">
-        <h1>
-          TEC <span>Tecnológico de Costa Rica</span>
-        </h1>
-
-        <h2>Campus Tecnológico de San José</h2>
-
-        <h3>Sistema de Gestión de Información Institucional</h3>
-
-        <p>
-          Accede a documentos, correspondencia, procedimientos,
-          formularios, noticias y servicios institucionales.
-        </p>
-
-        <form onSubmit={go}>
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Correo institucional"
-          />
-
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Contraseña"
-          />
-
-          {err && <p className="error">{err}</p>}
-
-          <button type="submit">Iniciar sesión</button>
-        </form>
-      </div>
-
-      <div className="hero">
+    <div className="login-page">
+      {/* =====================================================
+          SIDEBAR
+      ===================================================== */}
+      <aside className="login-sidebar">
         <div>
-          <h2>Campus San José</h2>
-          <p>Conocimiento que conecta</p>
+          <div className="login-sidebar-brand">
+            <div className="tec-sidebar-logo">
+              <span className="tec-word">TEC</span>
+
+              <div className="tec-divider" />
+
+              <div className="tec-name">
+                Tecnológico
+                <br />
+                de Costa Rica
+              </div>
+            </div>
+
+            <p>Campus Tecnológico de San José</p>
+          </div>
+
+          <div className="login-sidebar-active">
+            <span className="sidebar-home-icon">⌂</span>
+            <span>Inicio</span>
+          </div>
         </div>
-      </div>
+
+        <div className="login-sidebar-footer">
+          <button
+            type="button"
+            onClick={() => {
+              alert(
+                "Para obtener ayuda, comuníquese con el administrador del sistema."
+              );
+            }}
+          >
+            <span>?</span>
+            Ayuda
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              alert(
+                "Sistema de Gestión de Información Institucional - Campus Tecnológico de San José."
+              );
+            }}
+          >
+            <span>ⓘ</span>
+            Acerca del sistema
+          </button>
+        </div>
+      </aside>
+
+      {/* =====================================================
+          CONTENIDO PRINCIPAL
+      ===================================================== */}
+      <main className="login-main">
+        <div className="login-background-shape login-shape-1" />
+        <div className="login-background-shape login-shape-2" />
+
+        <section className="login-card">
+          {/* =================================================
+              COLUMNA IZQUIERDA
+          ================================================= */}
+          <div className="login-form-section">
+            {/* LOGO */}
+            <div className="login-brand">
+              <div className="login-brand-row">
+                <span className="tec-main-word">TEC</span>
+
+                <div className="tec-main-divider" />
+
+                <span className="tec-main-name">
+                  Tecnológico
+                  <br />
+                  de Costa Rica
+                </span>
+              </div>
+
+              <strong>
+                Campus Tecnológico de San José
+              </strong>
+            </div>
+
+            {/* TÍTULO */}
+            <div className="login-heading">
+              <h1>
+                Sistema de Gestión de
+                <br />
+                Información Institucional
+              </h1>
+
+              <p>
+                Accede a documentos, correspondencia,
+                <br />
+                procedimientos, formularios, noticias y servicios
+                <br />
+                institucionales del campus.
+              </p>
+            </div>
+
+            {/* =================================================
+                FORMULARIO
+            ================================================= */}
+            <form
+              onSubmit={handleSubmit}
+              className="login-form"
+            >
+              {/* CORREO */}
+              <label className="login-field">
+                <span className="login-field-icon">
+                  ✉
+                </span>
+
+                <div>
+                  <span className="login-field-label">
+                    Correo institucional
+                  </span>
+
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+
+                      if (error) {
+                        setError("");
+                      }
+                    }}
+                    placeholder="usuario@itcr.ac.cr"
+                    autoComplete="email"
+                    disabled={loading}
+                    required
+                  />
+                </div>
+              </label>
+
+              {/* CONTRASEÑA */}
+              <label className="login-field">
+                <span className="login-field-icon">
+                  🔒
+                </span>
+
+                <div className="password-field-content">
+                  <span className="login-field-label">
+                    Contraseña
+                  </span>
+
+                  <input
+                    type={
+                      showPassword
+                        ? "text"
+                        : "password"
+                    }
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+
+                      if (error) {
+                        setError("");
+                      }
+                    }}
+                    placeholder="••••••••••••"
+                    autoComplete="current-password"
+                    disabled={loading}
+                    required
+                  />
+                </div>
+
+                {/* Mostrar / ocultar contraseña */}
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() =>
+                    setShowPassword(
+                      (value) => !value
+                    )
+                  }
+                  disabled={loading}
+                  aria-label={
+                    showPassword
+                      ? "Ocultar contraseña"
+                      : "Mostrar contraseña"
+                  }
+                  title={
+                    showPassword
+                      ? "Ocultar contraseña"
+                      : "Mostrar contraseña"
+                  }
+                >
+                  {showPassword ? "◉" : "◌"}
+                </button>
+              </label>
+
+              {/* ERROR */}
+              {error && (
+                <div
+                  className="login-error"
+                  role="alert"
+                >
+                  {error}
+                </div>
+              )}
+
+              {/* INICIAR SESIÓN */}
+              <button
+                className="login-submit"
+                type="submit"
+                disabled={loading}
+              >
+                {loading
+                  ? "Ingresando..."
+                  : "Iniciar sesión"}
+              </button>
+
+              {/* RECUPERACIÓN */}
+              <button
+                type="button"
+                className="forgot-password"
+                disabled={loading}
+                onClick={() => {
+                  alert(
+                    "La recuperación de acceso se implementará posteriormente."
+                  );
+                }}
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
+            </form>
+          </div>
+
+          {/* =================================================
+              IMAGEN DEL CAMPUS
+          ================================================= */}
+          <div className="login-image-section">
+            <img
+              src="/campus-san-jose.jpg"
+              alt="Campus Tecnológico de San José"
+            />
+
+            <div className="login-image-overlay" />
+
+            <div className="login-image-message">
+              <h2>
+                Conocimiento
+                <br />
+                que conecta
+              </h2>
+
+              <div className="login-image-line" />
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
   );
 }
-
 
 /* =========================================================
    DASHBOARD
