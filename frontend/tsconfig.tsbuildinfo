@@ -1,0 +1,1 @@
+{"root":["./src/RoleGuard.tsx","./src/api.ts","./src/auth.tsx","./src/components.tsx","./src/layout.tsx","./src/main.tsx","./src/pages.tsx","./src/permissions.ts","./src/roles.ts","./src/vite-env.d.ts"],"version":"5.9.3"}
