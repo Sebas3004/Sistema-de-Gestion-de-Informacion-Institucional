@@ -517,6 +517,21 @@ export class RepositoryService {
     });
   }
 
+  async get(id: string) {
+    const document =
+      await this.repo.findOne({
+        where: { id },
+      });
+
+    if (!document) {
+      throw new NotFoundException(
+        'Documento no encontrado',
+      );
+    }
+
+    return document;
+  }
+
   async create(
     dto: any,
     current: any,

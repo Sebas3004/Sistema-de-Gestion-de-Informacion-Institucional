@@ -321,6 +321,19 @@ export class RepositoryController {
     return this.service.list();
   }
 
+  @Get(':id')
+  @Roles(
+  Role.ADMIN,
+  Role.EDITOR,
+  Role.CONSULTOR,
+  )
+  get(
+  @Param('id')
+  id: string,
+  ) {
+    return this.service.get(id);
+  }
+  
   @Post()
   @Roles(
     Role.ADMIN,
