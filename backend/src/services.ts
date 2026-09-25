@@ -517,26 +517,29 @@ export class RepositoryService {
     });
   }
 
-  async get(id: string) {
-    const document =
+  async get(
+    id: string,
+  ) {
+    const item =
       await this.repo.findOne({
         where: { id },
       });
 
-    if (!document) {
+    if (!item) {
       throw new NotFoundException(
         'Documento no encontrado',
       );
     }
 
-    return document;
+    return item;
   }
 
   async create(
     dto: any,
     current: any,
+    file?: any,
   ) {
-    const responsible =
+    let responsible =
       dto.responsibleId
         ? await this.users.findOne({
             where: {
@@ -546,28 +549,86 @@ export class RepositoryService {
           })
         : null;
 
+    if (!responsible) {
+      responsible =
+        await this.users.findOne({
+          where: {
+            id: current.sub,
+          },
+        });
+    }
+
     const entity:
       RepositoryDocument =
       this.repo.create({
-        ...dto,
+        name:
+          dto.name,
+        type:
+          dto.type || 'Otro',
+        category:
+          dto.category || 'Otros',
+        description:
+          dto.description || null,
+        version:
+          dto.version || null,
+        status:
+          dto.status || 'ACTIVO',
+        originalName:
+          file?.originalname || null,
+        storedName:
+          file?.filename || null,
+        mimeType:
+          file?.mimetype || null,
+        size:
+          file?.size || null,
         responsible,
       } as Partial<RepositoryDocument>);
 
-    const saved:
-      RepositoryDocument =
+    const saved =
       await this.repo.save(
         entity,
       );
 
     await this.audit.log(
       current.sub,
-      'CREACION',
+      file
+        ? 'CARGA'
+        : 'CREACION',
       'Repositorio',
       saved.id,
-      `Se creó ${saved.name}`,
+      file
+        ? `Se cargó ${file.originalname} como ${saved.name}`
+        : `Se creó ${saved.name}`,
     );
 
     return saved;
+  }
+
+  async prepareDownload(
+    id: string,
+    current: any,
+  ) {
+    const item =
+      await this.get(id);
+
+    if (
+      !item.storedName ||
+      !item.originalName
+    ) {
+      throw new NotFoundException(
+        'Este documento no tiene un archivo asociado',
+      );
+    }
+
+    await this.audit.log(
+      current.sub,
+      'DESCARGA',
+      'Repositorio',
+      item.id,
+      `Se descargó ${item.originalName}`,
+    );
+
+    return item;
   }
 
   async update(
@@ -586,13 +647,44 @@ export class RepositoryService {
       );
     }
 
-    Object.assign(
-      item,
-      dto,
-    );
+    item.name =
+      dto.name ?? item.name;
 
-    const saved:
-      RepositoryDocument =
+    item.type =
+      dto.type ?? item.type;
+
+    item.category =
+      dto.category ??
+      item.category;
+
+    item.description =
+      dto.description ??
+      item.description;
+
+    item.version =
+      dto.version ??
+      item.version;
+
+    item.status =
+      dto.status ??
+      item.status;
+
+    if (dto.responsibleId) {
+      const responsible =
+        await this.users.findOne({
+          where: {
+            id:
+              dto.responsibleId,
+          },
+        });
+
+      if (responsible) {
+        item.responsible =
+          responsible;
+      }
+    }
+
+    const saved =
       await this.repo.save(
         item,
       );

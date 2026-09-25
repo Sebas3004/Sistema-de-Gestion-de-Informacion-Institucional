@@ -74,6 +74,8 @@ export class RepositoryDocument {
   @Column({default:ContentStatus.ACTIVO}) status:string;
   @Column({nullable:true}) originalName:string;
   @Column({nullable:true}) storedName:string;
+  @Column({nullable:true}) mimeType:string;
+  @Column({type:'bigint',nullable:true}) size:number;
   @ManyToOne(()=>User,{eager:true,nullable:true}) responsible:User;
   @CreateDateColumn() createdAt:Date;
   @UpdateDateColumn() updatedAt:Date;
