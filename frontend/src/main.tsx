@@ -42,7 +42,6 @@ import {
   ProcedureDetail,
   Procedures,
   Repository,
-  RepositoryDetail,
   Users,
 } from './pages';
 
@@ -177,7 +176,7 @@ function App() {
                 ROLES.CONSULTOR,
               ]}
             >
-              <RepositoryDetail />
+              <Repository />
             </RoleGuard>
           }
         />
