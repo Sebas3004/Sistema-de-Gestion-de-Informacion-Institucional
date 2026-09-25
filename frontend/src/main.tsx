@@ -37,6 +37,8 @@ import {
   Login,
   NewCorrespondence,
   News,
+  NewProcedure,
+  EditProcedure,
   ProcedureDetail,
   Procedures,
   Repository,
@@ -196,6 +198,34 @@ function App() {
               ]}
             >
               <Procedures />
+            </RoleGuard>
+          }
+        />
+
+        <Route
+          path="procedimientos/nuevo"
+          element={
+            <RoleGuard
+              roles={[
+                ROLES.ADMIN,
+                ROLES.EDITOR,
+              ]}
+            >
+              <NewProcedure />
+            </RoleGuard>
+          }
+        />
+
+        <Route
+          path="procedimientos/:id/editar"
+          element={
+            <RoleGuard
+              roles={[
+                ROLES.ADMIN,
+                ROLES.EDITOR,
+              ]}
+            >
+              <EditProcedure />
             </RoleGuard>
           }
         />

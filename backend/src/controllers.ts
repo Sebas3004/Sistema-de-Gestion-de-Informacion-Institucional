@@ -410,9 +410,7 @@ export class ProcedureController {
     @Param('id')
     id: string,
   ) {
-    return this.service.get(
-      id,
-    );
+    return this.service.get(id);
   }
 
   @Post()
@@ -428,6 +426,28 @@ export class ProcedureController {
     request: any,
   ) {
     return this.service.create(
+      body,
+      request.user,
+    );
+  }
+
+  @Patch(':id')
+  @Roles(
+    Role.ADMIN,
+    Role.EDITOR,
+  )
+  update(
+    @Param('id')
+    id: string,
+
+    @Body()
+    body: any,
+
+    @Req()
+    request: any,
+  ) {
+    return this.service.update(
+      id,
       body,
       request.user,
     );
