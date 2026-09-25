@@ -125,6 +125,10 @@ export class AuthService {
       name: user.name,
       position: user.position,
       roles,
+      mustChangePassword:
+        Boolean(
+          user.mustChangePassword,
+        ),
     };
 
     const accessToken =
@@ -146,6 +150,10 @@ export class AuthService {
         position:
           user.position,
         roles,
+        mustChangePassword:
+          Boolean(
+            user.mustChangePassword,
+          ),
       },
     };
   }
@@ -161,6 +169,10 @@ export class JwtAuthGuard
 {
   constructor(
     private readonly jwt: JwtService,
+
+    @InjectRepository(User)
+    private readonly users:
+      Repository<User>,
   ) {}
 
   async canActivate(
@@ -204,8 +216,48 @@ export class JwtAuthGuard
        * Esto es lo que posteriormente
        * leen RolesGuard y los servicios.
        */
-      request.user =
-        payload;
+      const currentUser =
+        await this.users.findOne({
+          where: {
+            id: payload.sub,
+          },
+        });
+
+      if (
+        !currentUser ||
+        !currentUser.active ||
+        currentUser.deletedAt
+      ) {
+        throw new UnauthorizedException(
+          'Cuenta no disponible',
+        );
+      }
+
+      const isPasswordChangeRoute =
+        String(
+          request.originalUrl ||
+          request.url ||
+          '',
+        ).includes(
+          '/auth/change-password',
+        );
+
+      if (
+        currentUser.mustChangePassword &&
+        !isPasswordChangeRoute
+      ) {
+        throw new UnauthorizedException(
+          'PASSWORD_CHANGE_REQUIRED',
+        );
+      }
+
+      request.user = {
+        ...payload,
+        mustChangePassword:
+          Boolean(
+            currentUser.mustChangePassword,
+          ),
+      };
 
       return true;
     } catch {

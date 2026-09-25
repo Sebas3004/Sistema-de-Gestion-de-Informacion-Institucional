@@ -80,6 +80,8 @@ import {
 export class AuthController {
   constructor(
     private readonly auth: AuthService,
+    private readonly users:
+      UsersService,
   ) {}
 
   @Post('login')
@@ -94,6 +96,26 @@ export class AuthController {
       body.email,
       body.password,
     );
+  }
+
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  changePassword(
+    @Body()
+    body: {
+      currentPassword: string;
+      newPassword: string;
+    },
+
+    @Req()
+    request: any,
+  ) {
+    return this.users
+      .changeOwnPassword(
+        request.user,
+        body.currentPassword,
+        body.newPassword,
+      );
   }
 }
 
@@ -144,6 +166,61 @@ export class UsersController {
     return this.service.update(
       id,
       body,
+      request.user,
+    );
+  }
+
+  @Patch(':id/reset-password')
+  resetPassword(
+    @Param('id')
+    id: string,
+
+    @Body()
+    body: {
+      password?: string;
+    },
+
+    @Req()
+    request: any,
+  ) {
+    return this.service
+      .resetPassword(
+        id,
+        request.user,
+        body.password,
+      );
+  }
+
+  @Patch(':id/delete')
+  softDelete(
+    @Param('id')
+    id: string,
+
+    @Body()
+    body: {
+      reason: string;
+    },
+
+    @Req()
+    request: any,
+  ) {
+    return this.service.softDelete(
+      id,
+      body.reason,
+      request.user,
+    );
+  }
+
+  @Patch(':id/restore')
+  restore(
+    @Param('id')
+    id: string,
+
+    @Req()
+    request: any,
+  ) {
+    return this.service.restore(
+      id,
       request.user,
     );
   }

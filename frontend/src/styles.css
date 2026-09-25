@@ -3192,3 +3192,453 @@ td small {
     width: 100%;
   }
 }
+
+/* =========================================================
+   USUARIOS - ADMINISTRACIÓN DE ROLES
+========================================================= */
+
+.user-role-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.user-role-summary .card {
+  min-height: 105px;
+}
+
+.user-role-summary b {
+  display: block;
+  margin-bottom: 8px;
+  color: #173f6d;
+  font-size: 15px;
+}
+
+.user-role-summary p {
+  margin: 0;
+  color: #718399;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.user-management-message {
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border: 1px solid #bde1cc;
+  border-radius: 9px;
+  background: #eef9f2;
+  color: #267b51;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.users-table {
+  min-width: 1050px;
+}
+
+.users-table td strong {
+  display: block;
+  color: #244d72;
+}
+
+.user-current-account {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #eaf3fd;
+  color: #1961a4;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.user-role-description {
+  max-width: 280px;
+  line-height: 1.45;
+}
+
+.user-admin-actions {
+  min-width: 210px;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.user-admin-actions label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: #60758d;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.user-admin-actions select {
+  min-width: 135px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid #ccd9e5;
+  border-radius: 7px;
+  background: white;
+  color: #304d69;
+}
+
+.user-admin-actions select:disabled,
+.user-admin-actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.user-admin-actions .btn {
+  min-height: 36px;
+  padding: 0 11px;
+}
+
+.user-role-note {
+  margin-top: 14px;
+  color: #718399;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .user-role-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================================================
+   USUARIOS - EDICIÓN Y ELIMINACIÓN LÓGICA
+========================================================= */
+
+.user-edit-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.user-edit-header p {
+  margin: 0;
+  color: #718399;
+  font-size: 12px;
+}
+
+.user-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.user-delete-box {
+  border-left: 4px solid #c73c49;
+}
+
+.user-delete-box > p {
+  color: #5b6f84;
+}
+
+.user-delete-box label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #43617e;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.user-delete-box textarea {
+  width: 100%;
+  min-height: 110px;
+  padding: 11px 12px;
+  border: 1px solid #e3c1c5;
+  border-radius: 8px;
+  outline: 0;
+  resize: vertical;
+}
+
+.user-delete-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.btn.danger {
+  background: #c73c49;
+  border-color: #c73c49;
+  color: #fff !important;
+}
+
+.btn.danger:hover {
+  box-shadow: 0 7px 18px rgba(199, 60, 73, 0.2);
+}
+
+.user-row-deleted {
+  opacity: 0.72;
+  background: #fff8f8;
+}
+
+.user-deleted-label {
+  display: inline-block;
+  margin: 6px 0 0 7px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #fdebec;
+  color: #b83c47;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.user-deletion-reason {
+  max-width: 340px;
+  color: #a75f66 !important;
+  line-height: 1.45;
+}
+
+@media (max-width: 700px) {
+  .user-edit-header,
+  .user-delete-actions {
+    flex-direction: column;
+  }
+
+  .user-delete-actions .btn {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   USUARIOS - CREACIÓN Y CONTRASEÑAS TEMPORALES
+========================================================= */
+
+.user-password-mode {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 13px 14px;
+  border: 1px solid #dbe6ef;
+  border-radius: 9px;
+  background: #f8fbfe;
+}
+
+.user-password-mode > strong {
+  width: 100%;
+  color: #365978;
+  font-size: 13px;
+}
+
+.user-password-mode label {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+
+.user-password-mode input {
+  width: auto;
+}
+
+.temporary-credential-card {
+  border-left: 4px solid var(--success);
+}
+
+.temporary-credential-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.temporary-credential-header h2 {
+  margin: 10px 0 5px;
+}
+
+.temporary-credential-header p {
+  margin: 0;
+  color: #657b90;
+}
+
+.temporary-credential-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.temporary-credential-grid > div {
+  padding: 13px 14px;
+  border: 1px solid #dfe8f1;
+  border-radius: 9px;
+  background: #f8fbfe;
+}
+
+.temporary-credential-grid span {
+  display: block;
+  margin-bottom: 5px;
+  color: #718399;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.temporary-credential-grid strong {
+  color: #244d72;
+  overflow-wrap: anywhere;
+}
+
+.temporary-password-value {
+  grid-column: 1 / -1;
+}
+
+.temporary-password-value code {
+  display: inline-block;
+  padding: 9px 12px;
+  border: 1px dashed #8fb9dd;
+  border-radius: 7px;
+  background: white;
+  color: #073a70;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+}
+
+.temporary-credential-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.temporary-credential-card > small {
+  display: block;
+  margin-top: 12px;
+  color: #7a8b9e;
+  line-height: 1.5;
+}
+
+.user-temp-password-label {
+  display: inline-block;
+  margin: 6px 0 0 7px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #fff4df;
+  color: #9b6714;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* =========================================================
+   CAMBIO OBLIGATORIO DE CONTRASEÑA
+========================================================= */
+
+.password-change-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 30px;
+  background:
+    radial-gradient(
+      circle at 70% 15%,
+      #ffffff 0%,
+      #eef7ff 48%,
+      #e5f2fc 100%
+    );
+}
+
+.password-change-card {
+  width: min(520px, 100%);
+  padding: 36px;
+  border: 1px solid #d7e8f7;
+  border-radius: 14px;
+  background: white;
+  box-shadow:
+    0 18px 50px
+    rgba(36, 90, 140, 0.12);
+}
+
+.password-change-logo {
+  display: block;
+  width: 250px;
+  max-width: 100%;
+  margin-bottom: 24px;
+}
+
+.password-change-card h1 {
+  margin: 12px 0 8px;
+  color: #153d6b;
+}
+
+.password-change-card > p {
+  color: #60758d;
+  line-height: 1.55;
+}
+
+.password-change-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.password-change-form > label:not(.password-change-show) {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #43617e;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.password-change-form input[type="password"],
+.password-change-form input[type="text"] {
+  width: 100%;
+  min-height: 43px;
+  padding: 0 12px;
+  border: 1px solid #ccd9e5;
+  border-radius: 8px;
+  outline: none;
+  color: #304d69;
+}
+
+.password-change-form input:focus {
+  border-color: #3f8acb;
+  box-shadow:
+    0 0 0 3px
+    rgba(55, 133, 203, 0.09);
+}
+
+.password-change-show {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #60758d;
+  font-size: 12px;
+}
+
+@media (max-width: 700px) {
+  .temporary-credential-header {
+    flex-direction: column;
+  }
+
+  .temporary-credential-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .temporary-password-value {
+    grid-column: auto;
+  }
+
+  .temporary-credential-actions .btn {
+    width: 100%;
+  }
+
+  .password-change-page {
+    padding: 15px;
+  }
+
+  .password-change-card {
+    padding: 25px 20px;
+  }
+}
