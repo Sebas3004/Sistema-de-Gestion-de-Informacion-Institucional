@@ -1907,7 +1907,18 @@ export function Repository() {
             l: 'Estado',
 
           },
-
+          {
+            k: 'actions',
+            l: 'Acciones',
+            render: (x: any) => (
+            <Link
+              className="btn secondary"
+              to={`/repositorio/${x.id}`}
+            >
+              Ver
+              </Link>
+              ),
+            },
         ]}
 
       />
@@ -1917,6 +1928,145 @@ export function Repository() {
   );
 
 }
+
+export function RepositoryDetail() {
+  const { id } = useParams();
+  const [document, setDocument] =
+    useState<any>(null);
+  const [loading, setLoading] =
+    useState(true);
+  const [error, setError] =
+    useState('');
+
+  useEffect(() => {
+    if (!id) {
+      setError('Documento no encontrado.');
+      setLoading(false);
+      return;
+    }
+
+    api
+      .get(`/repository/${id}`)
+      .then((response) => {
+        setDocument(response.data);
+      })
+      .catch((requestError) => {
+        console.error(
+          'Error al consultar el documento:',
+          requestError,
+        );
+        setError(
+          'No se pudo encontrar el documento solicitado.',
+        );
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [id]);
+
+  if (loading) {
+    return (
+      <Empty text="Cargando documento..." />
+    );
+  }
+
+  if (error || !document) {
+    return (
+      <>
+        <Empty
+          text={
+            error ||
+            'Documento no encontrado.'
+          }
+        />
+
+        <Link
+          className="btn secondary"
+          to="/repositorio"
+        >
+          Volver al repositorio
+        </Link>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="titlebar">
+        <div>
+          <h1>Detalle del documento</h1>
+          <p>
+            Información institucional del
+            repositorio documental.
+          </p>
+        </div>
+
+        <Link
+          className="btn secondary"
+          to="/repositorio"
+        >
+          Volver al repositorio
+        </Link>
+      </div>
+
+      <Card>
+        <h2>{document.name}</h2>
+
+        <p>
+          {document.description ||
+            'Sin descripción disponible.'}
+        </p>
+
+        <div className="grid2">
+          <div>
+            <p>
+              <strong>Tipo:</strong>{' '}
+              {document.type || '-'}
+            </p>
+
+            <p>
+              <strong>Categoría:</strong>{' '}
+              {document.category || '-'}
+            </p>
+
+            <p>
+              <strong>Responsable:</strong>{' '}
+              {document.responsible?.name ||
+                '-'}
+            </p>
+          </div>
+
+          <div>
+            <p>
+              <strong>Versión:</strong>{' '}
+              {document.version || '-'}
+            </p>
+
+            <p>
+              <strong>Estado:</strong>{' '}
+              {document.status || '-'}
+            </p>
+
+            <p>
+              <strong>
+                Última actualización:
+              </strong>{' '}
+              {document.updatedAt
+                ? new Date(
+                    document.updatedAt,
+                  ).toLocaleDateString(
+                    'es-CR',
+                  )
+                : '-'}
+            </p>
+          </div>
+        </div>
+      </Card>
+    </>
+  );
+}
+
+
 
 
 
