@@ -2996,3 +2996,199 @@ td small {
   }
 
 }
+
+/* =========================================================
+   PROCEDIMIENTOS - RECURSOS RELACIONADOS
+========================================================= */
+
+.procedure-resource-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.procedure-resource-selector {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid #dfe8f1;
+  border-radius: 10px;
+  background: #f8fbfe;
+}
+
+.procedure-resource-selector-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 13px;
+}
+
+.procedure-resource-selector-header h3 {
+  margin: 0 0 5px;
+  color: #214970;
+  font-size: 15px;
+}
+
+.procedure-resource-selector-header p {
+  margin: 0;
+  color: #718399;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.procedure-resource-options {
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 4px;
+}
+
+.procedure-resource-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid #dfe8f1;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.procedure-resource-option:hover {
+  border-color: #a9c9e5;
+  background: #f7fbff;
+}
+
+.procedure-resource-option input {
+  margin-top: 3px;
+}
+
+.procedure-resource-option span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.procedure-resource-option strong {
+  color: #315775;
+  font-size: 13px;
+}
+
+.procedure-resource-option small {
+  color: #8091a2;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.procedure-resource-empty {
+  margin: 0;
+  color: #7a8b9e;
+  font-size: 13px;
+}
+
+.procedure-links-editor {
+  margin-top: 18px;
+}
+
+.procedure-related-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.procedure-related-resource {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 13px;
+  border: 1px solid #e1eaf2;
+  border-radius: 9px;
+  background: #f8fbfe;
+}
+
+.procedure-related-resource > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.procedure-related-resource strong {
+  color: #2b5379;
+  font-size: 13px;
+}
+
+.procedure-related-resource small {
+  color: #8292a4;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.procedure-related-resource .btn {
+  flex-shrink: 0;
+  min-height: 35px;
+  padding: 0 12px;
+}
+
+.procedure-related-subtitle {
+  margin-top: 24px;
+}
+
+@media (max-width: 900px) {
+  .procedure-resource-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .procedure-resource-selector-header,
+  .procedure-related-resource {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .procedure-related-resource .btn {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   PROCEDIMIENTOS - ACCIONES DE DETALLE / DESCARGA ZIP
+========================================================= */
+
+.procedure-detail-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.procedure-detail-actions .btn {
+  white-space: nowrap;
+}
+
+.procedure-detail-actions button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+  transform: none;
+}
+
+@media (max-width: 700px) {
+  .procedure-detail-actions {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .procedure-detail-actions .btn {
+    width: 100%;
+  }
+}

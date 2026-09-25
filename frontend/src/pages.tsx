@@ -2476,8 +2476,8 @@ type ProcedureFormState = {
   requirements: string;
   steps: ProcedureStepForm[];
   links: string;
-  relatedForms: string;
-  relatedDocuments: string;
+  relatedFormIds: string[];
+  relatedDocumentIds: string[];
 };
 
 function emptyProcedureForm(): ProcedureFormState {
@@ -2500,8 +2500,8 @@ function emptyProcedureForm(): ProcedureFormState {
       },
     ],
     links: '',
-    relatedForms: '',
-    relatedDocuments: '',
+    relatedFormIds: [],
+    relatedDocumentIds: [],
   };
 }
 
@@ -2584,12 +2584,16 @@ function procedurePayload(
     links:
       parseLinks(f.links),
     relatedForms:
-      parseLabels(
-        f.relatedForms,
+      f.relatedFormIds.map(
+        (formId) => ({
+          formId,
+        }),
       ),
     relatedDocuments:
-      parseLabels(
-        f.relatedDocuments,
+      f.relatedDocumentIds.map(
+        (documentId) => ({
+          documentId,
+        }),
       ),
   };
 }
@@ -2975,6 +2979,8 @@ function ProcedureForm({
   title,
   submitText,
   onSubmit,
+  backPath = '/procedimientos',
+  backLabel = 'Volver',
 }: {
   initial: ProcedureFormState;
   title: string;
@@ -2982,6 +2988,8 @@ function ProcedureForm({
   onSubmit: (
     form: ProcedureFormState,
   ) => Promise<void>;
+  backPath?: string;
+  backLabel?: string;
 }) {
   const nav =
     useNavigate();
@@ -2991,6 +2999,63 @@ function ProcedureForm({
 
   const [saving, setSaving] =
     useState(false);
+
+  const [repositoryDocuments, setRepositoryDocuments] =
+    useState<any[]>([]);
+
+  const [institutionalForms, setInstitutionalForms] =
+    useState<any[]>([]);
+
+  useEffect(() => {
+    Promise.all([
+      api.get('/repository'),
+      api.get('/forms'),
+    ])
+      .then(([documentsResponse, formsResponse]) => {
+        setRepositoryDocuments(documentsResponse.data);
+        setInstitutionalForms(formsResponse.data);
+      })
+      .catch((error) => {
+        console.error(
+          'Error cargando recursos relacionados:',
+          error,
+        );
+      });
+  }, []);
+
+  const toggleDocument = (
+    documentId: string,
+  ) => {
+    setF((current) => ({
+      ...current,
+      relatedDocumentIds:
+        current.relatedDocumentIds.includes(documentId)
+          ? current.relatedDocumentIds.filter(
+              (id) => id !== documentId,
+            )
+          : [
+              ...current.relatedDocumentIds,
+              documentId,
+            ],
+    }));
+  };
+
+  const toggleForm = (
+    formId: string,
+  ) => {
+    setF((current) => ({
+      ...current,
+      relatedFormIds:
+        current.relatedFormIds.includes(formId)
+          ? current.relatedFormIds.filter(
+              (id) => id !== formId,
+            )
+          : [
+              ...current.relatedFormIds,
+              formId,
+            ],
+    }));
+  };
 
   const addStep = () => {
     setF({
@@ -3063,10 +3128,10 @@ function ProcedureForm({
           className="btn secondary"
           type="button"
           onClick={() =>
-            nav('/procedimientos')
+            nav(backPath)
           }
         >
-          Volver
+          {backLabel}
         </button>
       </div>
 
@@ -3353,41 +3418,103 @@ function ProcedureForm({
             Recursos relacionados
           </h2>
 
-          <div className="form">
-            <label className="full">
-              Documentos relacionados
-              <textarea
-                value={
-                  f.relatedDocuments
-                }
-                onChange={(e) =>
-                  setF({
-                    ...f,
-                    relatedDocuments:
-                      e.target.value,
-                  })
-                }
-                placeholder="Un documento por línea"
-              />
-            </label>
+          <div className="procedure-resource-grid">
+            <div className="procedure-resource-selector">
+              <div className="procedure-resource-selector-header">
+                <div>
+                  <h3>Documentos del repositorio</h3>
+                  <p>
+                    Seleccione los documentos que forman parte de este procedimiento.
+                  </p>
+                </div>
 
-            <label className="full">
-              Formularios relacionados
-              <textarea
-                value={
-                  f.relatedForms
-                }
-                onChange={(e) =>
-                  setF({
-                    ...f,
-                    relatedForms:
-                      e.target.value,
-                  })
-                }
-                placeholder="Un formulario por línea"
-              />
-            </label>
+                <Badge>
+                  {f.relatedDocumentIds.length} seleccionado(s)
+                </Badge>
+              </div>
 
+              {repositoryDocuments.length ? (
+                <div className="procedure-resource-options">
+                  {repositoryDocuments.map((document: any) => (
+                    <label
+                      className="procedure-resource-option"
+                      key={document.id}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={f.relatedDocumentIds.includes(document.id)}
+                        onChange={() =>
+                          toggleDocument(document.id)
+                        }
+                      />
+
+                      <span>
+                        <strong>{document.name}</strong>
+                        <small>
+                          {document.originalName ||
+                            document.type ||
+                            'Documento'}
+                        </small>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p className="procedure-resource-empty">
+                  No hay documentos registrados en el repositorio.
+                </p>
+              )}
+            </div>
+
+            <div className="procedure-resource-selector">
+              <div className="procedure-resource-selector-header">
+                <div>
+                  <h3>Formularios institucionales</h3>
+                  <p>
+                    Seleccione los formularios necesarios para completar el trámite.
+                  </p>
+                </div>
+
+                <Badge>
+                  {f.relatedFormIds.length} seleccionado(s)
+                </Badge>
+              </div>
+
+              {institutionalForms.length ? (
+                <div className="procedure-resource-options">
+                  {institutionalForms.map((form: any) => (
+                    <label
+                      className="procedure-resource-option"
+                      key={form.id}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={f.relatedFormIds.includes(form.id)}
+                        onChange={() =>
+                          toggleForm(form.id)
+                        }
+                      />
+
+                      <span>
+                        <strong>{form.name}</strong>
+                        <small>
+                          {form.originalName ||
+                            form.format ||
+                            'Formulario'}
+                        </small>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p className="procedure-resource-empty">
+                  No hay formularios registrados.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="form procedure-links-editor">
             <label className="full">
               Enlaces externos
               <textarea
@@ -3410,7 +3537,7 @@ function ProcedureForm({
             className="btn secondary"
             type="button"
             onClick={() =>
-              nav('/procedimientos')
+              nav(backPath)
             }
           >
             Cancelar
@@ -3546,28 +3673,28 @@ export function EditProcedure() {
                   )
                   .join('\n')
               : '',
-          relatedForms:
+          relatedFormIds:
             Array.isArray(
               x.relatedForms,
             )
               ? x.relatedForms
                   .map(
-                    (f: any) =>
-                      f.label,
+                    (form: any) =>
+                      form.formId,
                   )
-                  .join('\n')
-              : '',
-          relatedDocuments:
+                  .filter(Boolean)
+              : [],
+          relatedDocumentIds:
             Array.isArray(
               x.relatedDocuments,
             )
               ? x.relatedDocuments
                   .map(
-                    (d: any) =>
-                      d.label,
+                    (document: any) =>
+                      document.documentId,
                   )
-                  .join('\n')
-              : '',
+                  .filter(Boolean)
+              : [],
         });
       });
   }, [id]);
@@ -3583,6 +3710,8 @@ export function EditProcedure() {
       initial={initial}
       title="Editar procedimiento"
       submitText="Guardar cambios"
+      backPath={`/procedimientos/${id}`}
+      backLabel="Volver al procedimiento"
       onSubmit={async (f) => {
         await api.patch(
           `/procedures/${id}`,
@@ -3607,11 +3736,31 @@ export function ProcedureDetail() {
   const [x, setX] =
     useState<any>();
 
+  const [repositoryDocuments, setRepositoryDocuments] =
+    useState<any[]>([]);
+
+  const [institutionalForms, setInstitutionalForms] =
+    useState<any[]>([]);
+
+  const [downloadingAll, setDownloadingAll] =
+    useState(false);
+
   useEffect(() => {
-    api
-      .get('/procedures/' + id)
-      .then((r) =>
-        setX(r.data),
+    Promise.all([
+      api.get('/procedures/' + id),
+      api.get('/repository'),
+      api.get('/forms'),
+    ])
+      .then(
+        ([
+          procedureResponse,
+          documentsResponse,
+          formsResponse,
+        ]) => {
+          setX(procedureResponse.data);
+          setRepositoryDocuments(documentsResponse.data);
+          setInstitutionalForms(formsResponse.data);
+        },
       )
       .catch((error) => {
         console.error(
@@ -3642,6 +3791,179 @@ export function ProcedureDetail() {
         )
       : [];
 
+  const relatedDocuments =
+    Array.isArray(x.relatedDocuments)
+      ? x.relatedDocuments
+          .map((relation: any) => {
+            const document =
+              repositoryDocuments.find(
+                (item) =>
+                  item.id === relation.documentId,
+              );
+
+            return document
+              ? {
+                  ...document,
+                  relationLabel: relation.label,
+                }
+              : relation.documentId
+              ? null
+              : {
+                  id: null,
+                  name:
+                    relation.label ||
+                    'Documento relacionado',
+                  originalName: null,
+                  storedName: null,
+                };
+          })
+          .filter(Boolean)
+      : [];
+
+  const relatedForms =
+    Array.isArray(x.relatedForms)
+      ? x.relatedForms
+          .map((relation: any) => {
+            const form =
+              institutionalForms.find(
+                (item) =>
+                  item.id === relation.formId,
+              );
+
+            return form
+              ? {
+                  ...form,
+                  relationLabel: relation.label,
+                }
+              : relation.formId
+              ? null
+              : {
+                  id: null,
+                  name:
+                    relation.label ||
+                    'Formulario relacionado',
+                  originalName: null,
+                  storedName: null,
+                };
+          })
+          .filter(Boolean)
+      : [];
+
+  const downloadRelatedResource = async (
+    endpoint: string,
+    fileName: string,
+  ) => {
+    try {
+      const response =
+        await api.get(endpoint, {
+          responseType: 'blob',
+        });
+
+      const url =
+        URL.createObjectURL(
+          response.data,
+        );
+
+      const anchor =
+        document.createElement('a');
+
+      anchor.href = url;
+      anchor.download = fileName;
+
+      document.body.appendChild(
+        anchor,
+      );
+
+      anchor.click();
+      anchor.remove();
+
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(
+        'Error descargando recurso relacionado:',
+        error,
+      );
+
+      alert(
+        'No se pudo descargar el recurso.',
+      );
+    }
+  };
+
+  const downloadableResources =
+    [
+      ...relatedDocuments,
+      ...relatedForms,
+    ].filter(
+      (resource: any) =>
+        resource.id &&
+        resource.storedName,
+    );
+
+  const downloadAllResources =
+    async () => {
+      if (
+        !downloadableResources.length
+      ) {
+        alert(
+          'No hay archivos relacionados disponibles para descargar.',
+        );
+        return;
+      }
+
+      try {
+        setDownloadingAll(true);
+
+        const response =
+          await api.get(
+            `/procedures/${id}/resources/download-all`,
+            {
+              responseType:
+                'blob',
+            },
+          );
+
+        const url =
+          URL.createObjectURL(
+            response.data,
+          );
+
+        const anchor =
+          document.createElement(
+            'a',
+          );
+
+        anchor.href = url;
+
+        anchor.download =
+          `${x.code || 'procedimiento'}-recursos.zip`;
+
+        document.body
+          .appendChild(
+            anchor,
+          );
+
+        anchor.click();
+        anchor.remove();
+
+        URL.revokeObjectURL(
+          url,
+        );
+      } catch (error) {
+        console.error(
+          'Error descargando recursos en ZIP:',
+          error,
+        );
+
+        alert(
+          'No se pudieron descargar todos los recursos.',
+        );
+      } finally {
+        setDownloadingAll(false);
+      }
+    };
+
+
   return (
     <>
       <div className="titlebar">
@@ -3657,14 +3979,40 @@ export function ProcedureDetail() {
           </p>
         </div>
 
-        {canManage && (
+        <div className="procedure-detail-actions">
           <Link
-            className="btn"
-            to={`/procedimientos/${x.id}/editar`}
+            className="btn secondary"
+            to="/procedimientos"
           >
-            Editar procedimiento
+            ← Volver
           </Link>
-        )}
+
+          {downloadableResources.length > 0 && (
+            <button
+              type="button"
+              className="btn secondary"
+              onClick={
+                downloadAllResources
+              }
+              disabled={
+                downloadingAll
+              }
+            >
+              {downloadingAll
+                ? 'Generando ZIP...'
+                : 'Descargar todos (.zip)'}
+            </button>
+          )}
+
+          {canManage && (
+            <Link
+              className="btn"
+              to={`/procedimientos/${x.id}/editar`}
+            >
+              Editar procedimiento
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="procedure-detail-summary">
@@ -3806,38 +4154,103 @@ export function ProcedureDetail() {
             Documentos relacionados
           </h2>
 
-          {x.relatedDocuments?.length ? (
-            x.relatedDocuments.map(
-              (d: any) => (
-                <div
-                  className="row"
-                  key={d.label}
-                >
-                  {d.label}
-                </div>
-              ),
-            )
+          {relatedDocuments.length ? (
+            <div className="procedure-related-list">
+              {relatedDocuments.map(
+                (document: any, index: number) => (
+                  <div
+                    className="procedure-related-resource"
+                    key={
+                      document.id ||
+                      `${document.name}-${index}`
+                    }
+                  >
+                    <div>
+                      <strong>
+                        {document.name ||
+                          document.relationLabel}
+                      </strong>
+
+                      <small>
+                        {document.originalName ||
+                          'Referencia registrada'}
+                      </small>
+                    </div>
+
+                    {document.id &&
+                      document.storedName && (
+                      <button
+                        type="button"
+                        className="btn secondary"
+                        onClick={() =>
+                          downloadRelatedResource(
+                            `/repository/${document.id}/download`,
+                            document.originalName ||
+                              document.name,
+                          )
+                        }
+                      >
+                        Descargar
+                      </button>
+                    )}
+                  </div>
+                ),
+              )}
+            </div>
           ) : (
             <p>
               No hay documentos relacionados.
             </p>
           )}
 
-          <h2>
+          <h2 className="procedure-related-subtitle">
             Formularios relacionados
           </h2>
 
-          {x.relatedForms?.length ? (
-            x.relatedForms.map(
-              (f: any) => (
-                <div
-                  className="row"
-                  key={f.label}
-                >
-                  {f.label}
-                </div>
-              ),
-            )
+          {relatedForms.length ? (
+            <div className="procedure-related-list">
+              {relatedForms.map(
+                (form: any, index: number) => (
+                  <div
+                    className="procedure-related-resource"
+                    key={
+                      form.id ||
+                      `${form.name}-${index}`
+                    }
+                  >
+                    <div>
+                      <strong>
+                        {form.name ||
+                          form.relationLabel}
+                      </strong>
+
+                      <small>
+                        {form.originalName ||
+                          form.format ||
+                          'Referencia registrada'}
+                      </small>
+                    </div>
+
+                    {form.id &&
+                      form.storedName && (
+                      <button
+                        type="button"
+                        className="btn secondary"
+                        onClick={() =>
+                          downloadRelatedResource(
+                            `/forms/${form.id}/download`,
+                            form.originalName ||
+                              form.name,
+                          )
+                        }
+                      >
+                        Descargar
+                      </button>
+                    )}
+                  </div>
+                ),
+              )}
+            </div>
           ) : (
             <p>
               No hay formularios relacionados.

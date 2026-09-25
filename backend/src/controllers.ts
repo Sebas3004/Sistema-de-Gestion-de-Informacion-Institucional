@@ -30,6 +30,8 @@ import {
   mkdirSync,
 } from 'fs';
 
+import archiver = require('archiver');
+
 /* =========================================================
    AUTENTICACIÓN
 ========================================================= */
@@ -524,6 +526,12 @@ export class ProcedureController {
   constructor(
     private readonly service:
       ProcedureService,
+
+    private readonly repositoryService:
+      RepositoryService,
+
+    private readonly formsService:
+      FormsService,
   ) {}
 
   @Get()
@@ -535,6 +543,266 @@ export class ProcedureController {
   list() {
     return this.service.list();
   }
+
+  @Get(':id/resources/download-all')
+  @Roles(
+    Role.ADMIN,
+    Role.EDITOR,
+    Role.CONSULTOR,
+  )
+  async downloadAllResources(
+    @Param('id')
+    id: string,
+
+    @Req()
+    request: any,
+
+    @Res()
+    response: any,
+  ) {
+    const procedure =
+      await this.service.get(id);
+
+    const directory =
+      process.env.UPLOAD_DIR ||
+      './uploads';
+
+    const files: Array<{
+      sourcePath: string;
+      zipPath: string;
+      kind: 'repository' | 'form';
+      id: string;
+    }> = [];
+
+    const safeName = (
+      value: string,
+    ) =>
+      value
+        .replace(/[<>:"/\\|?*\x00-\x1F]/g, '_')
+        .trim() ||
+      'archivo';
+
+    const documentRelations =
+      Array.isArray(
+        procedure.relatedDocuments,
+      )
+        ? procedure.relatedDocuments
+        : [];
+
+    for (
+      let index = 0;
+      index <
+      documentRelations.length;
+      index += 1
+    ) {
+      const relation =
+        documentRelations[index];
+
+      if (!relation?.documentId) {
+        continue;
+      }
+
+      try {
+        const document =
+          await this.repositoryService.get(
+            relation.documentId,
+          );
+
+        if (
+          !document.storedName ||
+          !document.originalName
+        ) {
+          continue;
+        }
+
+        const sourcePath =
+          join(
+            directory,
+            document.storedName,
+          );
+
+        if (!existsSync(sourcePath)) {
+          continue;
+        }
+
+        files.push({
+          sourcePath,
+          zipPath:
+            `documentos/${index + 1}-` +
+            safeName(
+              document.originalName,
+            ),
+          kind: 'repository',
+          id: document.id,
+        });
+      } catch {
+        // Si un recurso fue eliminado o ya no existe,
+        // simplemente no se incluye en el ZIP.
+      }
+    }
+
+    const formRelations =
+      Array.isArray(
+        procedure.relatedForms,
+      )
+        ? procedure.relatedForms
+        : [];
+
+    for (
+      let index = 0;
+      index <
+      formRelations.length;
+      index += 1
+    ) {
+      const relation =
+        formRelations[index];
+
+      if (!relation?.formId) {
+        continue;
+      }
+
+      try {
+        const form =
+          await this.formsService.get(
+            relation.formId,
+          );
+
+        if (
+          !form.storedName ||
+          !form.originalName
+        ) {
+          continue;
+        }
+
+        const sourcePath =
+          join(
+            directory,
+            form.storedName,
+          );
+
+        if (!existsSync(sourcePath)) {
+          continue;
+        }
+
+        files.push({
+          sourcePath,
+          zipPath:
+            `formularios/${index + 1}-` +
+            safeName(
+              form.originalName,
+            ),
+          kind: 'form',
+          id: form.id,
+        });
+      } catch {
+        // Recurso inexistente: se omite.
+      }
+    }
+
+    if (!files.length) {
+      return response
+        .status(404)
+        .json({
+          message:
+            'No hay archivos relacionados disponibles para descargar',
+        });
+    }
+
+    // Registra las descargas individuales para conservar
+    // auditoría y contador de formularios.
+    for (const file of files) {
+      if (
+        file.kind ===
+        'repository'
+      ) {
+        await this.repositoryService
+          .prepareDownload(
+            file.id,
+            request.user,
+          );
+      } else {
+        await this.formsService
+          .prepareDownload(
+            file.id,
+            request.user,
+          );
+      }
+    }
+
+    await this.service
+      .logResourcesZipDownload(
+        id,
+        request.user,
+        files.length,
+      );
+
+    const zipBaseName =
+      safeName(
+        procedure.code ||
+        procedure.name ||
+        'procedimiento',
+      );
+
+    response.setHeader(
+      'Content-Type',
+      'application/zip',
+    );
+
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${zipBaseName}-recursos.zip"`,
+    );
+
+    const archive =
+      archiver(
+        'zip',
+        {
+          zlib: {
+            level: 9,
+          },
+        },
+      );
+
+    archive.on(
+      'error',
+      (error) => {
+        console.error(
+          'Error generando ZIP:',
+          error,
+        );
+
+        if (
+          !response.headersSent
+        ) {
+          response
+            .status(500)
+            .json({
+              message:
+                'No se pudo generar el archivo ZIP',
+            });
+        } else {
+          response.end();
+        }
+      },
+    );
+
+    archive.pipe(response);
+
+    files.forEach(
+      (file) => {
+        archive.file(
+          file.sourcePath,
+          {
+            name:
+              file.zipPath,
+          },
+        );
+      },
+    );
+
+    await archive.finalize();
+  }
+
 
   @Get(':id')
   @Roles(
