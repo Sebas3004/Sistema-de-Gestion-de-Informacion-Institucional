@@ -96,7 +96,7 @@ export class Procedure {
   @Column('simple-array',{nullable:true}) requirements:string[];
   @OneToMany(()=>ProcedureStep,s=>s.procedure,{cascade:true,eager:true}) steps:ProcedureStep[];
   @Column('simple-json',{nullable:true}) links:{label:string,url:string}[];
-  @Column('simple-json',{nullable:true}) relatedForms:{label:string,url?:string}[];
+  @Column('simple-json',{nullable:true}) relatedForms:{label:string,formId?:string,url?:string}[];
   @Column('simple-json',{nullable:true}) relatedDocuments:{label:string,documentId?:string}[];
   @CreateDateColumn() createdAt:Date;
   @UpdateDateColumn() updatedAt:Date;

@@ -807,6 +807,26 @@ export class ProcedureService {
     return saved;
   }
 
+  async logResourcesZipDownload(
+    id: string,
+    current: any,
+    fileCount: number,
+  ) {
+    const item =
+      await this.get(id);
+
+    await this.audit.log(
+      current.sub,
+      'DESCARGA_ZIP',
+      'Procedimiento',
+      item.id,
+      `Se descargaron ${fileCount} recurso(s) relacionados en ZIP`,
+    );
+
+    return item;
+  }
+
+
   async update(
     id: string,
     dto: any,
