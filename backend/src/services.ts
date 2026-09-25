@@ -923,104 +923,65 @@ export class ProcedureService {
 @Injectable()
 export class FormsService {
   constructor(
-    @InjectRepository(
-      InstitutionalForm,
-    )
-    private repo:
-      Repository<InstitutionalForm>,
-
+    @InjectRepository(InstitutionalForm)
+    private repo: Repository<InstitutionalForm>,
     @InjectRepository(User)
-    private users:
-      Repository<User>,
-
-    private audit:
-      AuditService,
+    private users: Repository<User>,
+    private audit: AuditService,
   ) {}
 
   list() {
-    return this.repo.find({
-      order: {
-        updatedAt:
-          'DESC',
-      },
-    });
+    return this.repo.find({ order: { updatedAt: 'DESC' } });
   }
 
-  async create(
-    dto: any,
-    current: any,
-  ) {
-    const user =
-      await this.users.findOne({
-        where: {
-          id:
-            current.sub,
-        },
-      });
+  async get(id: string) {
+    const form = await this.repo.findOne({ where: { id } });
+    if (!form) throw new NotFoundException('Formulario no encontrado');
+    return form;
+  }
 
-    if (!user) {
-      throw new NotFoundException(
-        'Usuario no encontrado',
-      );
-    }
-
-    const entity:
-      InstitutionalForm =
-      this.repo.create({
-        ...dto,
-        createdBy: user,
-        updatedBy: user,
-      } as Partial<InstitutionalForm>);
-
-    const saved:
-      InstitutionalForm =
-      await this.repo.save(
-        entity,
-      );
-
-    await this.audit.log(
-      current.sub,
-      'CREACION',
-      'Formulario',
-      saved.id,
-      `Se creó ${saved.name}`,
-    );
-
+  async create(dto: any, current: any, file?: any) {
+    const user = await this.users.findOne({ where: { id: current.sub } });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    const format = dto.format || file?.originalname?.split('.').pop()?.toUpperCase() || 'ARCHIVO';
+    const entity = this.repo.create({
+      name: dto.name,
+      description: dto.description || null,
+      category: dto.category || 'Otros',
+      format,
+      originalName: file?.originalname || null,
+      storedName: file?.filename || null,
+      mimeType: file?.mimetype || null,
+      size: file?.size || null,
+      createdBy: user,
+      updatedBy: user,
+    } as Partial<InstitutionalForm>);
+    const saved = await this.repo.save(entity);
+    await this.audit.log(current.sub, file ? 'CARGA' : 'CREACION', 'Formulario', saved.id, file ? `Se cargó ${file.originalname} como ${saved.name}` : `Se creó ${saved.name}`);
     return saved;
   }
 
-  async download(
-    id: string,
-    current: any,
-  ) {
-    const form =
-      await this.repo.findOne({
-        where: { id },
-      });
-
-    if (!form) {
-      throw new NotFoundException(
-        'Formulario no encontrado',
-      );
-    }
-
-    form.downloads =
-      (form.downloads ?? 0) + 1;
-
-    const saved =
-      await this.repo.save(
-        form,
-      );
-
-    await this.audit.log(
-      current.sub,
-      'DESCARGA',
-      'Formulario',
-      id,
-      `Se descargó ${saved.name}`,
-    );
-
+  async update(id: string, dto: any, current: any) {
+    const form = await this.get(id);
+    const user = await this.users.findOne({ where: { id: current.sub } });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    form.name = dto.name ?? form.name;
+    form.description = dto.description ?? form.description;
+    form.category = dto.category ?? form.category;
+    form.format = dto.format ?? form.format;
+    form.updatedBy = user;
+    const saved = await this.repo.save(form);
+    await this.audit.log(current.sub, 'ACTUALIZACION', 'Formulario', saved.id, `Se actualizó ${saved.name}`);
     return saved;
+  }
+
+  async prepareDownload(id: string, current: any) {
+    const form = await this.get(id);
+    if (!form.storedName || !form.originalName) throw new NotFoundException('Este formulario no tiene un archivo asociado');
+    form.downloads = (form.downloads ?? 0) + 1;
+    await this.repo.save(form);
+    await this.audit.log(current.sub, 'DESCARGA', 'Formulario', id, `Se descargó ${form.originalName}`);
+    return form;
   }
 }
 

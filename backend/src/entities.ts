@@ -120,6 +120,8 @@ export class InstitutionalForm {
   @Column() format:string;
   @Column({nullable:true}) originalName:string;
   @Column({nullable:true}) storedName:string;
+  @Column({nullable:true}) mimeType:string;
+  @Column({type:'bigint',nullable:true}) size:number;
   @ManyToOne(()=>User,{eager:true,nullable:true}) createdBy:User;
   @ManyToOne(()=>User,{eager:true,nullable:true}) updatedBy:User;
   @Column({default:0}) downloads:number;
