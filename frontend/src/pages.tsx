@@ -1832,95 +1832,624 @@ function SimpleTable({
 
 
 /* =========================================================
-
    REPOSITORIO
+========================================================= */
 
-\========================================================= */
+function formatFileSize(
+  value?: number | string | null,
+) {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return '-';
+  }
 
+  const bytes =
+    Number(value);
 
+  if (
+    Number.isNaN(bytes) ||
+    bytes <= 0
+  ) {
+    return '-';
+  }
 
-export function Repository() {
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
 
-  return (
+  if (
+    bytes <
+    1024 * 1024
+  ) {
+    return `${(
+      bytes / 1024
+    ).toFixed(1)} KB`;
+  }
 
-    <>
-
-      <h1>Repositorio documental</h1>
-
-
-
-      <p>
-
-        Documentos institucionales de consulta del Campus
-
-        Tecnológico de San José.
-
-      </p>
-
-
-
-      <SimpleTable
-
-        endpoint="/repository"
-
-        columns={[
-
-          {
-
-            k: 'name',
-
-            l: 'Nombre',
-
-          },
-
-          {
-
-            k: 'type',
-
-            l: 'Tipo',
-
-          },
-
-          {
-
-            k: 'category',
-
-            l: 'Categoría',
-
-          },
-
-          {
-
-            k: 'responsible',
-
-            l: 'Responsable',
-
-            render: (x: any) =>
-
-              x.responsible?.name ?? '-',
-
-          },
-
-          {
-
-            k: 'status',
-
-            l: 'Estado',
-
-          },
-
-        ]}
-
-      />
-
-    </>
-
-  );
-
+  return `${(
+    bytes /
+    (1024 * 1024)
+  ).toFixed(1)} MB`;
 }
 
+export function Repository() {
+  const { user } =
+    useAuth();
 
+  const [data, setData] =
+    useState<any[]>([]);
 
+  const [search, setSearch] =
+    useState('');
+
+  const [showForm, setShowForm] =
+    useState(false);
+
+  const [saving, setSaving] =
+    useState(false);
+
+  const [file, setFile] =
+    useState<File | null>(
+      null,
+    );
+
+  const [f, setF] =
+    useState({
+      name: '',
+      type: 'Otro',
+      category: 'Otros',
+      description: '',
+      version: '1.0',
+      status: 'ACTIVO',
+    });
+
+  const roles =
+    user?.roles || [];
+
+  const canManage =
+    roles.includes('ADMIN') ||
+    roles.includes('EDITOR');
+
+  const load = () => {
+    return api
+      .get('/repository')
+      .then((r) =>
+        setData(r.data),
+      )
+      .catch((error) => {
+        console.error(
+          'Error cargando repositorio:',
+          error,
+        );
+      });
+  };
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  const filtered =
+    data.filter((x) => {
+      const q =
+        search
+          .trim()
+          .toLowerCase();
+
+      if (!q) {
+        return true;
+      }
+
+      return [
+        x.name,
+        x.type,
+        x.category,
+        x.description,
+        x.originalName,
+        x.responsible?.name,
+      ].some((value) =>
+        String(value ?? '')
+          .toLowerCase()
+          .includes(q),
+      );
+    });
+
+  const resetForm = () => {
+    setF({
+      name: '',
+      type: 'Otro',
+      category: 'Otros',
+      description: '',
+      version: '1.0',
+      status: 'ACTIVO',
+    });
+
+    setFile(null);
+    setShowForm(false);
+  };
+
+  const upload = async (
+    e: React.FormEvent,
+  ) => {
+    e.preventDefault();
+
+    if (!file) {
+      alert(
+        'Seleccione un archivo para subir.',
+      );
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const form =
+        new FormData();
+
+      form.append(
+        'file',
+        file,
+      );
+
+      form.append(
+        'name',
+        f.name.trim(),
+      );
+
+      form.append(
+        'type',
+        f.type.trim(),
+      );
+
+      form.append(
+        'category',
+        f.category.trim(),
+      );
+
+      form.append(
+        'description',
+        f.description.trim(),
+      );
+
+      form.append(
+        'version',
+        f.version.trim(),
+      );
+
+      form.append(
+        'status',
+        f.status,
+      );
+
+      await api.post(
+        '/repository/upload',
+        form,
+        {
+          headers: {
+            'Content-Type':
+              'multipart/form-data',
+          },
+        },
+      );
+
+      await load();
+
+      resetForm();
+    } catch (error) {
+      console.error(
+        'Error subiendo documento:',
+        error,
+      );
+
+      alert(
+        'No se pudo subir el archivo.',
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const download = async (
+    item: any,
+  ) => {
+    try {
+      const response =
+        await api.get(
+          `/repository/${item.id}/download`,
+          {
+            responseType:
+              'blob',
+          },
+        );
+
+      const url =
+        URL.createObjectURL(
+          response.data,
+        );
+
+      const anchor =
+        document.createElement(
+          'a',
+        );
+
+      anchor.href = url;
+
+      anchor.download =
+        item.originalName ||
+        item.name;
+
+      document.body
+        .appendChild(
+          anchor,
+        );
+
+      anchor.click();
+
+      anchor.remove();
+
+      URL.revokeObjectURL(
+        url,
+      );
+    } catch (error) {
+      console.error(
+        'Error descargando archivo:',
+        error,
+      );
+
+      alert(
+        'No se pudo descargar el archivo.',
+      );
+    }
+  };
+
+  return (
+    <>
+      <div className="titlebar">
+        <div>
+          <h1>
+            Repositorio documental
+          </h1>
+
+          <p>
+            Documentos institucionales de consulta del Campus Tecnológico de San José.
+          </p>
+        </div>
+
+        {canManage && (
+          <button
+            type="button"
+            className="btn"
+            onClick={() =>
+              setShowForm(
+                (value) =>
+                  !value,
+              )
+            }
+          >
+            {showForm
+              ? 'Cerrar formulario'
+              : '+ Nuevo documento'}
+          </button>
+        )}
+      </div>
+
+      {canManage &&
+        showForm && (
+        <Card>
+          <h2>
+            Subir documento
+          </h2>
+
+          <form
+            className="form"
+            onSubmit={upload}
+          >
+            <label>
+              Nombre del documento
+              <input
+                required
+                value={f.name}
+                onChange={(e) =>
+                  setF({
+                    ...f,
+                    name:
+                      e.target
+                        .value,
+                  })
+                }
+              />
+            </label>
+
+            <label>
+              Tipo
+              <input
+                required
+                value={f.type}
+                onChange={(e) =>
+                  setF({
+                    ...f,
+                    type:
+                      e.target
+                        .value,
+                  })
+                }
+                placeholder="Reglamento, acta, guía..."
+              />
+            </label>
+
+            <label>
+              Categoría
+              <input
+                required
+                value={
+                  f.category
+                }
+                onChange={(e) =>
+                  setF({
+                    ...f,
+                    category:
+                      e.target
+                        .value,
+                  })
+                }
+              />
+            </label>
+
+            <label>
+              Versión
+              <input
+                value={
+                  f.version
+                }
+                onChange={(e) =>
+                  setF({
+                    ...f,
+                    version:
+                      e.target
+                        .value,
+                  })
+                }
+              />
+            </label>
+
+            <label>
+              Estado
+              <select
+                value={
+                  f.status
+                }
+                onChange={(e) =>
+                  setF({
+                    ...f,
+                    status:
+                      e.target
+                        .value,
+                  })
+                }
+              >
+                <option value="ACTIVO">
+                  Activo
+                </option>
+                <option value="EN_REVISION">
+                  En revisión
+                </option>
+                <option value="INACTIVO">
+                  Inactivo
+                </option>
+              </select>
+            </label>
+
+            <label>
+              Archivo
+              <input
+                required
+                type="file"
+                onChange={(e) =>
+                  setFile(
+                    e.target
+                      .files?.[0] ||
+                      null,
+                  )
+                }
+              />
+
+              <small>
+                Se permite cualquier tipo de archivo.
+              </small>
+            </label>
+
+            <label className="full">
+              Descripción
+              <textarea
+                value={
+                  f.description
+                }
+                onChange={(e) =>
+                  setF({
+                    ...f,
+                    description:
+                      e.target
+                        .value,
+                  })
+                }
+              />
+            </label>
+
+            {file && (
+              <div className="repository-selected-file full">
+                <b>
+                  Archivo seleccionado:
+                </b>
+
+                <span>
+                  {file.name}
+                </span>
+
+                <small>
+                  {formatFileSize(
+                    file.size,
+                  )}
+                </small>
+              </div>
+            )}
+
+            <div className="full repository-form-actions">
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={
+                  resetForm
+                }
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="submit"
+                className="btn"
+                disabled={
+                  saving
+                }
+              >
+                {saving
+                  ? 'Subiendo...'
+                  : 'Subir documento'}
+              </button>
+            </div>
+          </form>
+        </Card>
+      )}
+
+      <Card>
+        <div className="repository-toolbar">
+          <input
+            type="search"
+            value={search}
+            onChange={(e) =>
+              setSearch(
+                e.target.value,
+              )
+            }
+            placeholder="Buscar por nombre, tipo, categoría o archivo..."
+          />
+
+          <span>
+            {filtered.length}{' '}
+            documento(s)
+          </span>
+        </div>
+      </Card>
+
+      <Card>
+        {filtered.length ? (
+          <table className="repository-table">
+            <thead>
+              <tr>
+                <th>Documento</th>
+                <th>Tipo</th>
+                <th>Categoría</th>
+                <th>Versión</th>
+                <th>
+                  Responsable
+                </th>
+                <th>Archivo</th>
+                <th>Tamaño</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {filtered.map(
+                (x) => (
+                  <tr key={x.id}>
+                    <td>
+                      <strong>
+                        {x.name}
+                      </strong>
+
+                      <small>
+                        {x.description ||
+                          'Sin descripción'}
+                      </small>
+                    </td>
+
+                    <td>
+                      {x.type}
+                    </td>
+
+                    <td>
+                      {x.category}
+                    </td>
+
+                    <td>
+                      {x.version ||
+                        '-'}
+                    </td>
+
+                    <td>
+                      {x.responsible
+                        ?.name ||
+                        '-'}
+                    </td>
+
+                    <td>
+                      {x.originalName ||
+                        'Sin archivo'}
+                    </td>
+
+                    <td>
+                      {formatFileSize(
+                        x.size,
+                      )}
+                    </td>
+
+                    <td>
+                      <Badge
+                        tone={
+                          x.status ===
+                          'ACTIVO'
+                            ? 'green'
+                            : x.status ===
+                              'INACTIVO'
+                            ? 'red'
+                            : 'blue'
+                        }
+                      >
+                        {x.status}
+                      </Badge>
+                    </td>
+
+                    <td>
+                      {x.storedName ? (
+                        <button
+                          type="button"
+                          className="btn secondary"
+                          onClick={() =>
+                            download(x)
+                          }
+                        >
+                          Descargar
+                        </button>
+                      ) : (
+                        <span>
+                          No disponible
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ),
+              )}
+            </tbody>
+          </table>
+        ) : (
+          <Empty text="No se encontraron documentos." />
+        )}
+      </Card>
+    </>
+  );
+}
 
 
 /* =========================================================

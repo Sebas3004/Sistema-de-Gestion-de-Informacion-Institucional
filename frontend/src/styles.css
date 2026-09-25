@@ -2327,6 +2327,93 @@ td small {
 }
 
 
+
+/* =========================================================
+   REPOSITORIO DOCUMENTAL
+========================================================= */
+
+.repository-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.repository-toolbar input {
+  width: min(620px, 100%);
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid #ccd9e5;
+  border-radius: 8px;
+  outline: 0;
+  background: #fff;
+  color: #304d69;
+}
+
+.repository-toolbar span {
+  color: #708399;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.repository-selected-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid #dbe6ef;
+  border-radius: 8px;
+  background: #f7fbff;
+  color: #365978;
+}
+
+.repository-selected-file span {
+  font-weight: 600;
+}
+
+.repository-selected-file small {
+  color: #7a8b9e;
+}
+
+.repository-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.repository-table {
+  min-width: 1120px;
+}
+
+.repository-table td strong {
+  display: block;
+  color: #244d72;
+}
+
+.repository-table td small {
+  max-width: 320px;
+}
+
+@media (max-width: 700px) {
+  .repository-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .repository-form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .repository-form-actions .btn {
+    width: 100%;
+  }
+
+  .repository-selected-file {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
 /* =========================================================
    PROCEDIMIENTOS - SPRINT 2
 ========================================================= */
