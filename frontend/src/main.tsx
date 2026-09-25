@@ -42,6 +42,7 @@ import {
   ProcedureDetail,
   Procedures,
   Repository,
+  RepositoryDetail,
   Users,
 } from './pages';
 
@@ -162,6 +163,21 @@ function App() {
               ]}
             >
               <Repository />
+            </RoleGuard>
+          }
+        />
+
+        <Route
+          path="repositorio/:id"
+          element={
+            <RoleGuard
+              roles={[
+                ROLES.ADMIN,
+                ROLES.EDITOR,
+                ROLES.CONSULTOR,
+              ]}
+            >
+              <RepositoryDetail />
             </RoleGuard>
           }
         />
