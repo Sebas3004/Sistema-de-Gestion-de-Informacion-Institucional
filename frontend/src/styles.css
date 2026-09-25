@@ -2326,6 +2326,238 @@ td small {
 
 }
 
+
+/* =========================================================
+   PROCEDIMIENTOS - SPRINT 2
+========================================================= */
+
+.procedure-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.procedure-stats .card {
+  min-height: 115px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.procedure-stats b {
+  color: #43617f;
+  font-size: 13px;
+}
+
+.procedure-stats strong {
+  color: #0a559d;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.procedure-stats span {
+  color: #7a8b9e;
+  font-size: 12px;
+}
+
+.procedure-toolbar {
+  display: grid;
+  grid-template-columns:
+    minmax(260px, 1.7fr)
+    repeat(3, minmax(150px, 1fr));
+  gap: 14px;
+  align-items: end;
+}
+
+.procedure-toolbar label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #526b85;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.procedure-toolbar input,
+.procedure-toolbar select {
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid #ccd9e5;
+  border-radius: 8px;
+  outline: 0;
+  background: #fff;
+  color: #304d69;
+}
+
+.procedure-table {
+  min-width: 1050px;
+}
+
+.procedure-name-link {
+  color: #1263af;
+  font-weight: 700;
+}
+
+.procedure-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.procedure-actions .btn {
+  min-height: 36px;
+  padding: 0 13px;
+}
+
+.procedure-code {
+  display: inline-block;
+  margin-bottom: 7px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #eaf3fd;
+  color: #1961a4;
+  font-weight: 700;
+}
+
+.procedure-detail-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.procedure-detail-summary .card {
+  min-height: 105px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.procedure-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.procedure-section-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.procedure-section-header p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.procedure-step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.procedure-step-editor {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 13px;
+  align-items: start;
+  padding: 15px;
+  border: 1px solid #e1eaf2;
+  border-radius: 10px;
+  background: #f8fbfe;
+}
+
+.procedure-step-number {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #0b6cc5;
+  color: white;
+  font-weight: 800;
+}
+
+.procedure-step-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.procedure-step-fields input,
+.procedure-step-fields textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccd9e5;
+  border-radius: 8px;
+  outline: 0;
+  background: #fff;
+  color: #304d69;
+}
+
+.procedure-step-fields textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.procedure-remove-step {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #efc7cc;
+  border-radius: 7px;
+  background: white;
+  color: #b83c47;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.procedure-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-bottom: 15px;
+}
+
+@media (max-width: 1100px) {
+  .procedure-toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .procedure-detail-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .procedure-stats,
+  .procedure-toolbar,
+  .procedure-detail-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .procedure-step-editor {
+    grid-template-columns: 38px 1fr;
+  }
+
+  .procedure-remove-step {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .procedure-section-header {
+    flex-direction: column;
+  }
+
+  .procedure-form-actions {
+    flex-direction: column-reverse;
+  }
+}
+
 /* =========================================================
 
    COMENTARIOS

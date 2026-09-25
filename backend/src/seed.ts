@@ -491,10 +491,19 @@ async function seed() {
           'Servicios Generales',
 
         status:
-          'Activo',
+          'ACTIVO',
 
         responsibleArea:
           'Servicios Generales',
+
+        validFrom:
+          new Date('2026-01-01'),
+
+        validUntil:
+          new Date('2026-12-31'),
+
+        normative:
+          'Normativa institucional aplicable a la solicitud de transporte.',
 
         requirements: [
           'Completar formulario',
@@ -548,6 +557,13 @@ async function seed() {
           {
             label:
               'Solicitud de transporte',
+          },
+        ],
+
+        relatedDocuments: [
+          {
+            label:
+              'Reglamento académico del TEC',
           },
         ],
       });

@@ -7,6 +7,7 @@ import { api } from './api';
 import { Badge, Btn, Card, Empty } from './components';
 
 import { useAuth } from './auth';
+import { canManageProcedures } from './permissions';
 
 
 
@@ -1923,327 +1924,1427 @@ export function Repository() {
 
 
 /* =========================================================
-
    PROCEDIMIENTOS
+========================================================= */
 
-\========================================================= */
+type ProcedureStepForm = {
+  id?: string;
+  stepOrder: number;
+  title: string;
+  description: string;
+};
 
+type ProcedureFormState = {
+  code: string;
+  name: string;
+  description: string;
+  category: string;
+  status: string;
+  responsibleArea: string;
+  validFrom: string;
+  validUntil: string;
+  normative: string;
+  requirements: string;
+  steps: ProcedureStepForm[];
+  links: string;
+  relatedForms: string;
+  relatedDocuments: string;
+};
 
-
-export function Procedures() {
-
-  const [d, setD] = useState<any[]>([]);
-
-
-
-  useEffect(() => {
-
-    api
-
-      .get('/procedures')
-
-      .then((r) => setD(r.data))
-
-      .catch((error) => {
-
-        console.error(
-
-          'Error cargando procedimientos:',
-
-          error
-
-        );
-
-      });
-
-  }, []);
-
-
-
-  return (
-
-    <>
-
-      <h1>Procedimientos</h1>
-
-
-
-      <p>
-
-        Consulta el paso a paso de los procesos institucionales.
-
-      </p>
-
-
-
-      <Card>
-
-        {d.map((x) => (
-
-          <div className="procedure" key={x.id}>
-
-            <div>
-
-              <h3>{x.name}</h3>
-
-
-
-              <p>{x.description}</p>
-
-
-
-              <small>{x.responsibleArea}</small>
-
-            </div>
-
-
-
-            <Link
-
-              className="btn secondary"
-
-              to={`/procedimientos/${x.id}`}
-
-            >
-
-              Ver procedimiento
-
-            </Link>
-
-          </div>
-
-        ))}
-
-      </Card>
-
-    </>
-
-  );
-
+function emptyProcedureForm(): ProcedureFormState {
+  return {
+    code: '',
+    name: '',
+    description: '',
+    category: 'Administrativo',
+    status: 'ACTIVO',
+    responsibleArea: '',
+    validFrom: '',
+    validUntil: '',
+    normative: '',
+    requirements: '',
+    steps: [
+      {
+        stepOrder: 1,
+        title: '',
+        description: '',
+      },
+    ],
+    links: '',
+    relatedForms: '',
+    relatedDocuments: '',
+  };
 }
 
+function splitLines(value: string) {
+  return value
+    .split('\n')
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
 
+function parseLinks(value: string) {
+  return splitLines(value)
+    .map((line) => {
+      const parts =
+        line.split('|');
 
+      return {
+        label:
+          (parts[0] || '').trim(),
+        url:
+          (parts[1] || '').trim(),
+      };
+    })
+    .filter(
+      (x) => x.label && x.url,
+    );
+}
 
+function parseLabels(value: string) {
+  return splitLines(value).map(
+    (label) => ({
+      label,
+    }),
+  );
+}
 
-/* =========================================================
+function procedurePayload(
+  f: ProcedureFormState,
+) {
+  return {
+    code: f.code.trim(),
+    name: f.name.trim(),
+    description:
+      f.description.trim(),
+    category:
+      f.category.trim(),
+    status: f.status,
+    responsibleArea:
+      f.responsibleArea.trim(),
+    validFrom:
+      f.validFrom || null,
+    validUntil:
+      f.validUntil || null,
+    normative:
+      f.normative.trim() || null,
+    requirements:
+      splitLines(
+        f.requirements,
+      ),
+    steps:
+      f.steps
+        .map(
+          (
+            step,
+            index,
+          ) => ({
+            ...step,
+            stepOrder: index + 1,
+            title:
+              step.title.trim(),
+            description:
+              step.description.trim(),
+          }),
+        )
+        .filter(
+          (step) =>
+            step.title ||
+            step.description,
+        ),
+    links:
+      parseLinks(f.links),
+    relatedForms:
+      parseLabels(
+        f.relatedForms,
+      ),
+    relatedDocuments:
+      parseLabels(
+        f.relatedDocuments,
+      ),
+  };
+}
 
-   DETALLE PROCEDIMIENTO
+export function Procedures() {
+  const { user } = useAuth();
 
-\========================================================= */
+  const [data, setData] =
+    useState<any[]>([]);
 
+  const [search, setSearch] =
+    useState('');
 
+  const [category, setCategory] =
+    useState('TODAS');
 
-export function ProcedureDetail() {
+  const [status, setStatus] =
+    useState('TODOS');
 
-  const { id } = useParams();
-
-
-
-  const [x, setX] = useState<any>();
-
-
+  const [area, setArea] =
+    useState('TODAS');
 
   useEffect(() => {
-
     api
-
-      .get('/procedures/' + id)
-
-      .then((r) => setX(r.data))
-
+      .get('/procedures')
+      .then((r) => setData(r.data))
       .catch((error) => {
-
         console.error(
+          'Error cargando procedimientos:',
+          error,
+        );
+      });
+  }, []);
 
-          'Error cargando procedimiento:',
+  const canManage =
+    canManageProcedures(user);
 
-          error
+  const categories = Array.from(
+    new Set(
+      data
+        .map((x) => x.category)
+        .filter(Boolean),
+    ),
+  ).sort();
 
+  const areas = Array.from(
+    new Set(
+      data
+        .map((x) => x.responsibleArea)
+        .filter(Boolean),
+    ),
+  ).sort();
+
+  const filtered =
+    data.filter((x) => {
+      const q =
+        search
+          .trim()
+          .toLowerCase();
+
+      const matchesText =
+        !q ||
+        [
+          x.code,
+          x.name,
+          x.description,
+          x.category,
+          x.responsibleArea,
+        ].some((value) =>
+          String(value ?? '')
+            .toLowerCase()
+            .includes(q),
         );
 
-      });
-
-  }, [id]);
-
-
-
-  if (!x) {
-
-    return <Empty text="Cargando..." />;
-
-  }
-
-
-
-  const steps = Array.isArray(x.steps)
-
-    ? [...x.steps].sort(
-
-        (a: any, b: any) =>
-
-          a.stepOrder - b.stepOrder
-
-      )
-
-    : [];
-
-
+      return (
+        matchesText &&
+        (
+          category === 'TODAS' ||
+          x.category === category
+        ) &&
+        (
+          status === 'TODOS' ||
+          x.status === status
+        ) &&
+        (
+          area === 'TODAS' ||
+          x.responsibleArea === area
+        )
+      );
+    });
 
   return (
-
     <>
+      <div className="titlebar">
+        <div>
+          <h1>
+            Procedimientos institucionales
+          </h1>
 
-      <h1>{x.name}</h1>
+          <p>
+            Consulta y gestiona los procedimientos del Campus Tecnológico de San José.
+          </p>
+        </div>
 
+        {canManage && (
+          <Link
+            className="btn"
+            to="/procedimientos/nuevo"
+          >
+            + Nuevo procedimiento
+          </Link>
+        )}
+      </div>
 
-
-      <p>{x.responsibleArea}</p>
-
-
-
-      <div className="grid2">
+      <div className="procedure-stats">
+        <Card>
+          <b>Total</b>
+          <strong>
+            {data.length}
+          </strong>
+          <span>
+            Procedimientos registrados
+          </span>
+        </Card>
 
         <Card>
+          <b>Activos</b>
+          <strong>
+            {
+              data.filter(
+                (x) =>
+                  String(
+                    x.status,
+                  ).toUpperCase() ===
+                  'ACTIVO',
+              ).length
+            }
+          </strong>
+          <span>
+            Disponibles para consulta
+          </span>
+        </Card>
 
-          <h2>Descripción general</h2>
+        <Card>
+          <b>En revisión</b>
+          <strong>
+            {
+              data.filter(
+                (x) =>
+                  String(
+                    x.status,
+                  ).toUpperCase() ===
+                  'EN_REVISION',
+              ).length
+            }
+          </strong>
+          <span>
+            Pendientes de actualización
+          </span>
+        </Card>
+      </div>
 
+      <Card>
+        <div className="procedure-toolbar">
+          <label>
+            Buscar
+            <input
+              type="search"
+              value={search}
+              onChange={(e) =>
+                setSearch(
+                  e.target.value,
+                )
+              }
+              placeholder="Nombre, código o descripción"
+            />
+          </label>
 
+          <label>
+            Categoría
+            <select
+              value={category}
+              onChange={(e) =>
+                setCategory(
+                  e.target.value,
+                )
+              }
+            >
+              <option value="TODAS">
+                Todas
+              </option>
+
+              {categories.map(
+                (item) => (
+                  <option
+                    key={item}
+                    value={item}
+                  >
+                    {item}
+                  </option>
+                ),
+              )}
+            </select>
+          </label>
+
+          <label>
+            Estado
+            <select
+              value={status}
+              onChange={(e) =>
+                setStatus(
+                  e.target.value,
+                )
+              }
+            >
+              <option value="TODOS">
+                Todos
+              </option>
+              <option value="ACTIVO">
+                Activo
+              </option>
+              <option value="EN_REVISION">
+                En revisión
+              </option>
+              <option value="INACTIVO">
+                Inactivo
+              </option>
+            </select>
+          </label>
+
+          <label>
+            Área responsable
+            <select
+              value={area}
+              onChange={(e) =>
+                setArea(
+                  e.target.value,
+                )
+              }
+            >
+              <option value="TODAS">
+                Todas
+              </option>
+
+              {areas.map(
+                (item) => (
+                  <option
+                    key={item}
+                    value={item}
+                  >
+                    {item}
+                  </option>
+                ),
+              )}
+            </select>
+          </label>
+        </div>
+      </Card>
+
+      <Card>
+        {filtered.length ? (
+          <table className="procedure-table">
+            <thead>
+              <tr>
+                <th>Procedimiento</th>
+                <th>Categoría</th>
+                <th>
+                  Área responsable
+                </th>
+                <th>Estado</th>
+                <th>Vigencia</th>
+                <th>Actualizado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {filtered.map(
+                (x) => (
+                  <tr key={x.id}>
+                    <td>
+                      <Link
+                        className="procedure-name-link"
+                        to={`/procedimientos/${x.id}`}
+                      >
+                        {x.name}
+                      </Link>
+
+                      <small>
+                        {x.code}
+                      </small>
+                    </td>
+
+                    <td>
+                      {x.category}
+                    </td>
+
+                    <td>
+                      {x.responsibleArea}
+                    </td>
+
+                    <td>
+                      <Badge
+                        tone={
+                          String(
+                            x.status,
+                          ).toUpperCase() ===
+                          'ACTIVO'
+                            ? 'green'
+                            : String(
+                                x.status,
+                              ).toUpperCase() ===
+                              'INACTIVO'
+                            ? 'red'
+                            : 'blue'
+                        }
+                      >
+                        {String(
+                          x.status,
+                        ).replace(
+                          '_',
+                          ' ',
+                        )}
+                      </Badge>
+                    </td>
+
+                    <td>
+                      {x.validFrom
+                        ? new Date(
+                            x.validFrom,
+                          ).toLocaleDateString()
+                        : 'Sin fecha'}
+
+                      {x.validUntil
+                        ? ` - ${new Date(
+                            x.validUntil,
+                          ).toLocaleDateString()}`
+                        : ''}
+                    </td>
+
+                    <td>
+                      {x.updatedAt
+                        ? new Date(
+                            x.updatedAt,
+                          ).toLocaleDateString()
+                        : '-'}
+                    </td>
+
+                    <td>
+                      <div className="procedure-actions">
+                        <Link
+                          className="btn secondary"
+                          to={`/procedimientos/${x.id}`}
+                        >
+                          Ver
+                        </Link>
+
+                        {canManage && (
+                          <Link
+                            className="btn secondary"
+                            to={`/procedimientos/${x.id}/editar`}
+                          >
+                            Editar
+                          </Link>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ),
+              )}
+            </tbody>
+          </table>
+        ) : (
+          <Empty text="No se encontraron procedimientos." />
+        )}
+      </Card>
+    </>
+  );
+}
+
+function ProcedureForm({
+  initial,
+  title,
+  submitText,
+  onSubmit,
+}: {
+  initial: ProcedureFormState;
+  title: string;
+  submitText: string;
+  onSubmit: (
+    form: ProcedureFormState,
+  ) => Promise<void>;
+}) {
+  const nav =
+    useNavigate();
+
+  const [f, setF] =
+    useState(initial);
+
+  const [saving, setSaving] =
+    useState(false);
+
+  const addStep = () => {
+    setF({
+      ...f,
+      steps: [
+        ...f.steps,
+        {
+          stepOrder:
+            f.steps.length + 1,
+          title: '',
+          description: '',
+        },
+      ],
+    });
+  };
+
+  const removeStep = (
+    index: number,
+  ) => {
+    setF({
+      ...f,
+      steps:
+        f.steps
+          .filter(
+            (_x, i) =>
+              i !== index,
+          )
+          .map(
+            (x, i) => ({
+              ...x,
+              stepOrder: i + 1,
+            }),
+          ),
+    });
+  };
+
+  const submit = async (
+    e: React.FormEvent,
+  ) => {
+    e.preventDefault();
+
+    try {
+      setSaving(true);
+      await onSubmit(f);
+    } catch (error) {
+      console.error(
+        'Error guardando procedimiento:',
+        error,
+      );
+
+      alert(
+        'No se pudo guardar el procedimiento.',
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="titlebar">
+        <div>
+          <h1>{title}</h1>
+          <p>
+            Complete la información del procedimiento institucional.
+          </p>
+        </div>
+
+        <button
+          className="btn secondary"
+          type="button"
+          onClick={() =>
+            nav('/procedimientos')
+          }
+        >
+          Volver
+        </button>
+      </div>
+
+      <form
+        className="procedure-form"
+        onSubmit={submit}
+      >
+        <Card>
+          <h2>
+            Información general
+          </h2>
+
+          <div className="form">
+            <label>
+              Código
+              <input
+                required
+                value={f.code}
+                onChange={(e) =>
+                  setF({
+                    ...f,
+                    code:
+                      e.target.value,
+                  })
+                }
+                placeholder="SG-PR-02"
+              />
+            </label>
+
+            <label>
+              Nombre
+              <input
+                required
+                value={f.name}
+                onChange={(e) =>
+                  setF({
+                    ...f,
+                    name:
+                      e.target.value,
+                  })
+                }
+              />
+            </label>
+
+            <label>
+              Categoría
+              <input
+                required
+                value={f.category}
+                onChange={(e) =>
+                  setF({
+                    ...f,
+                    category:
+                      e.target.value,
+                  })
+                }
+              />
+            </label>
+
+            <label>
+              Estado
+              <select
+                value={f.status}
+                onChange={(e) =>
+                  setF({
+                    ...f,
+                    status:
+                      e.target.value,
+                  })
+                }
+              >
+                <option value="ACTIVO">
+                  Activo
+                </option>
+                <option value="EN_REVISION">
+                  En revisión
+                </option>
+                <option value="INACTIVO">
+                  Inactivo
+                </option>
+              </select>
+            </label>
+
+            <label className="full">
+              Área responsable
+              <input
+                required
+                value={
+                  f.responsibleArea
+                }
+                onChange={(e) =>
+                  setF({
+                    ...f,
+                    responsibleArea:
+                      e.target.value,
+                  })
+                }
+              />
+            </label>
+
+            <label>
+              Vigente desde
+              <input
+                type="date"
+                value={f.validFrom}
+                onChange={(e) =>
+                  setF({
+                    ...f,
+                    validFrom:
+                      e.target.value,
+                  })
+                }
+              />
+            </label>
+
+            <label>
+              Vigente hasta
+              <input
+                type="date"
+                value={f.validUntil}
+                onChange={(e) =>
+                  setF({
+                    ...f,
+                    validUntil:
+                      e.target.value,
+                  })
+                }
+              />
+            </label>
+
+            <label className="full">
+              Descripción
+              <textarea
+                required
+                value={
+                  f.description
+                }
+                onChange={(e) =>
+                  setF({
+                    ...f,
+                    description:
+                      e.target.value,
+                  })
+                }
+              />
+            </label>
+
+            <label className="full">
+              Normativa relacionada
+              <textarea
+                value={f.normative}
+                onChange={(e) =>
+                  setF({
+                    ...f,
+                    normative:
+                      e.target.value,
+                  })
+                }
+              />
+            </label>
+
+            <label className="full">
+              Requisitos
+              <textarea
+                value={f.requirements}
+                onChange={(e) =>
+                  setF({
+                    ...f,
+                    requirements:
+                      e.target.value,
+                  })
+                }
+                placeholder="Un requisito por línea"
+              />
+            </label>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="procedure-section-header">
+            <div>
+              <h2>
+                Paso a paso
+              </h2>
+              <p>
+                Agregue los pasos en el orden correcto.
+              </p>
+            </div>
+
+            <button
+              className="btn secondary"
+              type="button"
+              onClick={addStep}
+            >
+              + Agregar paso
+            </button>
+          </div>
+
+          <div className="procedure-step-list">
+            {f.steps.map(
+              (
+                step,
+                index,
+              ) => (
+                <div
+                  className="procedure-step-editor"
+                  key={
+                    step.id ||
+                    index
+                  }
+                >
+                  <div className="procedure-step-number">
+                    {index + 1}
+                  </div>
+
+                  <div className="procedure-step-fields">
+                    <input
+                      value={
+                        step.title
+                      }
+                      placeholder="Título del paso"
+                      onChange={(e) => {
+                        const steps =
+                          [...f.steps];
+
+                        steps[index] = {
+                          ...steps[index],
+                          title:
+                            e.target.value,
+                        };
+
+                        setF({
+                          ...f,
+                          steps,
+                        });
+                      }}
+                    />
+
+                    <textarea
+                      value={
+                        step.description
+                      }
+                      placeholder="Descripción del paso"
+                      onChange={(e) => {
+                        const steps =
+                          [...f.steps];
+
+                        steps[index] = {
+                          ...steps[index],
+                          description:
+                            e.target.value,
+                        };
+
+                        setF({
+                          ...f,
+                          steps,
+                        });
+                      }}
+                    />
+                  </div>
+
+                  {f.steps.length >
+                    1 && (
+                    <button
+                      className="procedure-remove-step"
+                      type="button"
+                      onClick={() =>
+                        removeStep(
+                          index,
+                        )
+                      }
+                    >
+                      Eliminar
+                    </button>
+                  )}
+                </div>
+              ),
+            )}
+          </div>
+        </Card>
+
+        <Card>
+          <h2>
+            Recursos relacionados
+          </h2>
+
+          <div className="form">
+            <label className="full">
+              Documentos relacionados
+              <textarea
+                value={
+                  f.relatedDocuments
+                }
+                onChange={(e) =>
+                  setF({
+                    ...f,
+                    relatedDocuments:
+                      e.target.value,
+                  })
+                }
+                placeholder="Un documento por línea"
+              />
+            </label>
+
+            <label className="full">
+              Formularios relacionados
+              <textarea
+                value={
+                  f.relatedForms
+                }
+                onChange={(e) =>
+                  setF({
+                    ...f,
+                    relatedForms:
+                      e.target.value,
+                  })
+                }
+                placeholder="Un formulario por línea"
+              />
+            </label>
+
+            <label className="full">
+              Enlaces externos
+              <textarea
+                value={f.links}
+                onChange={(e) =>
+                  setF({
+                    ...f,
+                    links:
+                      e.target.value,
+                  })
+                }
+                placeholder="Nombre | https://ejemplo.com"
+              />
+            </label>
+          </div>
+        </Card>
+
+        <div className="procedure-form-actions">
+          <button
+            className="btn secondary"
+            type="button"
+            onClick={() =>
+              nav('/procedimientos')
+            }
+          >
+            Cancelar
+          </button>
+
+          <button
+            className="btn"
+            type="submit"
+            disabled={saving}
+          >
+            {saving
+              ? 'Guardando...'
+              : submitText}
+          </button>
+        </div>
+      </form>
+    </>
+  );
+}
+
+export function NewProcedure() {
+  const nav =
+    useNavigate();
+
+  return (
+    <ProcedureForm
+      initial={
+        emptyProcedureForm()
+      }
+      title="Nuevo procedimiento"
+      submitText="Crear procedimiento"
+      onSubmit={async (f) => {
+        const r =
+          await api.post(
+            '/procedures',
+            procedurePayload(f),
+          );
+
+        nav(
+          `/procedimientos/${r.data.id}`,
+        );
+      }}
+    />
+  );
+}
+
+export function EditProcedure() {
+  const { id } =
+    useParams();
+
+  const nav =
+    useNavigate();
+
+  const [initial, setInitial] =
+    useState<ProcedureFormState | null>(
+      null,
+    );
+
+  useEffect(() => {
+    api
+      .get(
+        `/procedures/${id}`,
+      )
+      .then((r) => {
+        const x = r.data;
+
+        setInitial({
+          code:
+            x.code || '',
+          name:
+            x.name || '',
+          description:
+            x.description || '',
+          category:
+            x.category || '',
+          status:
+            x.status ||
+            'ACTIVO',
+          responsibleArea:
+            x.responsibleArea ||
+            '',
+          validFrom:
+            x.validFrom
+              ? String(
+                  x.validFrom,
+                ).slice(0, 10)
+              : '',
+          validUntil:
+            x.validUntil
+              ? String(
+                  x.validUntil,
+                ).slice(0, 10)
+              : '',
+          normative:
+            x.normative || '',
+          requirements:
+            Array.isArray(
+              x.requirements,
+            )
+              ? x.requirements.join(
+                  '\n',
+                )
+              : '',
+          steps:
+            Array.isArray(
+              x.steps,
+            ) &&
+            x.steps.length
+              ? [...x.steps].sort(
+                  (
+                    a: any,
+                    b: any,
+                  ) =>
+                    a.stepOrder -
+                    b.stepOrder,
+                )
+              : [
+                  {
+                    stepOrder: 1,
+                    title: '',
+                    description:
+                      '',
+                  },
+                ],
+          links:
+            Array.isArray(
+              x.links,
+            )
+              ? x.links
+                  .map(
+                    (l: any) =>
+                      `${l.label} | ${l.url}`,
+                  )
+                  .join('\n')
+              : '',
+          relatedForms:
+            Array.isArray(
+              x.relatedForms,
+            )
+              ? x.relatedForms
+                  .map(
+                    (f: any) =>
+                      f.label,
+                  )
+                  .join('\n')
+              : '',
+          relatedDocuments:
+            Array.isArray(
+              x.relatedDocuments,
+            )
+              ? x.relatedDocuments
+                  .map(
+                    (d: any) =>
+                      d.label,
+                  )
+                  .join('\n')
+              : '',
+        });
+      });
+  }, [id]);
+
+  if (!initial) {
+    return (
+      <Empty text="Cargando procedimiento..." />
+    );
+  }
+
+  return (
+    <ProcedureForm
+      initial={initial}
+      title="Editar procedimiento"
+      submitText="Guardar cambios"
+      onSubmit={async (f) => {
+        await api.patch(
+          `/procedures/${id}`,
+          procedurePayload(f),
+        );
+
+        nav(
+          `/procedimientos/${id}`,
+        );
+      }}
+    />
+  );
+}
+
+export function ProcedureDetail() {
+  const { id } =
+    useParams();
+
+  const { user } =
+    useAuth();
+
+  const [x, setX] =
+    useState<any>();
+
+  useEffect(() => {
+    api
+      .get('/procedures/' + id)
+      .then((r) =>
+        setX(r.data),
+      )
+      .catch((error) => {
+        console.error(
+          'Error cargando procedimiento:',
+          error,
+        );
+      });
+  }, [id]);
+
+  if (!x) {
+    return (
+      <Empty text="Cargando..." />
+    );
+  }
+
+  const canManage =
+    canManageProcedures(user);
+
+  const steps =
+    Array.isArray(x.steps)
+      ? [...x.steps].sort(
+          (
+            a: any,
+            b: any,
+          ) =>
+            a.stepOrder -
+            b.stepOrder,
+        )
+      : [];
+
+  return (
+    <>
+      <div className="titlebar">
+        <div>
+          <small className="procedure-code">
+            {x.code}
+          </small>
+
+          <h1>{x.name}</h1>
+
+          <p>
+            {x.responsibleArea}
+          </p>
+        </div>
+
+        {canManage && (
+          <Link
+            className="btn"
+            to={`/procedimientos/${x.id}/editar`}
+          >
+            Editar procedimiento
+          </Link>
+        )}
+      </div>
+
+      <div className="procedure-detail-summary">
+        <Card>
+          <b>Estado</b>
+          <Badge
+            tone={
+              String(
+                x.status,
+              ).toUpperCase() ===
+              'ACTIVO'
+                ? 'green'
+                : String(
+                    x.status,
+                  ).toUpperCase() ===
+                  'INACTIVO'
+                ? 'red'
+                : 'blue'
+            }
+          >
+            {String(
+              x.status,
+            ).replace(
+              '_',
+              ' ',
+            )}
+          </Badge>
+        </Card>
+
+        <Card>
+          <b>Categoría</b>
+          <span>
+            {x.category || '-'}
+          </span>
+        </Card>
+
+        <Card>
+          <b>Vigencia</b>
+          <span>
+            {x.validFrom
+              ? new Date(
+                  x.validFrom,
+                ).toLocaleDateString()
+              : 'Sin fecha'}
+
+            {x.validUntil
+              ? ` - ${new Date(
+                  x.validUntil,
+                ).toLocaleDateString()}`
+              : ''}
+          </span>
+        </Card>
+
+        <Card>
+          <b>
+            Última actualización
+          </b>
+          <span>
+            {x.updatedAt
+              ? new Date(
+                  x.updatedAt,
+                ).toLocaleDateString()
+              : '-'}
+          </span>
+        </Card>
+      </div>
+
+      <div className="grid2">
+        <Card>
+          <h2>
+            Descripción general
+          </h2>
 
           <p>{x.description}</p>
 
-
-
           <h2>Requisitos</h2>
 
-
-
           {x.requirements?.length ? (
-
-            x.requirements.map((r: string) => (
-
-              <div className="check" key={r}>
-
-                ✓ {r}
-
-              </div>
-
-            ))
-
+            x.requirements.map(
+              (r: string) => (
+                <div
+                  className="check"
+                  key={r}
+                >
+                  ✓ {r}
+                </div>
+              ),
+            )
           ) : (
-
-            <p>No se registraron requisitos.</p>
-
+            <p>
+              No se registraron requisitos.
+            </p>
           )}
 
+          <h2>
+            Normativa relacionada
+          </h2>
 
-
-          <h2>Formularios relacionados</h2>
-
-
-
-          {x.relatedForms?.length ? (
-
-            x.relatedForms.map((f: any) => (
-
-              <div className="row" key={f.label}>
-
-                {f.label}
-
-              </div>
-
-            ))
-
-          ) : (
-
-            <p>No hay formularios relacionados.</p>
-
-          )}
-
+          <p>
+            {x.normative ||
+              'No se registró normativa relacionada.'}
+          </p>
         </Card>
-
-
 
         <Card>
-
-          <h2>Pasos del procedimiento</h2>
-
-
+          <h2>
+            Pasos del procedimiento
+          </h2>
 
           {steps.length ? (
+            steps.map(
+              (s: any) => (
+                <div
+                  className="step"
+                  key={s.id}
+                >
+                  <b>
+                    {s.stepOrder}.{' '}
+                    {s.title}
+                  </b>
 
-            steps.map((s: any) => (
-
-              <div className="step" key={s.id}>
-
-                <b>
-
-                  {s.stepOrder}. {s.title}
-
-                </b>
-
-
-
-                <p>{s.description}</p>
-
-              </div>
-
-            ))
-
+                  <p>
+                    {s.description}
+                  </p>
+                </div>
+              ),
+            )
           ) : (
-
-            <p>No hay pasos registrados.</p>
-
+            <p>
+              No hay pasos registrados.
+            </p>
           )}
-
-
-
-          <h2>Enlaces útiles</h2>
-
-
-
-          {x.links?.length ? (
-
-            x.links.map((l: any) => (
-
-              <a
-
-                className="row"
-
-                href={l.url}
-
-                target="_blank"
-
-                rel="noreferrer"
-
-                key={l.label}
-
-              >
-
-                {l.label}
-
-              </a>
-
-            ))
-
-          ) : (
-
-            <p>No hay enlaces registrados.</p>
-
-          )}
-
         </Card>
-
       </div>
 
+      <div className="grid2">
+        <Card>
+          <h2>
+            Documentos relacionados
+          </h2>
+
+          {x.relatedDocuments?.length ? (
+            x.relatedDocuments.map(
+              (d: any) => (
+                <div
+                  className="row"
+                  key={d.label}
+                >
+                  {d.label}
+                </div>
+              ),
+            )
+          ) : (
+            <p>
+              No hay documentos relacionados.
+            </p>
+          )}
+
+          <h2>
+            Formularios relacionados
+          </h2>
+
+          {x.relatedForms?.length ? (
+            x.relatedForms.map(
+              (f: any) => (
+                <div
+                  className="row"
+                  key={f.label}
+                >
+                  {f.label}
+                </div>
+              ),
+            )
+          ) : (
+            <p>
+              No hay formularios relacionados.
+            </p>
+          )}
+        </Card>
+
+        <Card>
+          <h2>
+            Enlaces útiles
+          </h2>
+
+          {x.links?.length ? (
+            x.links.map(
+              (l: any) => (
+                <a
+                  className="row"
+                  href={l.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  key={l.url}
+                >
+                  {l.label}
+                </a>
+              ),
+            )
+          ) : (
+            <p>
+              No hay enlaces registrados.
+            </p>
+          )}
+        </Card>
+      </div>
     </>
-
   );
-
 }
-
-
-
 
 
 /* =========================================================

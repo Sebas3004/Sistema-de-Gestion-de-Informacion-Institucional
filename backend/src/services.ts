@@ -615,39 +615,193 @@ export class ProcedureService {
   list() {
     return this.repo.find({
       order: {
-        name: 'ASC',
+        updatedAt: 'DESC',
       },
     });
   }
 
-  get(id: string) {
-    return this.repo.findOne({
-      where: { id },
-    });
+  async get(id: string) {
+    const item =
+      await this.repo.findOne({
+        where: { id },
+      });
+
+    if (!item) {
+      throw new NotFoundException(
+        'Procedimiento no encontrado',
+      );
+    }
+
+    return item;
   }
 
   async create(
     dto: any,
     current: any,
   ) {
-    const entity:
-      Procedure =
+    const entity =
       this.repo.create({
         ...dto,
+        status:
+          dto.status || 'ACTIVO',
+        validFrom:
+          dto.validFrom
+            ? new Date(dto.validFrom)
+            : null,
+        validUntil:
+          dto.validUntil
+            ? new Date(dto.validUntil)
+            : null,
+        requirements:
+          Array.isArray(dto.requirements)
+            ? dto.requirements
+            : [],
+        steps:
+          Array.isArray(dto.steps)
+            ? dto.steps.map(
+                (
+                  step: any,
+                  index: number,
+                ) => ({
+                  stepOrder:
+                    step.stepOrder ??
+                    index + 1,
+                  title: step.title,
+                  description:
+                    step.description,
+                }),
+              )
+            : [],
+        links:
+          Array.isArray(dto.links)
+            ? dto.links
+            : [],
+        relatedForms:
+          Array.isArray(dto.relatedForms)
+            ? dto.relatedForms
+            : [],
+        relatedDocuments:
+          Array.isArray(dto.relatedDocuments)
+            ? dto.relatedDocuments
+            : [],
       } as Partial<Procedure>);
 
-    const saved:
-      Procedure =
-      await this.repo.save(
-        entity,
-      );
+    const saved =
+      await this.repo.save(entity);
 
     await this.audit.log(
       current.sub,
       'CREACION',
       'Procedimiento',
       saved.id,
-      `Se creó ${saved.name}`,
+      `Se creó ${saved.code} - ${saved.name}`,
+    );
+
+    return saved;
+  }
+
+  async update(
+    id: string,
+    dto: any,
+    current: any,
+  ) {
+    const item =
+      await this.repo.findOne({
+        where: { id },
+      });
+
+    if (!item) {
+      throw new NotFoundException(
+        'Procedimiento no encontrado',
+      );
+    }
+
+    item.code =
+      dto.code ?? item.code;
+
+    item.name =
+      dto.name ?? item.name;
+
+    item.description =
+      dto.description ??
+      item.description;
+
+    item.category =
+      dto.category ??
+      item.category;
+
+    item.status =
+      dto.status ??
+      item.status;
+
+    item.responsibleArea =
+      dto.responsibleArea ??
+      item.responsibleArea;
+
+    item.normative =
+      dto.normative ??
+      item.normative;
+
+    if ('validFrom' in dto) {
+      item.validFrom =
+        dto.validFrom
+          ? new Date(dto.validFrom)
+          : null;
+    }
+
+    if ('validUntil' in dto) {
+      item.validUntil =
+        dto.validUntil
+          ? new Date(dto.validUntil)
+          : null;
+    }
+
+    if (Array.isArray(dto.requirements)) {
+      item.requirements =
+        dto.requirements;
+    }
+
+    if (Array.isArray(dto.steps)) {
+      item.steps =
+        dto.steps.map(
+          (
+            step: any,
+            index: number,
+          ) => ({
+            id: step.id,
+            stepOrder:
+              step.stepOrder ??
+              index + 1,
+            title: step.title,
+            description:
+              step.description,
+          }),
+        ) as any;
+    }
+
+    if (Array.isArray(dto.links)) {
+      item.links = dto.links;
+    }
+
+    if (Array.isArray(dto.relatedForms)) {
+      item.relatedForms =
+        dto.relatedForms;
+    }
+
+    if (Array.isArray(dto.relatedDocuments)) {
+      item.relatedDocuments =
+        dto.relatedDocuments;
+    }
+
+    const saved =
+      await this.repo.save(item);
+
+    await this.audit.log(
+      current.sub,
+      'ACTUALIZACION',
+      'Procedimiento',
+      saved.id,
+      `Se actualizó ${saved.code} - ${saved.name}`,
     );
 
     return saved;
