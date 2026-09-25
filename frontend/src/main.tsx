@@ -11,6 +11,7 @@ import {
   Navigate,
   Route,
   Routes,
+  useLocation,
 } from 'react-router-dom';
 
 import './styles.css';
@@ -29,6 +30,7 @@ import {
 
 import {
   Audit,
+  ChangePassword,
   CorrespondenceDetail,
   CorrespondenceList,
   Dashboard,
@@ -59,10 +61,26 @@ function Guard({
   const { user } =
     useAuth();
 
+  const location =
+    useLocation();
+
   if (!user) {
     return (
       <Navigate
         to="/login"
+        replace
+      />
+    );
+  }
+
+  if (
+    user.mustChangePassword &&
+    location.pathname !==
+      '/cambiar-contrasena'
+  ) {
+    return (
+      <Navigate
+        to="/cambiar-contrasena"
         replace
       />
     );
@@ -82,6 +100,15 @@ function App() {
       <Route
         path="/login"
         element={<Login />}
+      />
+
+      <Route
+        path="/cambiar-contrasena"
+        element={
+          <Guard>
+            <ChangePassword />
+          </Guard>
+        }
       />
 
       {/* ÁREA AUTENTICADA */}

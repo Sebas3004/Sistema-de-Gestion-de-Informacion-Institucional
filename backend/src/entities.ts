@@ -19,6 +19,9 @@ export class User {
   @Column({select:false}) passwordHash:string;
   @Column({nullable:true}) position:string;
   @Column({default:true}) active:boolean;
+  @Column({default:false}) mustChangePassword:boolean;
+  @Column({type:'timestamp',nullable:true}) deletedAt:Date;
+  @Column('text',{nullable:true}) deletionReason:string;
   @ManyToMany(()=>Role,{eager:true}) @JoinTable({name:'user_roles'}) roles:Role[];
   @CreateDateColumn() createdAt:Date;
   @UpdateDateColumn() updatedAt:Date;

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -25,7 +26,8 @@ import {
   User,
 } from './entities';
 
-import { hash } from 'bcrypt';
+import { compare, hash } from 'bcrypt';
+import { randomInt } from 'crypto';
 
 
 /* =========================================================
@@ -107,9 +109,116 @@ export class UsersService {
     private audit: AuditService,
   ) {}
 
+  private generateTemporaryPassword() {
+    return `Tec-SJ-${randomInt(
+      100000,
+      1000000,
+    )}!`;
+  }
+
+  private normalizeEmail(
+    value: string,
+  ) {
+    return String(value || '')
+      .trim()
+      .toLowerCase();
+  }
+
+  private async ensureEmailAvailable(
+    email: string,
+    excludeId?: string,
+  ) {
+    const existing =
+      await this.repo
+        .createQueryBuilder('user')
+        .where(
+          'LOWER(user.email) = :email',
+          {
+            email:
+              this.normalizeEmail(
+                email,
+              ),
+          },
+        )
+        .getOne();
+
+    if (
+      existing &&
+      existing.id !== excludeId
+    ) {
+      throw new BadRequestException(
+        'Ya existe un usuario con ese correo',
+      );
+    }
+  }
+
+  private async resolveRoles(
+    roleNames?: RoleName[],
+  ) {
+    const requestedRoles =
+      Array.from(
+        new Set(
+          roleNames?.length
+            ? roleNames
+            : [
+                RoleName.CONSULTOR,
+              ],
+        ),
+      );
+
+    const allowedRoles =
+      Object.values(RoleName);
+
+    if (
+      requestedRoles.some(
+        (role) =>
+          !allowedRoles.includes(
+            role,
+          ),
+      )
+    ) {
+      throw new BadRequestException(
+        'Rol no válido',
+      );
+    }
+
+    const roleRows =
+      await this.roles.findBy(
+        requestedRoles.map(
+          (name: RoleName) => ({
+            name,
+          }),
+        ) as any,
+      );
+
+    if (
+      roleRows.length !==
+      requestedRoles.length
+    ) {
+      throw new BadRequestException(
+        'Uno o más roles no existen',
+      );
+    }
+
+    return roleRows;
+  }
+
+  private getSafeUser(
+    user: User,
+  ) {
+    const {
+      passwordHash:
+        _passwordHash,
+      ...safeUser
+    } = user as any;
+
+    return safeUser;
+  }
+
   list() {
     return this.repo.find({
       order: {
+        deletedAt: 'ASC',
         name: 'ASC',
       },
     });
@@ -119,45 +228,85 @@ export class UsersService {
     dto: any,
     current: any,
   ) {
-    const roleNames =
-      dto.roleNames?.length
-        ? dto.roleNames
-        : [RoleName.CONSULTOR];
+    const name =
+      String(dto.name || '')
+        .trim();
+
+    const email =
+      this.normalizeEmail(
+        dto.email,
+      );
+
+    if (!name || !email) {
+      throw new BadRequestException(
+        'Nombre y correo son obligatorios',
+      );
+    }
+
+    await this.ensureEmailAvailable(
+      email,
+    );
 
     const roleRows =
-      await this.roles.findBy(
-        roleNames.map(
-          (name: RoleName) => ({
-            name,
-          }),
-        ) as any,
+      await this.resolveRoles(
+        dto.roleNames,
       );
+
+    const temporaryPassword =
+      String(
+        dto.password || '',
+      ).trim() ||
+      this.generateTemporaryPassword();
+
+    if (
+      temporaryPassword.length <
+      8
+    ) {
+      throw new BadRequestException(
+        'La contraseña temporal debe tener al menos 8 caracteres',
+      );
+    }
 
     const entity =
       this.repo.create({
-        name: dto.name,
-        email: dto.email,
-        position: dto.position,
-        active: dto.active ?? true,
-        passwordHash: await hash(
-          dto.password || 'Temporal123!',
-          10,
-        ),
+        name,
+        email,
+        position:
+          String(
+            dto.position || '',
+          ).trim() || null,
+        active:
+          dto.active ?? true,
+        mustChangePassword:
+          true,
+        passwordHash:
+          await hash(
+            temporaryPassword,
+            10,
+          ),
         roles: roleRows,
       });
 
     const saved =
-      await this.repo.save(entity);
+      await this.repo.save(
+        entity,
+      );
 
     await this.audit.log(
       current.sub,
       'CREACION',
       'Usuario',
       saved.id,
-      `Se creó el usuario ${saved.email}`,
+      `Se creó el usuario ${saved.email} con contraseña temporal`,
     );
 
-    return saved;
+    return {
+      user:
+        this.getSafeUser(
+          saved,
+        ),
+      temporaryPassword,
+    };
   }
 
   async update(
@@ -176,49 +325,411 @@ export class UsersService {
       );
     }
 
+    if (user.deletedAt) {
+      throw new BadRequestException(
+        'No puede editar un usuario eliminado',
+      );
+    }
+
+    const previousRoles =
+      user.roles
+        ?.map((role) => role.name)
+        .sort() || [];
+
+    const previousProfile = {
+      name: user.name,
+      email: user.email,
+      position: user.position,
+      active: user.active,
+    };
+
     if (dto.roleNames) {
+      if (id === current.sub) {
+        throw new BadRequestException(
+          'No puede modificar su propio rol administrativo',
+        );
+      }
+
       user.roles =
-        await this.roles.findBy(
-          dto.roleNames.map(
-            (name: RoleName) => ({
-              name,
-            }),
-          ) as any,
+        await this.resolveRoles(
+          dto.roleNames,
         );
     }
 
-    user.name =
-      dto.name ?? user.name;
+    if (
+      dto.email !== undefined
+    ) {
+      const newEmail =
+        this.normalizeEmail(
+          dto.email,
+        );
 
-    user.email =
-      dto.email ?? user.email;
+      if (!newEmail) {
+        throw new BadRequestException(
+          'El correo es obligatorio',
+        );
+      }
 
-    user.position =
-      dto.position ?? user.position;
+      await this.ensureEmailAvailable(
+        newEmail,
+        id,
+      );
+
+      user.email =
+        newEmail;
+    }
+
+    if (
+      dto.name !== undefined
+    ) {
+      const newName =
+        String(dto.name)
+          .trim();
+
+      if (!newName) {
+        throw new BadRequestException(
+          'El nombre es obligatorio',
+        );
+      }
+
+      user.name =
+        newName;
+    }
+
+    if (
+      dto.position !==
+      undefined
+    ) {
+      user.position =
+        String(
+          dto.position || '',
+        ).trim() || null;
+    }
 
     user.active =
-      dto.active ?? user.active;
+      dto.active ??
+      user.active;
 
-    if (dto.password) {
-      user.passwordHash =
-        await hash(
-          dto.password,
-          10,
-        );
+    const saved =
+      await this.repo.save(user);
+
+    const newRoles =
+      saved.roles
+        ?.map((role) => role.name)
+        .sort() || [];
+
+    const roleChanged =
+      previousRoles.join(',') !==
+      newRoles.join(',');
+
+    const profileChanged =
+      previousProfile.name !==
+        saved.name ||
+      previousProfile.email !==
+        saved.email ||
+      previousProfile.position !==
+        saved.position ||
+      previousProfile.active !==
+        saved.active;
+
+    await this.audit.log(
+      current.sub,
+      roleChanged
+        ? 'CAMBIO_ROL'
+        : profileChanged
+        ? 'ACTUALIZACION_PERFIL'
+        : 'ACTUALIZACION',
+      'Usuario',
+      id,
+      roleChanged
+        ? `Se cambió el rol de ${saved.email}: ${previousRoles.join(', ') || 'Sin rol'} → ${newRoles.join(', ')}`
+        : profileChanged
+        ? `Se actualizó el perfil de ${saved.email}`
+        : `Se actualizó ${saved.email}`,
+    );
+
+    return this.getSafeUser(
+      saved,
+    );
+  }
+
+  async resetPassword(
+    id: string,
+    current: any,
+    requestedPassword?: string,
+  ) {
+    if (id === current.sub) {
+      throw new BadRequestException(
+        'Para cambiar su propia contraseña utilice la opción de cambio de contraseña',
+      );
     }
+
+    const user =
+      await this.repo
+        .createQueryBuilder('user')
+        .addSelect(
+          'user.passwordHash',
+        )
+        .leftJoinAndSelect(
+          'user.roles',
+          'roles',
+        )
+        .where(
+          'user.id = :id',
+          { id },
+        )
+        .getOne();
+
+    if (!user) {
+      throw new NotFoundException(
+        'Usuario no encontrado',
+      );
+    }
+
+    if (user.deletedAt) {
+      throw new BadRequestException(
+        'No puede restablecer la contraseña de un usuario eliminado',
+      );
+    }
+
+    const temporaryPassword =
+      String(
+        requestedPassword || '',
+      ).trim() ||
+      this.generateTemporaryPassword();
+
+    if (
+      temporaryPassword.length <
+      8
+    ) {
+      throw new BadRequestException(
+        'La contraseña temporal debe tener al menos 8 caracteres',
+      );
+    }
+
+    user.passwordHash =
+      await hash(
+        temporaryPassword,
+        10,
+      );
+
+    user.mustChangePassword =
+      true;
+
+    await this.repo.save(user);
+
+    await this.audit.log(
+      current.sub,
+      'RESTABLECIMIENTO_PASSWORD',
+      'Usuario',
+      id,
+      `Se restableció la contraseña de ${user.email}`,
+    );
+
+    return {
+      userId: user.id,
+      email: user.email,
+      temporaryPassword,
+    };
+  }
+
+  async changeOwnPassword(
+    current: any,
+    currentPassword: string,
+    newPassword: string,
+  ) {
+    const user =
+      await this.repo
+        .createQueryBuilder('user')
+        .addSelect(
+          'user.passwordHash',
+        )
+        .leftJoinAndSelect(
+          'user.roles',
+          'roles',
+        )
+        .where(
+          'user.id = :id',
+          {
+            id: current.sub,
+          },
+        )
+        .getOne();
+
+    if (
+      !user ||
+      !user.active ||
+      user.deletedAt
+    ) {
+      throw new NotFoundException(
+        'Usuario no encontrado',
+      );
+    }
+
+    const validCurrentPassword =
+      await compare(
+        currentPassword,
+        user.passwordHash,
+      );
+
+    if (
+      !validCurrentPassword
+    ) {
+      throw new BadRequestException(
+        'La contraseña actual no es correcta',
+      );
+    }
+
+    const cleanNewPassword =
+      String(
+        newPassword || '',
+      );
+
+    if (
+      cleanNewPassword.length <
+      8
+    ) {
+      throw new BadRequestException(
+        'La nueva contraseña debe tener al menos 8 caracteres',
+      );
+    }
+
+    if (
+      currentPassword ===
+      cleanNewPassword
+    ) {
+      throw new BadRequestException(
+        'La nueva contraseña debe ser diferente a la contraseña actual',
+      );
+    }
+
+    user.passwordHash =
+      await hash(
+        cleanNewPassword,
+        10,
+      );
+
+    user.mustChangePassword =
+      false;
+
+    await this.repo.save(user);
+
+    await this.audit.log(
+      current.sub,
+      'CAMBIO_PASSWORD',
+      'Usuario',
+      user.id,
+      `El usuario ${user.email} cambió su contraseña`,
+    );
+
+    return {
+      message:
+        'Contraseña actualizada correctamente',
+    };
+  }
+
+  async softDelete(
+    id: string,
+    reason: string,
+    current: any,
+  ) {
+    if (id === current.sub) {
+      throw new BadRequestException(
+        'No puede eliminar su propia cuenta administrativa',
+      );
+    }
+
+    const user =
+      await this.repo.findOne({
+        where: { id },
+      });
+
+    if (!user) {
+      throw new NotFoundException(
+        'Usuario no encontrado',
+      );
+    }
+
+    if (user.deletedAt) {
+      throw new BadRequestException(
+        'El usuario ya fue eliminado',
+      );
+    }
+
+    const cleanReason =
+      String(reason || '').trim();
+
+    if (
+      cleanReason.length < 5
+    ) {
+      throw new BadRequestException(
+        'Debe indicar un motivo de eliminación',
+      );
+    }
+
+    user.active = false;
+    user.deletedAt =
+      new Date();
+    user.deletionReason =
+      cleanReason;
 
     const saved =
       await this.repo.save(user);
 
     await this.audit.log(
       current.sub,
-      'ACTUALIZACION',
+      'ELIMINACION_LOGICA',
       'Usuario',
       id,
-      `Se actualizó ${saved.email}`,
+      `Se eliminó lógicamente ${saved.email}. Motivo: ${cleanReason}`,
     );
 
-    return saved;
+    return this.getSafeUser(
+      saved,
+    );
+  }
+
+  async restore(
+    id: string,
+    current: any,
+  ) {
+    const user =
+      await this.repo.findOne({
+        where: { id },
+      });
+
+    if (!user) {
+      throw new NotFoundException(
+        'Usuario no encontrado',
+      );
+    }
+
+    if (!user.deletedAt) {
+      throw new BadRequestException(
+        'El usuario no está eliminado',
+      );
+    }
+
+    user.deletedAt =
+      null as any;
+    user.deletionReason =
+      null as any;
+    user.active = true;
+
+    const saved =
+      await this.repo.save(user);
+
+    await this.audit.log(
+      current.sub,
+      'RESTAURACION',
+      'Usuario',
+      id,
+      `Se restauró el usuario ${saved.email}`,
+    );
+
+    return this.getSafeUser(
+      saved,
+    );
   }
 }
 

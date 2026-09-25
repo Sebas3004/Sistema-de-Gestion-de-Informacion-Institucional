@@ -63,15 +63,19 @@ export function Login() {
 
 
 
-      await login(email.trim(), password);
+      const loggedUser =
+        await login(
+          email.trim(),
+          password,
+        );
 
-
-
-      // Después de iniciar sesión correctamente,
-
-      // enviamos al usuario al inicio/dashboard.
-
-      navigate("/", { replace: true });
+      navigate(
+        loggedUser
+          ?.mustChangePassword
+          ? "/cambiar-contrasena"
+          : "/",
+        { replace: true },
+      );
 
     } catch (err) {
 
@@ -573,6 +577,229 @@ export function Login() {
 
 }
 
+
+
+
+/* =========================================================
+   CAMBIO OBLIGATORIO DE CONTRASEÑA
+========================================================= */
+
+export function ChangePassword() {
+  const {
+    user,
+    completePasswordChange,
+  } = useAuth();
+
+  const navigate =
+    useNavigate();
+
+  const [currentPassword, setCurrentPassword] =
+    useState('');
+
+  const [newPassword, setNewPassword] =
+    useState('');
+
+  const [confirmPassword, setConfirmPassword] =
+    useState('');
+
+  const [showPasswords, setShowPasswords] =
+    useState(false);
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [error, setError] =
+    useState('');
+
+  const submit = async (
+    event:
+      React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+
+    if (
+      newPassword.length < 8
+    ) {
+      setError(
+        'La nueva contraseña debe tener al menos 8 caracteres.',
+      );
+      return;
+    }
+
+    if (
+      newPassword !==
+      confirmPassword
+    ) {
+      setError(
+        'Las contraseñas nuevas no coinciden.',
+      );
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+
+      await api.post(
+        '/auth/change-password',
+        {
+          currentPassword,
+          newPassword,
+        },
+      );
+
+      completePasswordChange();
+
+      navigate(
+        '/',
+        {
+          replace: true,
+        },
+      );
+    } catch (requestError: any) {
+      console.error(
+        'Error cambiando contraseña:',
+        requestError,
+      );
+
+      setError(
+        requestError
+          ?.response?.data
+          ?.message ||
+          'No se pudo cambiar la contraseña.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="password-change-page">
+      <section className="password-change-card">
+        <img
+          src="/branding/logo-tec.svg"
+          alt="Tecnológico de Costa Rica"
+          className="password-change-logo"
+        />
+
+        <Badge tone="blue">
+          Primer ingreso
+        </Badge>
+
+        <h1>
+          Cambie su contraseña
+        </h1>
+
+        <p>
+          Hola {user?.name || 'usuario'}. La contraseña entregada por el administrador es temporal. Debe definir una contraseña personal antes de continuar.
+        </p>
+
+        <form
+          className="password-change-form"
+          onSubmit={submit}
+        >
+          <label>
+            Contraseña temporal actual
+            <input
+              type={
+                showPasswords
+                  ? 'text'
+                  : 'password'
+              }
+              value={
+                currentPassword
+              }
+              onChange={(e) =>
+                setCurrentPassword(
+                  e.target.value,
+                )
+              }
+              required
+              autoComplete="current-password"
+            />
+          </label>
+
+          <label>
+            Nueva contraseña
+            <input
+              type={
+                showPasswords
+                  ? 'text'
+                  : 'password'
+              }
+              value={
+                newPassword
+              }
+              onChange={(e) =>
+                setNewPassword(
+                  e.target.value,
+                )
+              }
+              required
+              minLength={8}
+              autoComplete="new-password"
+            />
+          </label>
+
+          <label>
+            Confirmar nueva contraseña
+            <input
+              type={
+                showPasswords
+                  ? 'text'
+                  : 'password'
+              }
+              value={
+                confirmPassword
+              }
+              onChange={(e) =>
+                setConfirmPassword(
+                  e.target.value,
+                )
+              }
+              required
+              minLength={8}
+              autoComplete="new-password"
+            />
+          </label>
+
+          <label className="password-change-show">
+            <input
+              type="checkbox"
+              checked={
+                showPasswords
+              }
+              onChange={(e) =>
+                setShowPasswords(
+                  e.target.checked,
+                )
+              }
+            />
+            Mostrar contraseñas
+          </label>
+
+          {error && (
+            <div className="login-error">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            className="btn"
+            disabled={
+              loading
+            }
+          >
+            {loading
+              ? 'Actualizando...'
+              : 'Guardar nueva contraseña'}
+          </button>
+        </form>
+      </section>
+    </div>
+  );
+}
 
 
 /* =========================================================
@@ -4634,93 +4861,1390 @@ export function News() {
 
 
 export function Users() {
+  const { user } =
+    useAuth();
+
+  const [data, setData] =
+    useState<any[]>([]);
+
+  const [savingId, setSavingId] =
+    useState<string | null>(
+      null,
+    );
+
+  const [editing, setEditing] =
+    useState<any | null>(
+      null,
+    );
+
+  const [deleteTarget, setDeleteTarget] =
+    useState<any | null>(
+      null,
+    );
+
+  const [deleteReason, setDeleteReason] =
+    useState('');
+
+  const [message, setMessage] =
+    useState('');
+
+  const [showCreate, setShowCreate] =
+    useState(false);
+
+  const [creating, setCreating] =
+    useState(false);
+
+  const [createPasswordMode, setCreatePasswordMode] =
+    useState<
+      'AUTO' | 'MANUAL'
+    >('AUTO');
+
+  const [createForm, setCreateForm] =
+    useState({
+      name: '',
+      email: '',
+      position: '',
+      roleName:
+        'CONSULTOR',
+      password: '',
+    });
+
+  const [temporaryCredential, setTemporaryCredential] =
+    useState<{
+      name: string;
+      email: string;
+      password: string;
+      origin:
+        | 'CREATE'
+        | 'RESET';
+    } | null>(
+      null,
+    );
+
+  const currentUserId =
+    (user as any)?.id ||
+    (user as any)?.sub;
+
+  const loadUsers = () =>
+    api
+      .get('/users')
+      .then((response) => {
+        setData(
+          response.data,
+        );
+      })
+      .catch((error) => {
+        console.error(
+          'Error cargando usuarios:',
+          error,
+        );
+      });
+
+  useEffect(() => {
+    void loadUsers();
+  }, []);
+
+  const currentRole = (
+    item: any,
+  ) =>
+    item.roles?.[0]?.name ||
+    'CONSULTOR';
+
+  const resetCreateForm =
+    () => {
+      setCreateForm({
+        name: '',
+        email: '',
+        position: '',
+        roleName:
+          'CONSULTOR',
+        password: '',
+      });
+
+      setCreatePasswordMode(
+        'AUTO',
+      );
+
+      setShowCreate(false);
+    };
+
+  const createUser = async (
+    event:
+      React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+
+    if (
+      !createForm.name.trim() ||
+      !createForm.email.trim()
+    ) {
+      alert(
+        'Nombre y correo son obligatorios.',
+      );
+      return;
+    }
+
+    if (
+      createPasswordMode ===
+        'MANUAL' &&
+      createForm.password.length <
+        8
+    ) {
+      alert(
+        'La contraseña temporal debe tener al menos 8 caracteres.',
+      );
+      return;
+    }
+
+    try {
+      setCreating(true);
+      setMessage('');
+
+      const response =
+        await api.post(
+          '/users',
+          {
+            name:
+              createForm.name.trim(),
+            email:
+              createForm.email.trim(),
+            position:
+              createForm.position.trim(),
+            roleNames: [
+              createForm.roleName,
+            ],
+            ...(createPasswordMode ===
+            'MANUAL'
+              ? {
+                  password:
+                    createForm.password,
+                }
+              : {}),
+          },
+        );
+
+      const result =
+        response.data;
+
+      setTemporaryCredential({
+        name:
+          result.user?.name ||
+          createForm.name,
+        email:
+          result.user?.email ||
+          createForm.email,
+        password:
+          result.temporaryPassword,
+        origin: 'CREATE',
+      });
+
+      await loadUsers();
+
+      setMessage(
+        `Usuario ${result.user?.email || createForm.email} creado correctamente.`,
+      );
+
+      resetCreateForm();
+    } catch (error: any) {
+      console.error(
+        'Error creando usuario:',
+        error,
+      );
+
+      alert(
+        error?.response?.data
+          ?.message ||
+          'No se pudo crear el usuario.',
+      );
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const copyTemporaryPassword =
+    async () => {
+      if (
+        !temporaryCredential
+      ) {
+        return;
+      }
+
+      try {
+        await navigator.clipboard
+          .writeText(
+            temporaryCredential.password,
+          );
+
+        setMessage(
+          'Contraseña temporal copiada al portapapeles.',
+        );
+      } catch {
+        alert(
+          'No se pudo copiar automáticamente. Seleccione la contraseña y cópiela manualmente.',
+        );
+      }
+    };
+
+  const resetPassword =
+    async (item: any) => {
+      if (
+        item.id ===
+        currentUserId
+      ) {
+        alert(
+          'Para su propia cuenta utilice el cambio normal de contraseña.',
+        );
+        return;
+      }
+
+      const confirmed =
+        window.confirm(
+          `¿Generar una nueva contraseña temporal para ${item.name}? La contraseña anterior dejará de funcionar.`,
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        setSavingId(item.id);
+        setMessage('');
+
+        const response =
+          await api.patch(
+            `/users/${item.id}/reset-password`,
+            {},
+          );
+
+        setTemporaryCredential({
+          name: item.name,
+          email:
+            response.data
+              .email ||
+            item.email,
+          password:
+            response.data
+              .temporaryPassword,
+          origin: 'RESET',
+        });
+
+        setMessage(
+          `Contraseña de ${item.name} restablecida. El usuario deberá cambiarla en su próximo ingreso.`,
+        );
+      } catch (error: any) {
+        console.error(
+          'Error restableciendo contraseña:',
+          error,
+        );
+
+        alert(
+          error?.response?.data
+            ?.message ||
+            'No se pudo restablecer la contraseña.',
+        );
+      } finally {
+        setSavingId(null);
+      }
+    };
+
+  const updateRole = async (
+    item: any,
+    roleName: string,
+  ) => {
+    if (
+      item.id === currentUserId
+    ) {
+      alert(
+        'Por seguridad no puede modificar su propio rol administrativo.',
+      );
+      return;
+    }
+
+    if (item.deletedAt) {
+      return;
+    }
+
+    const previousRole =
+      currentRole(item);
+
+    const confirmed =
+      window.confirm(
+        `¿Cambiar el rol de ${item.name} de ${previousRole} a ${roleName}?`,
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setSavingId(item.id);
+      setMessage('');
+
+      await api.patch(
+        `/users/${item.id}`,
+        {
+          roleNames: [
+            roleName,
+          ],
+        },
+      );
+
+      await loadUsers();
+
+      setMessage(
+        `Rol de ${item.name} actualizado a ${roleName}. El usuario deberá iniciar sesión nuevamente para recibir los nuevos permisos.`,
+      );
+    } catch (error: any) {
+      console.error(
+        'Error cambiando rol:',
+        error,
+      );
+
+      alert(
+        error?.response?.data
+          ?.message ||
+          'No se pudo cambiar el rol del usuario.',
+      );
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const toggleActive =
+    async (item: any) => {
+      if (
+        item.id ===
+        currentUserId
+      ) {
+        alert(
+          'Por seguridad no puede desactivar su propia cuenta.',
+        );
+        return;
+      }
+
+      if (item.deletedAt) {
+        return;
+      }
+
+      const nextActive =
+        !item.active;
+
+      const confirmed =
+        window.confirm(
+          `¿${nextActive ? 'Activar' : 'Desactivar'} la cuenta de ${item.name}?`,
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        setSavingId(item.id);
+        setMessage('');
+
+        await api.patch(
+          `/users/${item.id}`,
+          {
+            active:
+              nextActive,
+          },
+        );
+
+        await loadUsers();
+
+        setMessage(
+          `Cuenta de ${item.name} ${nextActive ? 'activada' : 'desactivada'}.`,
+        );
+      } catch (error: any) {
+        console.error(
+          'Error actualizando usuario:',
+          error,
+        );
+
+        alert(
+          error?.response?.data
+            ?.message ||
+            'No se pudo actualizar el usuario.',
+        );
+      } finally {
+        setSavingId(null);
+      }
+    };
+
+  const startEdit = (
+    item: any,
+  ) => {
+    if (item.deletedAt) {
+      return;
+    }
+
+    setEditing({
+      id: item.id,
+      name:
+        item.name || '',
+      email:
+        item.email || '',
+      position:
+        item.position || '',
+      active:
+        Boolean(item.active),
+    });
+  };
+
+  const saveProfile =
+    async () => {
+      if (!editing) {
+        return;
+      }
+
+      if (
+        !editing.name.trim() ||
+        !editing.email.trim()
+      ) {
+        alert(
+          'Nombre y correo son obligatorios.',
+        );
+        return;
+      }
+
+      try {
+        setSavingId(
+          editing.id,
+        );
+
+        await api.patch(
+          `/users/${editing.id}`,
+          {
+            name:
+              editing.name.trim(),
+            email:
+              editing.email.trim(),
+            position:
+              editing.position.trim(),
+            active:
+              editing.active,
+          },
+        );
+
+        await loadUsers();
+
+        setMessage(
+          `Perfil de ${editing.name} actualizado correctamente.`,
+        );
+
+        setEditing(null);
+      } catch (error: any) {
+        console.error(
+          'Error editando perfil:',
+          error,
+        );
+
+        alert(
+          error?.response?.data
+            ?.message ||
+            'No se pudo actualizar el perfil.',
+        );
+      } finally {
+        setSavingId(null);
+      }
+    };
+
+  const confirmDelete =
+    async () => {
+      if (!deleteTarget) {
+        return;
+      }
+
+      if (
+        deleteReason.trim()
+          .length < 5
+      ) {
+        alert(
+          'Indique un motivo de eliminación de al menos 5 caracteres.',
+        );
+        return;
+      }
+
+      try {
+        setSavingId(
+          deleteTarget.id,
+        );
+
+        await api.patch(
+          `/users/${deleteTarget.id}/delete`,
+          {
+            reason:
+              deleteReason.trim(),
+          },
+        );
+
+        await loadUsers();
+
+        setMessage(
+          `Usuario ${deleteTarget.name} eliminado del sistema. El registro histórico se conserva.`,
+        );
+
+        setDeleteTarget(null);
+        setDeleteReason('');
+      } catch (error: any) {
+        console.error(
+          'Error eliminando usuario:',
+          error,
+        );
+
+        alert(
+          error?.response?.data
+            ?.message ||
+            'No se pudo eliminar el usuario.',
+        );
+      } finally {
+        setSavingId(null);
+      }
+    };
+
+  const restoreUser =
+    async (item: any) => {
+      const confirmed =
+        window.confirm(
+          `¿Restaurar la cuenta de ${item.name}?`,
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        setSavingId(item.id);
+
+        await api.patch(
+          `/users/${item.id}/restore`,
+        );
+
+        await loadUsers();
+
+        setMessage(
+          `Usuario ${item.name} restaurado correctamente.`,
+        );
+      } catch (error: any) {
+        console.error(
+          'Error restaurando usuario:',
+          error,
+        );
+
+        alert(
+          error?.response?.data
+            ?.message ||
+            'No se pudo restaurar el usuario.',
+        );
+      } finally {
+        setSavingId(null);
+      }
+    };
+
+  const roleDescription = (
+    role: string,
+  ) => {
+    if (role === 'ADMIN') {
+      return 'Control total, usuarios, auditoría y gestión de contenido.';
+    }
+
+    if (role === 'EDITOR') {
+      return 'Gestiona contenido, procedimientos, formularios y correspondencia.';
+    }
+
+    return 'Consulta información y descarga recursos permitidos.';
+  };
 
   return (
-
     <>
+      <div className="titlebar">
+        <div>
+          <h1>
+            Gestión de usuarios
+          </h1>
 
-      <h1>Gestión de usuarios</h1>
+          <p>
+            Administración de perfiles, roles, accesos y trazabilidad de usuarios.
+          </p>
+        </div>
 
+        <button
+          type="button"
+          className="btn"
+          onClick={() =>
+            setShowCreate(
+              (value) =>
+                !value,
+            )
+          }
+        >
+          {showCreate
+            ? 'Cerrar formulario'
+            : '+ Nuevo usuario'}
+        </button>
+      </div>
 
+      <div className="user-role-summary">
+        <Card>
+          <b>Administrador</b>
+          <p>
+            Acceso completo al sistema y gestión de usuarios.
+          </p>
+        </Card>
 
-      <p>
+        <Card>
+          <b>Editor</b>
+          <p>
+            Puede crear y actualizar contenido institucional.
+          </p>
+        </Card>
 
-        Administración de usuarios, roles y permisos del sistema.
+        <Card>
+          <b>Consultor</b>
+          <p>
+            Acceso de consulta a la información autorizada.
+          </p>
+        </Card>
+      </div>
 
+      {message && (
+        <div
+          className="user-management-message"
+          role="status"
+        >
+          {message}
+        </div>
+      )}
+
+      {temporaryCredential && (
+        <Card>
+          <div className="temporary-credential-card">
+            <div className="temporary-credential-header">
+              <div>
+                <Badge tone="green">
+                  {temporaryCredential.origin ===
+                  'CREATE'
+                    ? 'Usuario creado'
+                    : 'Contraseña restablecida'}
+                </Badge>
+
+                <h2>
+                  Credenciales temporales
+                </h2>
+
+                <p>
+                  Copie esta contraseña ahora. No podrá consultarse nuevamente desde el sistema.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={() =>
+                  setTemporaryCredential(
+                    null,
+                  )
+                }
+              >
+                Cerrar
+              </button>
+            </div>
+
+            <div className="temporary-credential-grid">
+              <div>
+                <span>
+                  Usuario
+                </span>
+                <strong>
+                  {temporaryCredential.name}
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Correo
+                </span>
+                <strong>
+                  {temporaryCredential.email}
+                </strong>
+              </div>
+
+              <div className="temporary-password-value">
+                <span>
+                  Contraseña temporal
+                </span>
+
+                <code>
+                  {temporaryCredential.password}
+                </code>
+              </div>
+            </div>
+
+            <div className="temporary-credential-actions">
+              <button
+                type="button"
+                className="btn"
+                onClick={() =>
+                  void copyTemporaryPassword()
+                }
+              >
+                Copiar contraseña
+              </button>
+            </div>
+
+            <small>
+              El usuario deberá cambiar esta contraseña al iniciar sesión. El envío automático por correo quedará disponible cuando se configure el SMTP institucional.
+            </small>
+          </div>
+        </Card>
+      )}
+
+      {showCreate && (
+        <Card>
+          <div className="user-edit-header">
+            <div>
+              <h2>
+                Nuevo usuario
+              </h2>
+
+              <p>
+                Cree una cuenta y asigne su rol inicial.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              className="btn secondary"
+              onClick={
+                resetCreateForm
+              }
+            >
+              Cancelar
+            </button>
+          </div>
+
+          <form
+            className="form"
+            onSubmit={
+              createUser
+            }
+          >
+            <label>
+              Nombre completo
+              <input
+                required
+                value={
+                  createForm.name
+                }
+                onChange={(e) =>
+                  setCreateForm({
+                    ...createForm,
+                    name:
+                      e.target.value,
+                  })
+                }
+              />
+            </label>
+
+            <label>
+              Correo institucional
+              <input
+                required
+                type="email"
+                value={
+                  createForm.email
+                }
+                onChange={(e) =>
+                  setCreateForm({
+                    ...createForm,
+                    email:
+                      e.target.value,
+                  })
+                }
+                placeholder="usuario@itcr.ac.cr"
+              />
+            </label>
+
+            <label>
+              Puesto
+              <input
+                value={
+                  createForm.position
+                }
+                onChange={(e) =>
+                  setCreateForm({
+                    ...createForm,
+                    position:
+                      e.target.value,
+                  })
+                }
+              />
+            </label>
+
+            <label>
+              Rol inicial
+              <select
+                value={
+                  createForm.roleName
+                }
+                onChange={(e) =>
+                  setCreateForm({
+                    ...createForm,
+                    roleName:
+                      e.target.value,
+                  })
+                }
+              >
+                <option value="CONSULTOR">
+                  Consultor
+                </option>
+                <option value="EDITOR">
+                  Editor
+                </option>
+                <option value="ADMIN">
+                  Administrador
+                </option>
+              </select>
+            </label>
+
+            <div className="full user-password-mode">
+              <strong>
+                Contraseña temporal
+              </strong>
+
+              <label>
+                <input
+                  type="radio"
+                  name="passwordMode"
+                  checked={
+                    createPasswordMode ===
+                    'AUTO'
+                  }
+                  onChange={() =>
+                    setCreatePasswordMode(
+                      'AUTO',
+                    )
+                  }
+                />
+                Generar automáticamente
+              </label>
+
+              <label>
+                <input
+                  type="radio"
+                  name="passwordMode"
+                  checked={
+                    createPasswordMode ===
+                    'MANUAL'
+                  }
+                  onChange={() =>
+                    setCreatePasswordMode(
+                      'MANUAL',
+                    )
+                  }
+                />
+                Escribir manualmente
+              </label>
+            </div>
+
+            {createPasswordMode ===
+              'MANUAL' && (
+              <label className="full">
+                Contraseña temporal
+                <input
+                  type="password"
+                  minLength={8}
+                  required
+                  value={
+                    createForm.password
+                  }
+                  onChange={(e) =>
+                    setCreateForm({
+                      ...createForm,
+                      password:
+                        e.target.value,
+                    })
+                  }
+                  placeholder="Mínimo 8 caracteres"
+                />
+              </label>
+            )}
+
+            <div className="full user-edit-actions">
+              <button
+                type="submit"
+                className="btn"
+                disabled={
+                  creating
+                }
+              >
+                {creating
+                  ? 'Creando...'
+                  : 'Crear usuario'}
+              </button>
+            </div>
+          </form>
+        </Card>
+      )}
+
+      {editing && (
+        <Card>
+          <div className="user-edit-header">
+            <div>
+              <h2>
+                Editar perfil
+              </h2>
+              <p>
+                Corrija los datos institucionales del usuario.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              className="btn secondary"
+              onClick={() =>
+                setEditing(null)
+              }
+            >
+              Cancelar
+            </button>
+          </div>
+
+          <div className="form">
+            <label>
+              Nombre
+              <input
+                value={
+                  editing.name
+                }
+                onChange={(e) =>
+                  setEditing({
+                    ...editing,
+                    name:
+                      e.target.value,
+                  })
+                }
+              />
+            </label>
+
+            <label>
+              Correo institucional
+              <input
+                type="email"
+                value={
+                  editing.email
+                }
+                onChange={(e) =>
+                  setEditing({
+                    ...editing,
+                    email:
+                      e.target.value,
+                  })
+                }
+              />
+            </label>
+
+            <label>
+              Puesto
+              <input
+                value={
+                  editing.position
+                }
+                onChange={(e) =>
+                  setEditing({
+                    ...editing,
+                    position:
+                      e.target.value,
+                  })
+                }
+              />
+            </label>
+
+            <label>
+              Estado
+              <select
+                value={
+                  editing.active
+                    ? 'ACTIVO'
+                    : 'INACTIVO'
+                }
+                onChange={(e) =>
+                  setEditing({
+                    ...editing,
+                    active:
+                      e.target
+                        .value ===
+                      'ACTIVO',
+                  })
+                }
+              >
+                <option value="ACTIVO">
+                  Activo
+                </option>
+                <option value="INACTIVO">
+                  Inactivo
+                </option>
+              </select>
+            </label>
+
+            <div className="full user-edit-actions">
+              <button
+                type="button"
+                className="btn"
+                disabled={
+                  savingId ===
+                  editing.id
+                }
+                onClick={() =>
+                  void saveProfile()
+                }
+              >
+                {savingId ===
+                editing.id
+                  ? 'Guardando...'
+                  : 'Guardar cambios'}
+              </button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {deleteTarget && (
+        <Card>
+          <div className="user-delete-box">
+            <h2>
+              Eliminar usuario
+            </h2>
+
+            <p>
+              Se retirará el acceso de <b>{deleteTarget.name}</b>, pero el registro se conservará para mantener la trazabilidad.
+            </p>
+
+            <label>
+              Motivo de eliminación
+              <textarea
+                value={
+                  deleteReason
+                }
+                onChange={(e) =>
+                  setDeleteReason(
+                    e.target.value,
+                  )
+                }
+                placeholder="Ejemplo: usuario ya no pertenece al campus, cuenta duplicada, correo creado por error..."
+              />
+            </label>
+
+            <div className="user-delete-actions">
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={() => {
+                  setDeleteTarget(
+                    null,
+                  );
+                  setDeleteReason(
+                    '',
+                  );
+                }}
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                className="btn danger"
+                disabled={
+                  savingId ===
+                  deleteTarget.id
+                }
+                onClick={() =>
+                  void confirmDelete()
+                }
+              >
+                {savingId ===
+                deleteTarget.id
+                  ? 'Eliminando...'
+                  : 'Confirmar eliminación'}
+              </button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      <Card>
+        {data.length ? (
+          <table className="users-table">
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Puesto</th>
+                <th>Rol actual</th>
+                <th>Permisos</th>
+                <th>Estado</th>
+                <th>Administrar</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {data.map(
+                (item: any) => {
+                  const role =
+                    currentRole(
+                      item,
+                    );
+
+                  const isCurrentUser =
+                    item.id ===
+                    currentUserId;
+
+                  const saving =
+                    savingId ===
+                    item.id;
+
+                  const deleted =
+                    Boolean(
+                      item.deletedAt,
+                    );
+
+                  return (
+                    <tr
+                      key={
+                        item.id
+                      }
+                      className={
+                        deleted
+                          ? 'user-row-deleted'
+                          : ''
+                      }
+                    >
+                      <td>
+                        <strong>
+                          {item.name}
+                        </strong>
+
+                        <small>
+                          {item.email}
+                        </small>
+
+                        {isCurrentUser && (
+                          <span className="user-current-account">
+                            Tu cuenta
+                          </span>
+                        )}
+
+                        {item.mustChangePassword &&
+                          !deleted && (
+                          <span className="user-temp-password-label">
+                            Contraseña temporal
+                          </span>
+                        )}
+
+                        {deleted && (
+                          <span className="user-deleted-label">
+                            Eliminado
+                          </span>
+                        )}
+
+                        {deleted &&
+                          item.deletionReason && (
+                          <small className="user-deletion-reason">
+                            Motivo: {item.deletionReason}
+                          </small>
+                        )}
+                      </td>
+
+                      <td>
+                        {item.position ||
+                          '-'}
+                      </td>
+
+                      <td>
+                        <Badge
+                          tone={
+                            role ===
+                            'ADMIN'
+                              ? 'blue'
+                              : role ===
+                                'EDITOR'
+                              ? 'green'
+                              : undefined
+                          }
+                        >
+                          {role}
+                        </Badge>
+                      </td>
+
+                      <td>
+                        <small className="user-role-description">
+                          {roleDescription(
+                            role,
+                          )}
+                        </small>
+                      </td>
+
+                      <td>
+                        <Badge
+                          tone={
+                            deleted
+                              ? 'red'
+                              : item.active
+                              ? 'green'
+                              : 'red'
+                          }
+                        >
+                          {deleted
+                            ? 'Eliminado'
+                            : item.active
+                            ? 'Activo'
+                            : 'Inactivo'}
+                        </Badge>
+                      </td>
+
+                      <td>
+                        {deleted ? (
+                          <button
+                            type="button"
+                            className="btn secondary"
+                            disabled={
+                              saving
+                            }
+                            onClick={() =>
+                              void restoreUser(
+                                item,
+                              )
+                            }
+                          >
+                            {saving
+                              ? 'Restaurando...'
+                              : 'Restaurar'}
+                          </button>
+                        ) : (
+                          <div className="user-admin-actions">
+                            <label>
+                              <span>
+                                Cambiar rol
+                              </span>
+
+                              <select
+                                value={
+                                  role
+                                }
+                                disabled={
+                                  saving ||
+                                  isCurrentUser
+                                }
+                                onChange={(
+                                  e,
+                                ) =>
+                                  void updateRole(
+                                    item,
+                                    e.target
+                                      .value,
+                                  )
+                                }
+                              >
+                                <option value="CONSULTOR">
+                                  Consultor
+                                </option>
+
+                                <option value="EDITOR">
+                                  Editor
+                                </option>
+
+                                <option value="ADMIN">
+                                  Administrador
+                                </option>
+                              </select>
+                            </label>
+
+                            <button
+                              type="button"
+                              className="btn secondary"
+                              disabled={
+                                saving
+                              }
+                              onClick={() =>
+                                startEdit(
+                                  item,
+                                )
+                              }
+                            >
+                              Editar
+                            </button>
+
+                            <button
+                              type="button"
+                              className="btn secondary"
+                              disabled={
+                                saving ||
+                                isCurrentUser
+                              }
+                              onClick={() =>
+                                void resetPassword(
+                                  item,
+                                )
+                              }
+                            >
+                              Restablecer contraseña
+                            </button>
+
+                            <button
+                              type="button"
+                              className="btn secondary"
+                              disabled={
+                                saving ||
+                                isCurrentUser
+                              }
+                              onClick={() =>
+                                void toggleActive(
+                                  item,
+                                )
+                              }
+                            >
+                              {item.active
+                                ? 'Desactivar'
+                                : 'Activar'}
+                            </button>
+
+                            <button
+                              type="button"
+                              className="btn danger"
+                              disabled={
+                                saving ||
+                                isCurrentUser
+                              }
+                              onClick={() => {
+                                setDeleteTarget(
+                                  item,
+                                );
+                                setDeleteReason(
+                                  '',
+                                );
+                              }}
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                },
+              )}
+            </tbody>
+          </table>
+        ) : (
+          <Empty text="No hay usuarios registrados." />
+        )}
+      </Card>
+
+      <p className="user-role-note">
+        Las contraseñas existentes nunca son visibles. Al crear o restablecer una cuenta, la contraseña temporal se muestra una sola vez y el usuario debe cambiarla al iniciar sesión. Todas las acciones administrativas quedan registradas en el historial.
       </p>
-
-
-
-      <SimpleTable
-
-        endpoint="/users"
-
-        columns={[
-
-          {
-
-            k: 'name',
-
-            l: 'Nombre',
-
-          },
-
-          {
-
-            k: 'email',
-
-            l: 'Correo',
-
-          },
-
-          {
-
-            k: 'position',
-
-            l: 'Puesto',
-
-          },
-
-          {
-
-            k: 'roles',
-
-            l: 'Rol',
-
-            render: (x: any) =>
-
-              x.roles
-
-                ?.map((r: any) => r.name)
-
-                .join(', ') ?? '-',
-
-          },
-
-          {
-
-            k: 'active',
-
-            l: 'Estado',
-
-            render: (x: any) =>
-
-              x.active ? 'Activo' : 'Inactivo',
-
-          },
-
-        ]}
-
-      />
-
     </>
-
   );
-
 }
-
-
-
 
 
 /* =========================================================
