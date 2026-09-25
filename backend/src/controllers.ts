@@ -595,69 +595,56 @@ export class ProcedureController {
 ========================================================= */
 
 @Controller('forms')
-@UseGuards(
-  JwtAuthGuard,
-  RolesGuard,
-)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class FormsController {
-  constructor(
-    private readonly service:
-      FormsService,
-  ) {}
+  constructor(private readonly service: FormsService) {}
 
   @Get()
-  @Roles(
-    Role.ADMIN,
-    Role.EDITOR,
-    Role.CONSULTOR,
-  )
-  list() {
-    return this.service.list();
+  @Roles(Role.ADMIN, Role.EDITOR, Role.CONSULTOR)
+  list() { return this.service.list(); }
+
+  @Get(':id')
+  @Roles(Role.ADMIN, Role.EDITOR, Role.CONSULTOR)
+  get(@Param('id') id: string) { return this.service.get(id); }
+
+  @Post('upload')
+  @Roles(Role.ADMIN, Role.EDITOR)
+  @UseInterceptors(FileInterceptor('file', { storage: diskStorage({
+    destination: (_request, _file, callback) => {
+      const directory = process.env.UPLOAD_DIR || './uploads';
+      mkdirSync(directory, { recursive: true });
+      callback(null, directory);
+    },
+    filename: (_request, file, callback) => {
+      const uniqueName = `${Date.now()}-${Math.round(Math.random()*1e9)}${extname(file.originalname)}`;
+      callback(null, uniqueName);
+    },
+  }) }))
+  upload(@Body() body: any, @UploadedFile() file: any, @Req() request: any) {
+    if (!file) throw new Error('Debe seleccionar un archivo');
+    return this.service.create(body, request.user, file);
+  }
+
+  @Patch(':id')
+  @Roles(Role.ADMIN, Role.EDITOR)
+  update(@Param('id') id: string, @Body() body: any, @Req() request: any) {
+    return this.service.update(id, body, request.user);
+  }
+
+  @Get(':id/download')
+  @Roles(Role.ADMIN, Role.EDITOR, Role.CONSULTOR)
+  async download(@Param('id') id: string, @Req() request: any, @Res() response: any) {
+    const form = await this.service.prepareDownload(id, request.user);
+    const directory = process.env.UPLOAD_DIR || './uploads';
+    const filePath = join(directory, form.storedName);
+    if (!existsSync(filePath)) return response.status(404).json({ message: 'El archivo físico no se encuentra disponible' });
+    return response.download(filePath, form.originalName);
   }
 
   @Post()
-  @Roles(
-    Role.ADMIN,
-    Role.EDITOR,
-  )
-  create(
-    @Body()
-    body: any,
-
-    @Req()
-    request: any,
-  ) {
-    return this.service.create(
-      body,
-      request.user,
-    );
-  }
-
-  /*
-   * Por ahora este endpoint registra
-   * la descarga según FormsService.
-   *
-   * Más adelante conectaremos el
-   * archivo físico para que el navegador
-   * realmente lo descargue.
-   */
-  @Post(':id/download')
-  @Roles(
-    Role.ADMIN,
-    Role.EDITOR,
-    Role.CONSULTOR,
-  )
-  download(
-    @Param('id')
-    id: string,
-
-    @Req()
-    request: any,
-  ) {
-    return this.service.download(
-      id,
-      request.user,
-    );
+  @Roles(Role.ADMIN, Role.EDITOR)
+  create(@Body() body: any, @Req() request: any) {
+    return this.service.create(body, request.user);
   }
 }
 

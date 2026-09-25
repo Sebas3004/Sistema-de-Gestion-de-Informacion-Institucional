@@ -3877,125 +3877,133 @@ export function ProcedureDetail() {
 
 
 /* =========================================================
-
    FORMULARIOS
-
-\========================================================= */
-
-
+========================================================= */
 
 export function Forms() {
+  const { user } = useAuth();
+  const [data, setData] = useState<any[]>([]);
+  const [search, setSearch] = useState('');
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [f, setF] = useState({ name: '', description: '', category: 'Otros', format: '' });
+  const roles = user?.roles || [];
+  const canManage = roles.includes('ADMIN') || roles.includes('EDITOR');
+
+  const load = () => api.get('/forms').then((r) => setData(r.data)).catch((error) => console.error('Error cargando formularios:', error));
+  useEffect(() => { void load(); }, []);
+
+  const filtered = data.filter((x) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return [x.name,x.description,x.category,x.format,x.originalName,x.createdBy?.name,x.updatedBy?.name].some((value) => String(value ?? '').toLowerCase().includes(q));
+  });
+
+  const resetForm = () => {
+    setF({ name: '', description: '', category: 'Otros', format: '' });
+    setFile(null);
+    setShowForm(false);
+  };
+
+  const upload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!file) { alert('Seleccione un archivo.'); return; }
+    try {
+      setSaving(true);
+      const form = new FormData();
+      form.append('file', file);
+      form.append('name', f.name.trim());
+      form.append('description', f.description.trim());
+      form.append('category', f.category.trim());
+      if (f.format.trim()) form.append('format', f.format.trim());
+      await api.post('/forms/upload', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await load();
+      resetForm();
+    } catch (error) {
+      console.error('Error subiendo formulario:', error);
+      alert('No se pudo subir el formulario.');
+    } finally { setSaving(false); }
+  };
+
+  const download = async (item: any) => {
+    try {
+      const response = await api.get(`/forms/${item.id}/download`, { responseType: 'blob' });
+      const url = URL.createObjectURL(response.data);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = item.originalName || item.name;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      await load();
+    } catch (error) {
+      console.error('Error descargando formulario:', error);
+      alert('No se pudo descargar el formulario.');
+    }
+  };
 
   return (
-
     <>
+      <div className="titlebar">
+        <div>
+          <h1>Formularios institucionales</h1>
+          <p>Consulta y descarga formularios del Campus Tecnológico de San José.</p>
+        </div>
+        {canManage && (
+          <button type="button" className="btn" onClick={() => setShowForm((value) => !value)}>
+            {showForm ? 'Cerrar formulario' : '+ Nuevo formulario'}
+          </button>
+        )}
+      </div>
 
-      <h1>Formularios</h1>
+      {canManage && showForm && (
+        <Card>
+          <h2>Subir formulario</h2>
+          <form className="form" onSubmit={upload}>
+            <label>Nombre<input required value={f.name} onChange={(e) => setF({...f,name:e.target.value})} /></label>
+            <label>Categoría<input required value={f.category} onChange={(e) => setF({...f,category:e.target.value})} /></label>
+            <label>Formato<input value={f.format} onChange={(e) => setF({...f,format:e.target.value})} placeholder="Opcional; se detecta del archivo" /></label>
+            <label>Archivo<input required type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} /><small>Se permite cualquier tipo de archivo.</small></label>
+            <label className="full">Descripción<textarea value={f.description} onChange={(e) => setF({...f,description:e.target.value})} /></label>
+            {file && <div className="repository-selected-file full"><b>Archivo seleccionado:</b><span>{file.name}</span><small>{formatFileSize(file.size)}</small></div>}
+            <div className="full repository-form-actions">
+              <button type="button" className="btn secondary" onClick={resetForm}>Cancelar</button>
+              <button type="submit" className="btn" disabled={saving}>{saving ? 'Subiendo...' : 'Subir formulario'}</button>
+            </div>
+          </form>
+        </Card>
+      )}
 
+      <Card>
+        <div className="repository-toolbar">
+          <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar formulario..." />
+          <span>{filtered.length} formulario(s)</span>
+        </div>
+      </Card>
 
-
-      <p>
-
-        Consulta y descarga formularios institucionales.
-
-      </p>
-
-
-
-      <SimpleTable
-
-        endpoint="/forms"
-
-        columns={[
-
-          {
-
-            k: 'name',
-
-            l: 'Nombre',
-
-          },
-
-          {
-
-            k: 'description',
-
-            l: 'Descripción',
-
-          },
-
-          {
-
-            k: 'category',
-
-            l: 'Categoría',
-
-          },
-
-          {
-
-            k: 'format',
-
-            l: 'Formato',
-
-          },
-
-          {
-
-            k: 'createdBy',
-
-            l: 'Agregado por',
-
-            render: (x: any) =>
-
-              x.createdBy?.name ?? '-',
-
-          },
-
-          {
-
-            k: 'updatedAt',
-
-            l: 'Última actualización',
-
-            render: (x: any) =>
-
-              x.updatedAt
-
-                ? new Date(
-
-                    x.updatedAt
-
-                  ).toLocaleDateString()
-
-                : '-',
-
-          },
-
-          {
-
-            k: 'updatedBy',
-
-            l: 'Actualizado por',
-
-            render: (x: any) =>
-
-              x.updatedBy?.name ?? '-',
-
-          },
-
-        ]}
-
-      />
-
+      <Card>
+        {filtered.length ? (
+          <table className="repository-table">
+            <thead><tr><th>Formulario</th><th>Categoría</th><th>Formato</th><th>Archivo</th><th>Tamaño</th><th>Agregado por</th><th>Actualizado por</th><th>Descargas</th><th>Actualización</th><th>Acciones</th></tr></thead>
+            <tbody>
+              {filtered.map((x) => (
+                <tr key={x.id}>
+                  <td><strong>{x.name}</strong><small>{x.description || 'Sin descripción'}</small></td>
+                  <td>{x.category}</td><td>{x.format}</td><td>{x.originalName || 'Sin archivo'}</td><td>{formatFileSize(x.size)}</td>
+                  <td>{x.createdBy?.name || '-'}</td><td>{x.updatedBy?.name || '-'}</td><td>{x.downloads ?? 0}</td>
+                  <td>{x.updatedAt ? new Date(x.updatedAt).toLocaleDateString() : '-'}</td>
+                  <td>{x.storedName ? <button type="button" className="btn secondary" onClick={() => download(x)}>Descargar</button> : <span>No disponible</span>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : <Empty text="No se encontraron formularios." />}
+      </Card>
     </>
-
   );
-
 }
-
-
-
 
 
 /* =========================================================
