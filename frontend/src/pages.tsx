@@ -811,227 +811,260 @@ export function ChangePassword() {
 
 
 export function Dashboard() {
+  const { user } =
+    useAuth();
 
-  const [corr, setCorr] = useState<any[]>([]);
+  const [corr, setCorr] =
+    useState<any[]>([]);
 
-  const [repo, setRepo] = useState<any[]>([]);
+  const [repo, setRepo] =
+    useState<any[]>([]);
 
-  const [procs, setProcs] = useState<any[]>([]);
+  const [procs, setProcs] =
+    useState<any[]>([]);
 
-  const [forms, setForms] = useState<any[]>([]);
+  const [forms, setForms] =
+    useState<any[]>([]);
 
-  const [news, setNews] = useState<any[]>([]);
+  const [news, setNews] =
+    useState<any[]>([]);
 
+  const roles =
+    user?.roles || [];
 
+  const canViewCorrespondence =
+    roles.includes('ADMIN') ||
+    roles.includes('EDITOR');
 
   useEffect(() => {
-
-    Promise.all([
-
-      api.get('/correspondence'),
-
+    const requests = [
       api.get('/repository'),
-
       api.get('/procedures'),
-
       api.get('/forms'),
-
       api.get('/news'),
+    ];
 
-    ])
+    Promise.all(requests)
+      .then(
+        ([
+          repositoryResponse,
+          proceduresResponse,
+          formsResponse,
+          newsResponse,
+        ]) => {
+          setRepo(
+            repositoryResponse.data,
+          );
 
-      .then(([a, b, c, d, e]) => {
+          setProcs(
+            proceduresResponse.data,
+          );
 
-        setCorr(a.data);
+          setForms(
+            formsResponse.data,
+          );
 
-        setRepo(b.data);
-
-        setProcs(c.data);
-
-        setForms(d.data);
-
-        setNews(e.data);
-
-      })
-
+          setNews(
+            newsResponse.data,
+          );
+        },
+      )
       .catch((error) => {
-
-        console.error('Error cargando el dashboard:', error);
-
+        console.error(
+          'Error cargando el dashboard:',
+          error,
+        );
       });
 
-  }, []);
-
-
+    if (
+      canViewCorrespondence
+    ) {
+      api
+        .get('/correspondence')
+        .then((response) => {
+          setCorr(
+            response.data,
+          );
+        })
+        .catch((error) => {
+          console.error(
+            'Error cargando correspondencia del dashboard:',
+            error,
+          );
+        });
+    } else {
+      setCorr([]);
+    }
+  }, [
+    canViewCorrespondence,
+  ]);
 
   return (
-
     <>
-
       <div className="heroStrip">
-
         <div>
-
           <h1>¡Hola!</h1>
 
-          <h3>Campus Tecnológico de San José</h3>
+          <h3>
+            Campus Tecnológico de San José
+          </h3>
 
           <p>
-
             Tu punto de acceso a información y seguimiento institucional.
-
           </p>
-
         </div>
-
       </div>
 
+      <div
+        className={
+          canViewCorrespondence
+            ? 'stats'
+            : 'stats dashboard-stats-consultor'
+        }
+      >
+        {canViewCorrespondence && (
+          <Card>
+            <b>
+              Correspondencia
+            </b>
 
+            <strong>
+              {corr.length}
+            </strong>
 
-      <div className="stats">
+            <span>
+              Pendientes y seguimiento
+            </span>
+          </Card>
+        )}
 
         <Card>
-
-          <b>Correspondencia</b>
-
-          <strong>{corr.length}</strong>
-
-          <span>Pendientes y seguimiento</span>
-
-        </Card>
-
-
-
-        <Card>
-
           <b>Repositorio</b>
 
-          <strong>{repo.length}</strong>
+          <strong>
+            {repo.length}
+          </strong>
 
-          <span>Documentos disponibles</span>
-
+          <span>
+            Documentos disponibles
+          </span>
         </Card>
 
-
-
         <Card>
-
           <b>Procedimientos</b>
 
-          <strong>{procs.length}</strong>
+          <strong>
+            {procs.length}
+          </strong>
 
-          <span>Procesos registrados</span>
-
+          <span>
+            Procesos registrados
+          </span>
         </Card>
 
-
-
         <Card>
-
           <b>Formularios</b>
 
-          <strong>{forms.length}</strong>
+          <strong>
+            {forms.length}
+          </strong>
 
-          <span>Recursos disponibles</span>
-
+          <span>
+            Recursos disponibles
+          </span>
         </Card>
 
-
-
         <Card>
-
           <b>Noticias</b>
 
-          <strong>{news.length}</strong>
+          <strong>
+            {news.length}
+          </strong>
 
-          <span>Publicaciones</span>
-
+          <span>
+            Publicaciones
+          </span>
         </Card>
-
       </div>
 
+      <div
+        className={
+          canViewCorrespondence
+            ? 'grid2'
+            : 'grid2 dashboard-grid-consultor'
+        }
+      >
+        {canViewCorrespondence && (
+          <Card>
+            <h2>
+              Mis pendientes
+            </h2>
 
+            {corr.length ? (
+              corr
+                .slice(0, 5)
+                .map((x) => (
+                  <div
+                    className="row"
+                    key={x.id}
+                  >
+                    <Link
+                      to={`/correspondencia/${x.id}`}
+                    >
+                      {x.subject}
+                    </Link>
 
-      <div className="grid2">
-
-        <Card>
-
-          <h2>Mis pendientes</h2>
-
-
-
-          {corr.slice(0, 5).map((x) => (
-
-            <div className="row" key={x.id}>
-
-              <Link to={`/correspondencia/${x.id}`}>
-
-                {x.subject}
-
-              </Link>
-
-
-
-              <Badge
-
-                tone={
-
-                  x.status === 'VENCIDO'
-
-                    ? 'red'
-
-                    : x.status === 'RESPONDIDO'
-
-                    ? 'green'
-
-                    : 'blue'
-
-                }
-
-              >
-
-                {x.status}
-
-              </Badge>
-
-            </div>
-
-          ))}
-
-        </Card>
-
-
+                    <Badge
+                      tone={
+                        x.status ===
+                        'VENCIDO'
+                          ? 'red'
+                          : x.status ===
+                            'RESPONDIDO'
+                          ? 'green'
+                          : 'blue'
+                      }
+                    >
+                      {x.status}
+                    </Badge>
+                  </div>
+                ))
+            ) : (
+              <Empty text="No hay correspondencia pendiente." />
+            )}
+          </Card>
+        )}
 
         <Card>
+          <h2>
+            Noticias recientes
+          </h2>
 
-          <h2>Noticias recientes</h2>
+          {news.length ? (
+            news
+              .slice(0, 5)
+              .map((n) => (
+                <div
+                  className="row"
+                  key={n.id}
+                >
+                  <span>
+                    {n.title}
+                  </span>
 
-
-
-          {news.slice(0, 5).map((n) => (
-
-            <div className="row" key={n.id}>
-
-              <span>{n.title}</span>
-
-              <Badge>{n.category}</Badge>
-
-            </div>
-
-          ))}
-
+                  <Badge>
+                    {n.category}
+                  </Badge>
+                </div>
+              ))
+          ) : (
+            <Empty text="No hay noticias recientes." />
+          )}
         </Card>
-
       </div>
-
     </>
-
   );
-
 }
-
-
-
 
 
 /* =========================================================
@@ -1287,297 +1320,373 @@ export function CorrespondenceList() {
 
 
 export function NewCorrespondence() {
+  const nav =
+    useNavigate();
 
-  const nav = useNavigate();
+  const [users, setUsers] =
+    useState<any[]>([]);
 
+  const [files, setFiles] =
+    useState<File[]>([]);
 
+  const [saving, setSaving] =
+    useState(false);
 
-  const [users, setUsers] = useState<any[]>([]);
-
-
-
-  const [f, setF] = useState<any>({
-
-    subject: '',
-
-    description: '',
-
-    type: 'Solicitud',
-
-    priority: 'MEDIA',
-
-    responsibleId: '',
-
-    dueDate: '',
-
-  });
-
-
+  const [f, setF] =
+    useState<any>({
+      subject: '',
+      description: '',
+      type: 'Solicitud',
+      priority: 'MEDIA',
+      responsibleId: '',
+      dueDate: '',
+    });
 
   useEffect(() => {
-
     api
-
       .get('/users')
-
-      .then((r) => setUsers(r.data))
-
+      .then((r) =>
+        setUsers(r.data),
+      )
       .catch((error) => {
-
-        console.error('Error cargando usuarios:', error);
-
+        console.error(
+          'Error cargando usuarios:',
+          error,
+        );
       });
-
   }, []);
 
-
-
-  const submit = async (e: React.FormEvent) => {
-
+  const submit = async (
+    e: React.FormEvent,
+  ) => {
     e.preventDefault();
 
-
-
     try {
+      setSaving(true);
 
-      await api.post('/correspondence', f);
+      const response =
+        await api.post(
+          '/correspondence',
+          f,
+        );
 
-      nav('/correspondencia');
+      const correspondence =
+        response.data;
 
+      if (
+        files.length &&
+        correspondence?.id
+      ) {
+        for (
+          const selectedFile
+          of files
+        ) {
+          const form =
+            new FormData();
+
+          form.append(
+            'file',
+            selectedFile,
+          );
+
+          await api.post(
+            `/correspondence/${correspondence.id}/attachments`,
+            form,
+            {
+              headers: {
+                'Content-Type':
+                  'multipart/form-data',
+              },
+            },
+          );
+        }
+      }
+
+      nav(
+        `/correspondencia/${correspondence.id}`,
+      );
     } catch (error) {
+      console.error(
+        'Error creando correspondencia:',
+        error,
+      );
 
-      console.error('Error creando correspondencia:', error);
-
-      alert('No se pudo crear la correspondencia.');
-
+      alert(
+        'No se pudo crear la correspondencia o subir alguno de los archivos.',
+      );
+    } finally {
+      setSaving(false);
     }
-
   };
 
-
+  const removeSelectedFile = (
+    index: number,
+  ) => {
+    setFiles((current) =>
+      current.filter(
+        (_file, fileIndex) =>
+          fileIndex !== index,
+      ),
+    );
+  };
 
   return (
-
     <>
+      <div className="titlebar">
+        <div>
+          <h1>
+            Nueva correspondencia
+          </h1>
 
-      <h1>Nueva correspondencia</h1>
+          <p>
+            Registra la correspondencia y, si lo necesitas, adjunta uno o varios archivos desde el inicio.
+          </p>
+        </div>
 
-
+        <button
+          type="button"
+          className="btn secondary"
+          onClick={() =>
+            nav('/correspondencia')
+          }
+        >
+          ← Volver
+        </button>
+      </div>
 
       <Card>
-
-        <form className="form" onSubmit={submit}>
-
+        <form
+          className="form"
+          onSubmit={submit}
+        >
           <label>
-
             Asunto
-
             <input
-
               required
-
               value={f.subject}
-
               onChange={(e) =>
-
                 setF({
-
                   ...f,
-
-                  subject: e.target.value,
-
+                  subject:
+                    e.target.value,
                 })
-
               }
-
             />
-
           </label>
-
-
 
           <label>
-
             Tipo
-
             <input
-
               value={f.type}
-
               onChange={(e) =>
-
                 setF({
-
                   ...f,
-
-                  type: e.target.value,
-
+                  type:
+                    e.target.value,
                 })
-
               }
-
             />
-
           </label>
-
-
 
           <label className="full">
-
             Descripción / instrucciones
-
             <textarea
-
               required
-
-              value={f.description}
-
-              onChange={(e) =>
-
-                setF({
-
-                  ...f,
-
-                  description: e.target.value,
-
-                })
-
+              value={
+                f.description
               }
-
+              onChange={(e) =>
+                setF({
+                  ...f,
+                  description:
+                    e.target.value,
+                })
+              }
             />
-
           </label>
 
-
-
           <label>
-
             Prioridad
-
             <select
-
-              value={f.priority}
-
-              onChange={(e) =>
-
-                setF({
-
-                  ...f,
-
-                  priority: e.target.value,
-
-                })
-
+              value={
+                f.priority
               }
-
+              onChange={(e) =>
+                setF({
+                  ...f,
+                  priority:
+                    e.target.value,
+                })
+              }
             >
-
-              <option value="BAJA">Baja</option>
-
-              <option value="MEDIA">Media</option>
-
-              <option value="ALTA">Alta</option>
-
+              <option value="BAJA">
+                Baja
+              </option>
+              <option value="MEDIA">
+                Media
+              </option>
+              <option value="ALTA">
+                Alta
+              </option>
             </select>
-
           </label>
 
-
-
           <label>
-
             Responsable
-
             <select
-
               required
-
-              value={f.responsibleId}
-
-              onChange={(e) =>
-
-                setF({
-
-                  ...f,
-
-                  responsibleId: e.target.value,
-
-                })
-
+              value={
+                f.responsibleId
               }
-
+              onChange={(e) =>
+                setF({
+                  ...f,
+                  responsibleId:
+                    e.target.value,
+                })
+              }
             >
+              <option value="">
+                Seleccione
+              </option>
 
-              <option value="">Seleccione</option>
-
-
-
-              {users.map((u) => (
-
-                <option key={u.id} value={u.id}>
-
-                  {u.name}
-
-                </option>
-
-              ))}
-
+              {users
+                .filter(
+                  (u) =>
+                    !u.deletedAt &&
+                    u.active,
+                )
+                .map((u) => (
+                  <option
+                    key={u.id}
+                    value={u.id}
+                  >
+                    {u.name}
+                  </option>
+                ))}
             </select>
-
           </label>
 
-
-
           <label>
-
             Fecha límite
+            <input
+              type="date"
+              value={
+                f.dueDate
+              }
+              onChange={(e) =>
+                setF({
+                  ...f,
+                  dueDate:
+                    e.target.value,
+                })
+              }
+            />
+          </label>
+
+          <div className="full correspondence-create-attachments">
+            <div className="correspondence-create-attachments-header">
+              <div>
+                <strong>
+                  Archivos adjuntos
+                </strong>
+
+                <p>
+                  Puedes seleccionar uno o varios archivos. No hay restricción de extensión.
+                </p>
+              </div>
+
+              {files.length > 0 && (
+                <Badge tone="blue">
+                  {files.length}{' '}
+                  seleccionado(s)
+                </Badge>
+              )}
+            </div>
 
             <input
-
-              type="date"
-
-              value={f.dueDate}
-
-              onChange={(e) =>
-
-                setF({
-
-                  ...f,
-
-                  dueDate: e.target.value,
-
-                })
-
+              type="file"
+              multiple
+              onChange={(event) =>
+                setFiles(
+                  Array.from(
+                    event.target
+                      .files || [],
+                  ),
+                )
               }
-
             />
 
-          </label>
+            {files.length > 0 && (
+              <div className="correspondence-create-file-list">
+                {files.map(
+                  (
+                    selectedFile,
+                    index,
+                  ) => (
+                    <div
+                      className="correspondence-create-file-item"
+                      key={`${selectedFile.name}-${selectedFile.size}-${index}`}
+                    >
+                      <div>
+                        <strong>
+                          {selectedFile.name}
+                        </strong>
 
+                        <small>
+                          {formatFileSize(
+                            selectedFile.size,
+                          )}
+                        </small>
+                      </div>
 
-
-          <div className="full">
-
-            <button className="btn" type="submit">
-
-              Enviar correspondencia
-
-            </button>
-
+                      <button
+                        type="button"
+                        className="procedure-remove-step"
+                        onClick={() =>
+                          removeSelectedFile(
+                            index,
+                          )
+                        }
+                      >
+                        Quitar
+                      </button>
+                    </div>
+                  ),
+                )}
+              </div>
+            )}
           </div>
 
+          <div className="full correspondence-create-actions">
+            <button
+              type="button"
+              className="btn secondary"
+              onClick={() =>
+                nav(
+                  '/correspondencia',
+                )
+              }
+              disabled={saving}
+            >
+              Cancelar
+            </button>
+
+            <button
+              className="btn"
+              type="submit"
+              disabled={saving}
+            >
+              {saving
+                ? 'Creando y subiendo...'
+                : 'Crear correspondencia'}
+            </button>
+          </div>
         </form>
-
       </Card>
-
     </>
-
   );
-
 }
-
-
-
 
 
 /* =========================================================
@@ -1589,351 +1698,708 @@ export function NewCorrespondence() {
 
 
 export function CorrespondenceDetail() {
+  const { id } =
+    useParams();
 
-  const { id } = useParams();
+  const nav =
+    useNavigate();
 
+  const [x, setX] =
+    useState<any>();
 
+  const [body, setBody] =
+    useState('');
 
-  const [x, setX] = useState<any>();
+  const [files, setFiles] =
+    useState<File[]>([]);
 
-  const [body, setBody] = useState('');
+  const [uploading, setUploading] =
+    useState(false);
 
+  const [downloadingId, setDownloadingId] =
+    useState<string | null>(
+      null,
+    );
 
+  const [downloadingAll, setDownloadingAll] =
+    useState(false);
 
   const load = () => {
-
     return api
-
-      .get('/correspondence/' + id)
-
+      .get(
+        '/correspondence/' +
+          id,
+      )
       .then((r) => {
-
         setX(r.data);
-
       })
-
       .catch((error) => {
-
         console.error(
-
           'Error cargando detalle de correspondencia:',
-
-          error
-
+          error,
         );
-
       });
-
   };
 
-
-
   useEffect(() => {
-
     void load();
-
   }, [id]);
 
-
-
   if (!x) {
-
-    return <Empty text="Cargando..." />;
-
+    return (
+      <Empty text="Cargando..." />
+    );
   }
 
-
-
   const comment = async () => {
-
     if (!body.trim()) {
-
       return;
-
     }
 
-
-
     try {
-
-      await api.post(`/correspondence/${id}/comments`, {
-
-        body,
-
-      });
-
-
+      await api.post(
+        `/correspondence/${id}/comments`,
+        {
+          body,
+        },
+      );
 
       setBody('');
 
-
-
       await load();
-
     } catch (error) {
-
-      console.error('Error publicando comentario:', error);
-
-    }
-
-  };
-
-
-
-  const attend = async () => {
-
-    try {
-
-      await api.patch(`/correspondence/${id}`, {
-
-        status: 'RESPONDIDO',
-
-      });
-
-
-
-      await load();
-
-    } catch (error) {
-
       console.error(
-
-        'Error actualizando correspondencia:',
-
-        error
-
+        'Error publicando comentario:',
+        error,
       );
 
+      alert(
+        'No se pudo publicar el comentario.',
+      );
     }
-
   };
 
+  const attend = async () => {
+    try {
+      await api.patch(
+        `/correspondence/${id}`,
+        {
+          status:
+            'RESPONDIDO',
+        },
+      );
 
+      await load();
+    } catch (error) {
+      console.error(
+        'Error actualizando correspondencia:',
+        error,
+      );
+
+      alert(
+        'No se pudo actualizar la correspondencia.',
+      );
+    }
+  };
+
+  const uploadAttachments =
+    async (
+      event:
+        React.FormEvent<HTMLFormElement>,
+    ) => {
+      event.preventDefault();
+
+      if (!files.length) {
+        alert(
+          'Seleccione al menos un archivo para adjuntar.',
+        );
+        return;
+      }
+
+      try {
+        setUploading(true);
+
+        for (
+          const selectedFile
+          of files
+        ) {
+          const form =
+            new FormData();
+
+          form.append(
+            'file',
+            selectedFile,
+          );
+
+          await api.post(
+            `/correspondence/${id}/attachments`,
+            form,
+            {
+              headers: {
+                'Content-Type':
+                  'multipart/form-data',
+              },
+            },
+          );
+        }
+
+        setFiles([]);
+
+        const input =
+          document.getElementById(
+            'correspondence-attachment-input',
+          ) as HTMLInputElement | null;
+
+        if (input) {
+          input.value = '';
+        }
+
+        await load();
+      } catch (error) {
+        console.error(
+          'Error adjuntando archivos:',
+          error,
+        );
+
+        alert(
+          'No se pudieron adjuntar todos los archivos.',
+        );
+      } finally {
+        setUploading(false);
+      }
+    };
+
+  const downloadAttachment =
+    async (
+      attachment: any,
+    ) => {
+      try {
+        setDownloadingId(
+          attachment.id,
+        );
+
+        const response =
+          await api.get(
+            `/correspondence/${id}/attachments/${attachment.id}/download`,
+            {
+              responseType:
+                'blob',
+            },
+          );
+
+        const url =
+          URL.createObjectURL(
+            response.data,
+          );
+
+        const anchor =
+          document.createElement(
+            'a',
+          );
+
+        anchor.href = url;
+
+        anchor.download =
+          attachment.originalName ||
+          'archivo';
+
+        document.body
+          .appendChild(
+            anchor,
+          );
+
+        anchor.click();
+
+        anchor.remove();
+
+        URL.revokeObjectURL(
+          url,
+        );
+      } catch (error) {
+        console.error(
+          'Error descargando adjunto:',
+          error,
+        );
+
+        alert(
+          'No se pudo descargar el archivo adjunto.',
+        );
+      } finally {
+        setDownloadingId(
+          null,
+        );
+      }
+    };
+
+  const downloadAllAttachments =
+    async () => {
+      try {
+        setDownloadingAll(
+          true,
+        );
+
+        const response =
+          await api.get(
+            `/correspondence/${id}/attachments/download-all`,
+            {
+              responseType:
+                'blob',
+            },
+          );
+
+        const url =
+          URL.createObjectURL(
+            response.data,
+          );
+
+        const anchor =
+          document.createElement(
+            'a',
+          );
+
+        anchor.href = url;
+
+        anchor.download =
+          `${x.code || 'correspondencia'}-adjuntos.zip`;
+
+        document.body
+          .appendChild(
+            anchor,
+          );
+
+        anchor.click();
+
+        anchor.remove();
+
+        URL.revokeObjectURL(
+          url,
+        );
+      } catch (error) {
+        console.error(
+          'Error descargando ZIP de adjuntos:',
+          error,
+        );
+
+        alert(
+          'No se pudieron descargar todos los archivos adjuntos.',
+        );
+      } finally {
+        setDownloadingAll(
+          false,
+        );
+      }
+    };
+
+  const removeSelectedFile = (
+    index: number,
+  ) => {
+    setFiles((current) =>
+      current.filter(
+        (_file, fileIndex) =>
+          fileIndex !== index,
+      ),
+    );
+  };
+
+  const attachments =
+    Array.isArray(
+      x.attachments,
+    )
+      ? [...x.attachments].sort(
+          (a: any, b: any) =>
+            new Date(
+              b.createdAt,
+            ).getTime() -
+            new Date(
+              a.createdAt,
+            ).getTime(),
+        )
+      : [];
 
   return (
-
     <>
-
       <div className="titlebar">
-
         <div>
+          <button
+            type="button"
+            className="btn secondary correspondence-back-button"
+            onClick={() =>
+              nav(
+                '/correspondencia',
+              )
+            }
+          >
+            ← Volver
+          </button>
 
-          <h1>Detalle de correspondencia</h1>
+          <h1>
+            Detalle de correspondencia
+          </h1>
 
-          <h2>{x.subject}</h2>
-
+          <h2>
+            {x.subject}
+          </h2>
         </div>
 
+        <div className="correspondence-detail-actions">
+          {attachments.length > 0 && (
+            <button
+              type="button"
+              className="btn secondary"
+              disabled={
+                downloadingAll
+              }
+              onClick={() =>
+                void downloadAllAttachments()
+              }
+            >
+              {downloadingAll
+                ? 'Preparando ZIP...'
+                : 'Descargar todos (.zip)'}
+            </button>
+          )}
 
-
-        <Btn onClick={attend}>
-
-          Marcar como atendido
-
-        </Btn>
-
+          <Btn onClick={attend}>
+            Marcar como atendido
+          </Btn>
+        </div>
       </div>
 
-
-
       <div className="grid2">
-
         <Card>
-
-          <h2>Resumen</h2>
-
-
+          <h2>
+            Resumen
+          </h2>
 
           <p>
-
-            <b>Código:</b> {x.code}
-
+            <b>Código:</b>{' '}
+            {x.code}
           </p>
 
-
-
           <p>
-
             <b>Enviado por:</b>{' '}
-
-            {x.sender?.name ?? '-'}
-
+            {x.sender?.name ??
+              '-'}
           </p>
 
-
-
           <p>
-
             <b>Responsable:</b>{' '}
-
-            {x.responsible?.name ?? '-'}
-
+            {x.responsible
+              ?.name ?? '-'}
           </p>
 
-
-
           <p>
-
             <b>Fecha límite:</b>{' '}
-
             {x.dueDate
-
-              ? new Date(x.dueDate).toLocaleDateString()
-
+              ? new Date(
+                  x.dueDate,
+                ).toLocaleDateString()
               : '-'}
-
           </p>
 
-
-
           <p>
-
             <b>Estado:</b>{' '}
 
             <Badge
-
               tone={
-
-                x.status === 'VENCIDO'
-
+                x.status ===
+                'VENCIDO'
                   ? 'red'
-
-                  : x.status === 'RESPONDIDO'
-
+                  : x.status ===
+                    'RESPONDIDO'
                   ? 'green'
-
                   : 'blue'
-
               }
-
             >
-
               {x.status}
-
             </Badge>
-
           </p>
 
+          <h3>
+            Indicaciones
+          </h3>
 
-
-          <h3>Indicaciones</h3>
-
-
-
-          <p>{x.description}</p>
-
+          <p>
+            {x.description}
+          </p>
         </Card>
-
-
 
         <Card>
-
-          <h2>Personas involucradas</h2>
-
-
+          <h2>
+            Personas involucradas
+          </h2>
 
           {x.participants?.length ? (
-
-            x.participants.map((p: any) => (
-
-              <div className="row" key={p.id}>
-
-                {p.name}
-
-              </div>
-
-            ))
-
+            x.participants.map(
+              (p: any) => (
+                <div
+                  className="row"
+                  key={p.id}
+                >
+                  {p.name}
+                </div>
+              ),
+            )
           ) : (
-
-            <p>No hay personas adicionales involucradas.</p>
-
+            <p>
+              No hay personas adicionales involucradas.
+            </p>
           )}
 
-
-
-          <h2>Seguimiento</h2>
-
-
+          <h2>
+            Seguimiento
+          </h2>
 
           {x.comments?.length ? (
+            x.comments.map(
+              (c: any) => (
+                <div
+                  className="comment"
+                  key={c.id}
+                >
+                  <b>
+                    {c.author
+                      ?.name ??
+                      'Usuario'}
+                  </b>
 
-            x.comments.map((c: any) => (
+                  <small>
+                    {new Date(
+                      c.createdAt,
+                    ).toLocaleString()}
+                  </small>
 
-              <div className="comment" key={c.id}>
-
-                <b>{c.author?.name ?? 'Usuario'}</b>
-
-
-
-                <small>
-
-                  {new Date(
-
-                    c.createdAt
-
-                  ).toLocaleString()}
-
-                </small>
-
-
-
-                <p>{c.body}</p>
-
-              </div>
-
-            ))
-
+                  <p>
+                    {c.body}
+                  </p>
+                </div>
+              ),
+            )
           ) : (
-
-            <p>No hay comentarios todavía.</p>
-
+            <p>
+              No hay comentarios todavía.
+            </p>
           )}
-
         </Card>
-
       </div>
 
-
-
       <Card>
+        <div className="correspondence-attachments-header">
+          <div>
+            <h2>
+              Archivos adjuntos
+            </h2>
 
-        <h2>Respuesta / observaciones</h2>
+            <p>
+              Adjunta uno o varios documentos de respaldo o archivos relacionados con esta correspondencia.
+            </p>
+          </div>
 
+          <Badge tone="blue">
+            {attachments.length}{' '}
+            archivo(s)
+          </Badge>
+        </div>
 
-
-        <textarea
-
-          value={body}
-
-          onChange={(e) =>
-
-            setBody(e.target.value)
-
+        <form
+          className="correspondence-upload-form correspondence-upload-form-multiple"
+          onSubmit={
+            uploadAttachments
           }
+        >
+          <label>
+            Seleccionar archivos
+            <input
+              id="correspondence-attachment-input"
+              type="file"
+              multiple
+              onChange={(event) =>
+                setFiles(
+                  Array.from(
+                    event.target
+                      .files || [],
+                  ),
+                )
+              }
+            />
+          </label>
 
-          placeholder="Escriba un comentario..."
+          <div className="correspondence-multiple-summary">
+            {files.length ? (
+              <>
+                <strong>
+                  {files.length}{' '}
+                  archivo(s) seleccionado(s)
+                </strong>
 
-        />
+                <small>
+                  Tamaño total:{' '}
+                  {formatFileSize(
+                    files.reduce(
+                      (
+                        total,
+                        selectedFile,
+                      ) =>
+                        total +
+                        selectedFile.size,
+                      0,
+                    ),
+                  )}
+                </small>
+              </>
+            ) : (
+              <small>
+                Aún no has seleccionado archivos.
+              </small>
+            )}
+          </div>
 
+          <button
+            type="submit"
+            className="btn"
+            disabled={
+              uploading ||
+              !files.length
+            }
+          >
+            {uploading
+              ? 'Adjuntando...'
+              : files.length > 1
+              ? 'Adjuntar archivos'
+              : 'Adjuntar archivo'}
+          </button>
+        </form>
 
+        <small className="correspondence-file-note">
+          Se permite cualquier tipo de archivo.
+        </small>
 
-        <Btn onClick={comment}>
+        {files.length > 0 && (
+          <div className="correspondence-create-file-list correspondence-detail-selected-list">
+            {files.map(
+              (
+                selectedFile,
+                index,
+              ) => (
+                <div
+                  className="correspondence-create-file-item"
+                  key={`${selectedFile.name}-${selectedFile.size}-${index}`}
+                >
+                  <div>
+                    <strong>
+                      {selectedFile.name}
+                    </strong>
 
-          Publicar comentario
+                    <small>
+                      {formatFileSize(
+                        selectedFile.size,
+                      )}
+                    </small>
+                  </div>
 
-        </Btn>
+                  <button
+                    type="button"
+                    className="procedure-remove-step"
+                    onClick={() =>
+                      removeSelectedFile(
+                        index,
+                      )
+                    }
+                  >
+                    Quitar
+                  </button>
+                </div>
+              ),
+            )}
+          </div>
+        )}
 
+        {attachments.length ? (
+          <div className="correspondence-attachment-list">
+            {attachments.map(
+              (attachment: any) => (
+                <div
+                  className="correspondence-attachment-item"
+                  key={
+                    attachment.id
+                  }
+                >
+                  <div className="correspondence-attachment-info">
+                    <strong>
+                      {attachment.originalName}
+                    </strong>
+
+                    <div>
+                      <span>
+                        {formatFileSize(
+                          attachment.size,
+                        )}
+                      </span>
+
+                      <span>
+                        {attachment.mimeType ||
+                          'Tipo desconocido'}
+                      </span>
+
+                      <span>
+                        {attachment.createdAt
+                          ? new Date(
+                              attachment.createdAt,
+                            ).toLocaleString()
+                          : '-'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    disabled={
+                      downloadingId ===
+                      attachment.id
+                    }
+                    onClick={() =>
+                      void downloadAttachment(
+                        attachment,
+                      )
+                    }
+                  >
+                    {downloadingId ===
+                    attachment.id
+                      ? 'Descargando...'
+                      : 'Descargar'}
+                  </button>
+                </div>
+              ),
+            )}
+          </div>
+        ) : (
+          <Empty text="Esta correspondencia todavía no tiene archivos adjuntos." />
+        )}
       </Card>
 
+      <Card>
+        <h2>
+          Respuesta / observaciones
+        </h2>
+
+        <textarea
+          value={body}
+          onChange={(e) =>
+            setBody(
+              e.target.value,
+            )
+          }
+          placeholder="Escriba un comentario..."
+        />
+
+        <Btn onClick={comment}>
+          Publicar comentario
+        </Btn>
+      </Card>
     </>
-
   );
-
 }
-
-
-
 
 
 /* =========================================================

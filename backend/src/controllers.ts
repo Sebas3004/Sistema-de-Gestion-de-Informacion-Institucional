@@ -328,10 +328,28 @@ export class CorrespondenceController {
       {
         storage:
           diskStorage({
-            destination:
-              process.env
-                .UPLOAD_DIR ||
-              './uploads',
+            destination: (
+              _request,
+              _file,
+              callback,
+            ) => {
+              const directory =
+                process.env
+                  .UPLOAD_DIR ||
+                './uploads';
+
+              mkdirSync(
+                directory,
+                {
+                  recursive: true,
+                },
+              );
+
+              callback(
+                null,
+                directory,
+              );
+            },
 
             filename: (
               _request,
@@ -367,12 +385,245 @@ export class CorrespondenceController {
     @Req()
     request: any,
   ) {
+    if (!file) {
+      throw new Error(
+        'Debe seleccionar un archivo',
+      );
+    }
+
     return this.service
       .addAttachment(
         id,
         file,
         request.user,
       );
+  }
+
+  @Get(':id/attachments/download-all')
+  async downloadAllAttachments(
+    @Param('id')
+    id: string,
+
+    @Req()
+    request: any,
+
+    @Res()
+    response: any,
+  ) {
+    const correspondence =
+      await this.service.get(id);
+
+    if (!correspondence) {
+      return response
+        .status(404)
+        .json({
+          message:
+            'Correspondencia no encontrada',
+        });
+    }
+
+    const attachments =
+      Array.isArray(
+        correspondence.attachments,
+      )
+        ? correspondence.attachments
+        : [];
+
+    const directory =
+      process.env.UPLOAD_DIR ||
+      './uploads';
+
+    const availableFiles =
+      attachments
+        .map(
+          (
+            attachment: any,
+            index: number,
+          ) => {
+            const filePath =
+              join(
+                directory,
+                attachment.storedName,
+              );
+
+            if (
+              !attachment.storedName ||
+              !attachment.originalName ||
+              !existsSync(filePath)
+            ) {
+              return null;
+            }
+
+            const safeName =
+              String(
+                attachment.originalName,
+              )
+                .replace(
+                  /[<>:"/\\|?*\x00-\x1F]/g,
+                  '_',
+                )
+                .trim() ||
+              `archivo-${index + 1}`;
+
+            return {
+              attachment,
+              filePath,
+              zipName:
+                `${index + 1}-` +
+                safeName,
+            };
+          },
+        )
+        .filter(Boolean) as Array<{
+          attachment: any;
+          filePath: string;
+          zipName: string;
+        }>;
+
+    if (!availableFiles.length) {
+      return response
+        .status(404)
+        .json({
+          message:
+            'No hay archivos adjuntos disponibles para descargar',
+        });
+    }
+
+    for (
+      const file of availableFiles
+    ) {
+      await this.service
+        .prepareAttachmentDownload(
+          id,
+          file.attachment.id,
+          request.user,
+        );
+    }
+
+    await this.service
+      .logAttachmentsZipDownload(
+        id,
+        request.user,
+        availableFiles.length,
+      );
+
+    const safeCode =
+      String(
+        correspondence.code ||
+        'correspondencia',
+      )
+        .replace(
+          /[<>:"/\\|?*\x00-\x1F]/g,
+          '_',
+        )
+        .trim() ||
+      'correspondencia';
+
+    response.setHeader(
+      'Content-Type',
+      'application/zip',
+    );
+
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${safeCode}-adjuntos.zip"`,
+    );
+
+    const archive =
+      archiver(
+        'zip',
+        {
+          zlib: {
+            level: 9,
+          },
+        },
+      );
+
+    archive.on(
+      'error',
+      (error) => {
+        console.error(
+          'Error generando ZIP de correspondencia:',
+          error,
+        );
+
+        if (
+          !response.headersSent
+        ) {
+          response
+            .status(500)
+            .json({
+              message:
+                'No se pudo generar el archivo ZIP',
+            });
+        } else {
+          response.end();
+        }
+      },
+    );
+
+    archive.pipe(response);
+
+    availableFiles.forEach(
+      (file) => {
+        archive.file(
+          file.filePath,
+          {
+            name:
+              file.zipName,
+          },
+        );
+      },
+    );
+
+    await archive.finalize();
+  }
+
+  @Get(':id/attachments/:attachmentId/download')
+  async downloadAttachment(
+    @Param('id')
+    id: string,
+
+    @Param('attachmentId')
+    attachmentId: string,
+
+    @Req()
+    request: any,
+
+    @Res()
+    response: any,
+  ) {
+    const attachment =
+      await this.service
+        .prepareAttachmentDownload(
+          id,
+          attachmentId,
+          request.user,
+        );
+
+    const directory =
+      process.env.UPLOAD_DIR ||
+      './uploads';
+
+    const filePath =
+      join(
+        directory,
+        attachment.storedName,
+      );
+
+    if (!existsSync(filePath)) {
+      return response
+        .status(404)
+        .json({
+          message:
+            'El archivo físico no se encuentra disponible',
+        });
+    }
+
+    return response.download(
+      filePath,
+      attachment.originalName,
+    );
   }
 }
 
