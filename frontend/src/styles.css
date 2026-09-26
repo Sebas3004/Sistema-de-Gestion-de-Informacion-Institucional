@@ -3642,3 +3642,326 @@ td small {
     padding: 25px 20px;
   }
 }
+
+
+/* =========================================================
+   CORRESPONDENCIA - ARCHIVOS ADJUNTOS
+========================================================= */
+
+.correspondence-back-button {
+  margin-bottom: 14px;
+}
+
+.correspondence-attachments-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.correspondence-attachments-header h2 {
+  margin-bottom: 5px;
+}
+
+.correspondence-attachments-header p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.correspondence-upload-form {
+  display: grid;
+  grid-template-columns:
+    minmax(260px, 1fr)
+    minmax(220px, 1fr)
+    auto;
+  gap: 14px;
+  align-items: end;
+  padding: 15px;
+  border: 1px solid #dfe8f1;
+  border-radius: 10px;
+  background: #f8fbfe;
+}
+
+.correspondence-upload-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #43617e;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.correspondence-upload-form input[type="file"] {
+  width: 100%;
+  padding: 9px;
+  border: 1px solid #ccd9e5;
+  border-radius: 8px;
+  background: white;
+  color: #304d69;
+}
+
+.correspondence-selected-file {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  padding: 9px 12px;
+  border: 1px solid #dbe6ef;
+  border-radius: 8px;
+  background: white;
+}
+
+.correspondence-selected-file > div {
+  min-width: 0;
+}
+
+.correspondence-selected-file strong,
+.correspondence-selected-file small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.correspondence-selected-file strong {
+  color: #315775;
+  font-size: 12px;
+}
+
+.correspondence-selected-file small {
+  margin-top: 3px;
+  color: #7a8b9e;
+}
+
+.correspondence-file-note {
+  display: block;
+  margin: 9px 0 16px;
+  color: #7a8b9e;
+}
+
+.correspondence-attachment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.correspondence-attachment-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 14px;
+  border: 1px solid #e1eaf2;
+  border-radius: 9px;
+  background: #fff;
+}
+
+.correspondence-attachment-info {
+  min-width: 0;
+}
+
+.correspondence-attachment-info > strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #2b5379;
+  overflow-wrap: anywhere;
+}
+
+.correspondence-attachment-info > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  color: #7a8b9e;
+  font-size: 11px;
+}
+
+.correspondence-attachment-item .btn {
+  flex-shrink: 0;
+}
+
+.dashboard-stats-consultor {
+  grid-template-columns:
+    repeat(
+      4,
+      minmax(0, 1fr)
+    );
+}
+
+.dashboard-grid-consultor {
+  grid-template-columns: 1fr;
+}
+
+@media (max-width: 900px) {
+  .correspondence-upload-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .correspondence-attachments-header,
+  .correspondence-attachment-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .correspondence-attachment-item .btn,
+  .correspondence-upload-form .btn {
+    width: 100%;
+  }
+
+  .dashboard-stats-consultor {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+  }
+}
+
+
+/* =========================================================
+   CORRESPONDENCIA - MULTIARCHIVO Y ZIP
+========================================================= */
+
+.correspondence-create-attachments {
+  padding: 16px;
+  border: 1px solid #dfe8f1;
+  border-radius: 10px;
+  background: #f8fbfe;
+}
+
+.correspondence-create-attachments-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 12px;
+}
+
+.correspondence-create-attachments-header > div {
+  min-width: 0;
+}
+
+.correspondence-create-attachments-header strong {
+  color: #315775;
+  font-size: 13px;
+}
+
+.correspondence-create-attachments-header p {
+  margin: 5px 0 0;
+  color: #718399;
+  font-size: 12px;
+}
+
+.correspondence-create-attachments > input[type="file"] {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccd9e5;
+  border-radius: 8px;
+  background: white;
+  color: #304d69;
+}
+
+.correspondence-create-file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.correspondence-create-file-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 12px;
+  border: 1px solid #e1eaf2;
+  border-radius: 8px;
+  background: white;
+}
+
+.correspondence-create-file-item > div {
+  min-width: 0;
+}
+
+.correspondence-create-file-item strong,
+.correspondence-create-file-item small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.correspondence-create-file-item strong {
+  color: #315775;
+  font-size: 12px;
+}
+
+.correspondence-create-file-item small {
+  margin-top: 4px;
+  color: #7a8b9e;
+}
+
+.correspondence-create-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.correspondence-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.correspondence-upload-form-multiple {
+  grid-template-columns:
+    minmax(280px, 1.4fr)
+    minmax(220px, 1fr)
+    auto;
+}
+
+.correspondence-multiple-summary {
+  min-height: 42px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 9px 12px;
+  border: 1px solid #dbe6ef;
+  border-radius: 8px;
+  background: white;
+}
+
+.correspondence-multiple-summary strong {
+  color: #315775;
+  font-size: 12px;
+}
+
+.correspondence-multiple-summary small {
+  margin-top: 3px;
+  color: #7a8b9e;
+}
+
+.correspondence-detail-selected-list {
+  margin-bottom: 16px;
+}
+
+@media (max-width: 900px) {
+  .correspondence-upload-form-multiple {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .correspondence-create-attachments-header,
+  .correspondence-create-file-item,
+  .correspondence-detail-actions,
+  .correspondence-create-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .correspondence-create-actions .btn,
+  .correspondence-detail-actions .btn,
+  .correspondence-create-file-item .procedure-remove-step {
+    width: 100%;
+  }
+}

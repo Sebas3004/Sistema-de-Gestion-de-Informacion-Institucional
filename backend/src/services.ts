@@ -995,6 +995,70 @@ export class CorrespondenceService {
 
     return saved;
   }
+
+  async prepareAttachmentDownload(
+    correspondenceId: string,
+    attachmentId: string,
+    current: any,
+  ) {
+    const attachment =
+      await this.attachments.findOne({
+        where: {
+          id: attachmentId,
+          correspondence: {
+            id: correspondenceId,
+          },
+        } as any,
+        relations: {
+          correspondence: true,
+        } as any,
+      });
+
+    if (!attachment) {
+      throw new NotFoundException(
+        'Archivo adjunto no encontrado',
+      );
+    }
+
+    await this.audit.log(
+      current.sub,
+      'DESCARGA',
+      'Correspondencia',
+      correspondenceId,
+      `Se descargó el adjunto ${attachment.originalName}`,
+    );
+
+    return attachment;
+  }
+
+  async logAttachmentsZipDownload(
+    correspondenceId: string,
+    current: any,
+    fileCount: number,
+  ) {
+    const correspondence =
+      await this.repo.findOne({
+        where: {
+          id: correspondenceId,
+        },
+      });
+
+    if (!correspondence) {
+      throw new NotFoundException(
+        'Correspondencia no encontrada',
+      );
+    }
+
+    await this.audit.log(
+      current.sub,
+      'DESCARGA_ZIP',
+      'Correspondencia',
+      correspondenceId,
+      `Se descargaron ${fileCount} archivo(s) adjunto(s) en ZIP de ${correspondence.code}`,
+    );
+
+    return correspondence;
+  }
 }
 
 
