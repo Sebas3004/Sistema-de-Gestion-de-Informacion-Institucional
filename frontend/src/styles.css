@@ -4002,3 +4002,10 @@ td small {
 .help-contact-box span{display:block;margin-bottom:5px;color:#9fc3ee;font-size:12px}
 .help-back{margin-top:auto;min-height:50px;border:0;border-radius:9px;background:#fff;color:#0b3473;font-size:16px;font-weight:700}
 @media (max-width:850px){.help-contact{padding:36px 28px}}
+
+/* ACERCA DEL SISTEMA */
+.about-subtitle{margin:0 0 10px;color:#0b3473;font-size:17px}
+.about-list{margin:0 0 24px;padding-left:20px;color:#435f88;font-size:15px;line-height:1.7}
+.about-row{display:flex;justify-content:space-between;gap:16px;padding:14px 18px;margin-bottom:12px;border:1.5px solid #bfdcf5;border-radius:10px;font-size:15px}
+.about-row span{color:#4d668c}
+.about-row strong{color:#0b3473;text-align:right}

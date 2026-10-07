@@ -614,7 +614,7 @@ export default function Layout() {
 
         ================================================= */}
 
-        <div className="sidebar-bottom">
+                <div className="sidebar-bottom">
 
           <button
             type="button"
@@ -629,11 +629,7 @@ export default function Layout() {
           <button
             type="button"
             className="sidebar-secondary-action"
-            onClick={() => {
-              alert(
-                'Sistema de Gestión de Información Institucional - Campus Tecnológico de San José.',
-              );
-            }}
+            onClick={() => navigate('/acerca')}
           >
             <Info size={20} />
 

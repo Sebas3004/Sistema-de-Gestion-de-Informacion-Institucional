@@ -109,7 +109,7 @@ export function Login() {
 
       ===================================================== */}
 
-        {/* =====================================================
+             {/* =====================================================
 
           SIDEBAR
 
@@ -151,11 +151,7 @@ export function Login() {
 
           <button
             type="button"
-            onClick={() => {
-              alert(
-                "Sistema de Gestión de Información Institucional - Campus Tecnológico de San José."
-              );
-            }}
+            onClick={() => navigate('/acerca')}
           >
             <span>ⓘ</span>
             Acerca del sistema

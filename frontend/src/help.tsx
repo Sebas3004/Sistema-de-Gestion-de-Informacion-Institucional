@@ -28,7 +28,7 @@ const FAQ = [
   },
   {
     q: '¿Cómo puedo cerrar sesión?',
-    a: 'Haz clic en tu nombre de usuario en la esquina superior derecha y selecciona "Cerrar sesión".',
+    a: 'Haz clic en "Cerrar sesión" en la parte inferior del menú lateral.',
   },
 ];
 
@@ -36,9 +36,7 @@ export function Help() {
   const navigate = useNavigate();
   const auth = useAuth();
   const [open, setOpen] = useState(0);
-
-  // Regresa a la pantalla anterior. Si se abrió /ayuda directamente
-  // (sin historial), va al login o al inicio según haya sesión.
+  
   const goBack = () => {
     if (window.history.length > 1) {
       navigate(-1);
@@ -58,15 +56,12 @@ export function Help() {
             Volver
           </button>
         </div>
+
         <div className="login-sidebar-footer">
           <button className="help-nav-active">
             <span>?</span>Ayuda
           </button>
-          <button
-            onClick={() =>
-              alert('Sistema de Gestión de Información Institucional - Campus Tecnológico de San José.')
-            }
-          >
+          <button onClick={() => navigate('/acerca', { replace: true })}>
             <span>i</span>Acerca del sistema
           </button>
         </div>
