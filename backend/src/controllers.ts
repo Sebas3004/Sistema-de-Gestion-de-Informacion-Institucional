@@ -22,13 +22,14 @@ import {
 
 import {
   extname,
-  join,
 } from 'path';
 
 import {
   existsSync,
   mkdirSync,
 } from 'fs';
+
+import { resolveUploadPath } from './upload-path';
 
 import archiver = require('archiver');
 
@@ -429,51 +430,35 @@ export class CorrespondenceController {
         ? correspondence.attachments
         : [];
 
-    const directory =
-      process.env.UPLOAD_DIR ||
-      './uploads';
-
     const availableFiles =
       attachments
-        .map(
-          (
-            attachment: any,
-            index: number,
-          ) => {
-            const filePath =
-              join(
-                directory,
-                attachment.storedName,
-              );
+        .map((attachment: any, index: number) => {
+          if (!attachment.storedName || !attachment.originalName) {
+            return null;
+          }
 
-            if (
-              !attachment.storedName ||
-              !attachment.originalName ||
-              !existsSync(filePath)
-            ) {
-              return null;
-            }
+          let filePath: string;
+          try {
+            filePath = resolveUploadPath(attachment.storedName);
+          } catch {
+            return null;
+          }
 
-            const safeName =
-              String(
-                attachment.originalName,
-              )
-                .replace(
-                  /[<>:"/\\|?*\x00-\x1F]/g,
-                  '_',
-                )
-                .trim() ||
-              `archivo-${index + 1}`;
+          if (!existsSync(filePath)) {
+            return null;
+          }
 
-            return {
-              attachment,
-              filePath,
-              zipName:
-                `${index + 1}-` +
-                safeName,
-            };
-          },
-        )
+          const safeName =
+            String(attachment.originalName)
+              .replace(/[<>:"/\\|?*\x00-\x1F]/g, '_')
+              .trim() || `archivo-${index + 1}`;
+
+          return {
+            attachment,
+            filePath,
+            zipName: `${index + 1}-` + safeName,
+          };
+        })
         .filter(Boolean) as Array<{
           attachment: any;
           filePath: string;
@@ -601,15 +586,9 @@ export class CorrespondenceController {
           request.user,
         );
 
-    const directory =
-      process.env.UPLOAD_DIR ||
-      './uploads';
 
     const filePath =
-      join(
-        directory,
-        attachment.storedName,
-      );
+      resolveUploadPath(attachment.storedName);
 
     if (!existsSync(filePath)) {
       return response
@@ -775,15 +754,8 @@ export class RepositoryController {
           request.user,
         );
 
-    const directory =
-      process.env.UPLOAD_DIR ||
-      './uploads';
-
     const filePath =
-      join(
-        directory,
-        item.storedName,
-      );
+      resolveUploadPath(item.storedName);
 
     if (!existsSync(filePath)) {
       return response
@@ -891,10 +863,6 @@ export class ProcedureController {
     const procedure =
       await this.service.get(id);
 
-    const directory =
-      process.env.UPLOAD_DIR ||
-      './uploads';
-
     const files: Array<{
       sourcePath: string;
       zipPath: string;
@@ -944,10 +912,7 @@ export class ProcedureController {
         }
 
         const sourcePath =
-          join(
-            directory,
-            document.storedName,
-          );
+          resolveUploadPath(document.storedName);
 
         if (!existsSync(sourcePath)) {
           continue;
@@ -1003,10 +968,7 @@ export class ProcedureController {
         }
 
         const sourcePath =
-          join(
-            directory,
-            form.storedName,
-          );
+          resolveUploadPath(form.storedName);
 
         if (!existsSync(sourcePath)) {
           continue;
@@ -1231,8 +1193,7 @@ export class FormsController {
   @Roles(Role.ADMIN, Role.EDITOR, Role.CONSULTOR)
   async download(@Param('id') id: string, @Req() request: any, @Res() response: any) {
     const form = await this.service.prepareDownload(id, request.user);
-    const directory = process.env.UPLOAD_DIR || './uploads';
-    const filePath = join(directory, form.storedName);
+    const filePath = resolveUploadPath(form.storedName);
     if (!existsSync(filePath)) return response.status(404).json({ message: 'El archivo físico no se encuentra disponible' });
     return response.download(filePath, form.originalName);
   }
