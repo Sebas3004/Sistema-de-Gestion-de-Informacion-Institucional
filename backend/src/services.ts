@@ -21,6 +21,7 @@ import {
   InstitutionalCorrespondenceDirection,
   InstitutionalCorrespondenceStatus,
   ExternalLink,
+  Folder,
   InstitutionalForm,
   News,
   NewsPriority,
@@ -1496,6 +1497,36 @@ export class InstitutionalCorrespondenceService {
 
 
 /* =========================================================
+   CARPETAS - UTILIDAD COMPARTIDA
+   Devuelve la carpeta indicada o, si no se indica ninguna,
+   la carpeta por defecto "Sin clasificar".
+========================================================= */
+
+async function resolveFolder(
+  folders: Repository<Folder>,
+  folderId?: string | null,
+): Promise<Folder | null> {
+  if (folderId) {
+    const folder = await folders.findOne({
+      where: { id: folderId },
+    });
+
+    if (!folder) {
+      throw new NotFoundException(
+        'Carpeta no encontrada',
+      );
+    }
+
+    return folder;
+  }
+
+  return folders.findOne({
+    where: { code: 'SIN-CLASIFICAR' },
+  });
+}
+
+
+/* =========================================================
    REPOSITORIO DOCUMENTAL
 ========================================================= */
 
@@ -1512,12 +1543,19 @@ export class RepositoryService {
     private users:
       Repository<User>,
 
+    @InjectRepository(Folder)
+    private folders:
+      Repository<Folder>,
+
     private audit:
       AuditService,
   ) {}
 
   list() {
     return this.repo.find({
+      relations: {
+        folder: true,
+      },
       order: {
         updatedAt:
           'DESC',
@@ -1531,6 +1569,9 @@ export class RepositoryService {
     const item =
       await this.repo.findOne({
         where: { id },
+        relations: {
+          folder: true,
+        },
       });
 
     if (!item) {
@@ -1566,6 +1607,12 @@ export class RepositoryService {
         });
     }
 
+    const folder =
+      await resolveFolder(
+        this.folders,
+        dto.folderId,
+      );
+
     const entity:
       RepositoryDocument =
       this.repo.create({
@@ -1590,6 +1637,7 @@ export class RepositoryService {
         size:
           file?.size || null,
         responsible,
+        folder,
       } as Partial<RepositoryDocument>);
 
     const saved =
@@ -1647,6 +1695,9 @@ export class RepositoryService {
     const item =
       await this.repo.findOne({
         where: { id },
+        relations: {
+          folder: true,
+        },
       });
 
     if (!item) {
@@ -1692,6 +1743,14 @@ export class RepositoryService {
       }
     }
 
+    if ('folderId' in dto) {
+      item.folder =
+        await resolveFolder(
+          this.folders,
+          dto.folderId,
+        );
+    }
+
     const saved =
       await this.repo.save(
         item,
@@ -1723,12 +1782,19 @@ export class ProcedureService {
     private repo:
       Repository<Procedure>,
 
+    @InjectRepository(Folder)
+    private folders:
+      Repository<Folder>,
+
     private audit:
       AuditService,
   ) {}
 
   list() {
     return this.repo.find({
+      relations: {
+        folder: true,
+      },
       order: {
         updatedAt: 'DESC',
       },
@@ -1739,6 +1805,9 @@ export class ProcedureService {
     const item =
       await this.repo.findOne({
         where: { id },
+        relations: {
+          folder: true,
+        },
       });
 
     if (!item) {
@@ -1754,6 +1823,12 @@ export class ProcedureService {
     dto: any,
     current: any,
   ) {
+    const folder =
+      await resolveFolder(
+        this.folders,
+        dto.folderId,
+      );
+
     const entity =
       this.repo.create({
         ...dto,
@@ -1799,6 +1874,7 @@ export class ProcedureService {
           Array.isArray(dto.relatedDocuments)
             ? dto.relatedDocuments
             : [],
+        folder,
       } as Partial<Procedure>);
 
     const saved =
@@ -1843,6 +1919,9 @@ export class ProcedureService {
     const item =
       await this.repo.findOne({
         where: { id },
+        relations: {
+          folder: true,
+        },
       });
 
     if (!item) {
@@ -1926,6 +2005,14 @@ export class ProcedureService {
     if (Array.isArray(dto.relatedDocuments)) {
       item.relatedDocuments =
         dto.relatedDocuments;
+    }
+
+    if ('folderId' in dto) {
+      item.folder =
+        await resolveFolder(
+          this.folders,
+          dto.folderId,
+        );
     }
 
     const saved =
@@ -2202,4 +2289,3 @@ export class NewsService {
     return saved;
   }
 }
-

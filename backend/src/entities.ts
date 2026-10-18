@@ -524,6 +524,62 @@ export class InstitutionalCorrespondenceAttachment {
 }
 
 /* =========================================================
+   CARPETAS INSTITUCIONALES
+   Estructura jerárquica del Archivo Institucional.
+========================================================= */
+
+@Entity('folders')
+export class Folder {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  name: string;
+
+  @Column({
+    nullable: true,
+  })
+  code: string;
+
+  @Column('text', {
+    nullable: true,
+  })
+  description: string;
+
+  @Column({
+    default: 0,
+  })
+  sortOrder: number;
+
+  @ManyToOne(
+    () => Folder,
+    (folder) => folder.children,
+    {
+      nullable: true,
+      onDelete: 'RESTRICT',
+    },
+  )
+  @JoinColumn({
+    name: 'parent_id',
+  })
+  parent: Folder | null;
+
+  @OneToMany(
+    () => Folder,
+    (folder) => folder.parent,
+  )
+  children: Folder[];
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+}
+
+
+
+/* =========================================================
    REPOSITORIO DOCUMENTAL
 ========================================================= */
 
@@ -586,6 +642,18 @@ export class RepositoryDocument {
     nullable: true,
   })
   responsible: User;
+
+  /*
+   * Carpeta institucional a la que pertenece el documento.
+   */
+  @ManyToOne(() => Folder, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({
+    name: 'folder_id',
+  })
+  folder: Folder | null;
 
   @CreateDateColumn()
   createdAt: Date;
@@ -683,6 +751,18 @@ export class Procedure {
     label: string;
     documentId?: string;
   }[];
+
+  /*
+   * Carpeta institucional a la que pertenece el procedimiento.
+   */
+  @ManyToOne(() => Folder, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({
+    name: 'folder_id',
+  })
+  folder: Folder | null;
 
   @CreateDateColumn()
   createdAt: Date;

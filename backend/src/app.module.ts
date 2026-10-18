@@ -25,6 +25,7 @@ import {
   CorrespondenceAttachment,
   CorrespondenceComment,
   ExternalLink,
+  Folder,
   InstitutionalCorrespondence,
   InstitutionalCorrespondenceAttachment,
   InstitutionalForm,
@@ -70,6 +71,15 @@ import {
 } from './services';
 
 /* =========================================================
+   CARPETAS INSTITUCIONALES
+========================================================= */
+
+import {
+  FoldersController,
+  FoldersService,
+} from './folders';
+
+/* =========================================================
    CONTROLADORES
 ========================================================= */
 
@@ -102,6 +112,9 @@ const entities = [
   /* CORRESPONDENCIA INSTITUCIONAL */
   InstitutionalCorrespondence,
   InstitutionalCorrespondenceAttachment,
+
+  /* CARPETAS INSTITUCIONALES */
+  Folder,
 
   RepositoryDocument,
 
@@ -224,6 +237,9 @@ const entities = [
     /* CORRESPONDENCIA INSTITUCIONAL */
     InstitutionalCorrespondenceController,
 
+    /* CARPETAS INSTITUCIONALES */
+    FoldersController,
+
     RepositoryController,
     ProcedureController,
     FormsController,
@@ -249,6 +265,9 @@ const entities = [
 
     /* CORRESPONDENCIA INSTITUCIONAL */
     InstitutionalCorrespondenceService,
+
+    /* CARPETAS INSTITUCIONALES */
+    FoldersService,
 
     RepositoryService,
     ProcedureService,
