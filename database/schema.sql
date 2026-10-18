@@ -39,6 +39,26 @@ CREATE TABLE IF NOT EXISTS correspondence (
   updated_at timestamp NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS folders (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name varchar(200) NOT NULL,
+  code varchar(50),
+  description text,
+  sort_order int NOT NULL DEFAULT 0,
+  parent_id uuid REFERENCES folders(id) ON DELETE RESTRICT,
+  created_at timestamp NOT NULL DEFAULT now(),
+  updated_at timestamp NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_folders_parent ON folders(parent_id);
+
+ALTER TABLE repository_documents
+  ADD COLUMN IF NOT EXISTS folder_id uuid REFERENCES folders(id) ON DELETE SET NULL;
+
+ALTER TABLE procedures
+  ADD COLUMN IF NOT EXISTS folder_id uuid REFERENCES folders(id) ON DELETE SET NULL;
+
+
 CREATE TABLE IF NOT EXISTS repository_documents (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name varchar(250) NOT NULL,

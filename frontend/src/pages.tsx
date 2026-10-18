@@ -1,124 +1,73 @@
 import React, { useEffect, useState } from 'react';
 
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import {
+  Link,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from 'react-router-dom';
 
 import { api } from './api';
 
 import { Badge, Btn, Card, Empty } from './components';
 
 import { useAuth } from './auth';
+
 import { canManageProcedures } from './permissions';
 
-
-
-
+import {
+  FolderBar,
+  FolderSelect,
+  useFolderNav,
+  useFolderTree,
+} from './folders';
 
 /* =========================================================
-
    LOGIN
-
-\========================================================= */
-
-
+========================================================= */
 
 export function Login() {
-
   const { login } = useAuth();
-
   const navigate = useNavigate();
 
-
-
-  const [email, setEmail] = useState("admin\@itcr.ac.cr");
-
-  const [password, setPassword] = useState("Admin123!");
-
-  const [error, setError] = useState("");
-
+  const [email, setEmail] = useState('admin@itcr.ac.cr');
+  const [password, setPassword] = useState('Admin123!');
+  const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
   const [loading, setLoading] = useState(false);
 
-
-
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-
     e.preventDefault();
 
-
-
     if (loading) {
-
       return;
-
     }
-
-
 
     try {
-
       setLoading(true);
+      setError('');
 
-      setError("");
+      const loggedUser = await login(email.trim(), password);
 
-
-
-      const loggedUser =
-        await login(
-          email.trim(),
-          password,
-        );
-
-      navigate(
-        loggedUser
-          ?.mustChangePassword
-          ? "/cambiar-contrasena"
-          : "/",
-        { replace: true },
-      );
-
+      navigate(loggedUser?.mustChangePassword ? '/cambiar-contrasena' : '/', {
+        replace: true,
+      });
     } catch (err) {
-
-      console.error("Error al iniciar sesión:", err);
-
-
+      console.error('Error al iniciar sesión:', err);
 
       setError(
-
-        "No se pudo iniciar sesión. Verifique el correo y la contraseña."
-
+        'No se pudo iniciar sesión. Verifique el correo y la contraseña.',
       );
-
     } finally {
-
       setLoading(false);
-
     }
-
   }
 
-
-
   return (
-
     <div className="login-page">
-
-      {/* =====================================================
-
-          SIDEBAR
-
-      ===================================================== */}
-
-             {/* =====================================================
-
-          SIDEBAR
-
-      ===================================================== */}
-
+      {/* SIDEBAR */}
       <aside className="login-sidebar">
-
         <div>
-
           <div className="login-sidebar-brand">
             <img
               src="/branding/logo-tec.svg"
@@ -130,65 +79,32 @@ export function Login() {
           </div>
 
           <div className="login-sidebar-active">
-
             <span className="sidebar-home-icon">⌂</span>
-
             <span>Inicio</span>
-
           </div>
-
         </div>
 
         <div className="login-sidebar-footer">
-
-          <button
-            type="button"
-            onClick={() => navigate('/ayuda')}
-          >
+          <button type="button" onClick={() => navigate('/ayuda')}>
             <span>?</span>
             Ayuda
           </button>
 
-          <button
-            type="button"
-            onClick={() => navigate('/acerca')}
-          >
+          <button type="button" onClick={() => navigate('/acerca')}>
             <span>ⓘ</span>
             Acerca del sistema
           </button>
-
         </div>
-
       </aside>
 
-
-
-      {/* =====================================================
-
-          CONTENIDO PRINCIPAL
-
-      ===================================================== */}
-
+      {/* CONTENIDO PRINCIPAL */}
       <main className="login-main">
-
         <div className="login-background-shape login-shape-1" />
-
         <div className="login-background-shape login-shape-2" />
 
-
-
         <section className="login-card">
-
-          {/* =================================================
-
-              COLUMNA IZQUIERDA
-
-          ================================================= */}
-
+          {/* COLUMNA IZQUIERDA */}
           <div className="login-form-section">
-
-            {/* LOGO */}
-
             <div className="login-brand">
               <img
                 src="/branding/logo-tec.svg"
@@ -196,415 +112,173 @@ export function Login() {
                 className="login-brand-logo"
               />
 
-              <strong>
-                Campus Tecnológico de San José
-              </strong>
+              <strong>Campus Tecnológico de San José</strong>
             </div>
-
-
-
-            {/* TÍTULO */}
 
             <div className="login-heading">
-
               <h1>
-
                 Sistema de Gestión de
-
                 <br />
-
                 Información Institucional
-
               </h1>
 
-
-
               <p>
-
                 Accede a documentos, correspondencia,
-
                 <br />
-
                 procedimientos, formularios, noticias y servicios
-
                 <br />
-
                 institucionales del campus.
-
               </p>
-
             </div>
 
-
-
-            {/* =================================================
-
-                FORMULARIO
-
-            ================================================= */}
-
-            <form
-
-              onSubmit={handleSubmit}
-
-              className="login-form"
-
-            >
-
+            <form onSubmit={handleSubmit} className="login-form">
               {/* CORREO */}
-
               <label className="login-field">
-
-                <span className="login-field-icon">
-
-                  ✉
-
-                </span>
-
-
+                <span className="login-field-icon">✉</span>
 
                 <div>
-
                   <span className="login-field-label">
-
                     Correo institucional
-
                   </span>
 
-
-
                   <input
-
                     type="email"
-
                     value={email}
-
                     onChange={(e) => {
-
                       setEmail(e.target.value);
 
-
-
                       if (error) {
-
-                        setError("");
-
+                        setError('');
                       }
-
                     }}
-
-                    placeholder="usuario\@itcr.ac.cr"
-
+                    placeholder="usuario@itcr.ac.cr"
                     autoComplete="email"
-
                     disabled={loading}
-
                     required
-
                   />
-
                 </div>
-
               </label>
-
-
 
               {/* CONTRASEÑA */}
-
               <label className="login-field">
-
-                <span className="login-field-icon">
-
-                  🔒
-
-                </span>
-
-
+                <span className="login-field-icon">🔒</span>
 
                 <div className="password-field-content">
-
-                  <span className="login-field-label">
-
-                    Contraseña
-
-                  </span>
-
-
+                  <span className="login-field-label">Contraseña</span>
 
                   <input
-
-                    type={
-
-                      showPassword
-
-                        ? "text"
-
-                        : "password"
-
-                    }
-
+                    type={showPassword ? 'text' : 'password'}
                     value={password}
-
                     onChange={(e) => {
-
                       setPassword(e.target.value);
 
-
-
                       if (error) {
-
-                        setError("");
-
+                        setError('');
                       }
-
                     }}
-
                     placeholder="••••••••••••"
-
                     autoComplete="current-password"
-
                     disabled={loading}
-
                     required
-
                   />
-
                 </div>
-
-
-
-                {/* Mostrar / ocultar contraseña */}
 
                 <button
-
                   type="button"
-
                   className="password-toggle"
-
-                  onClick={() =>
-
-                    setShowPassword(
-
-                      (value) => !value
-
-                    )
-
-                  }
-
+                  onClick={() => setShowPassword((value) => !value)}
                   disabled={loading}
-
                   aria-label={
-
-                    showPassword
-
-                      ? "Ocultar contraseña"
-
-                      : "Mostrar contraseña"
-
+                    showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
                   }
-
                   title={
-
-                    showPassword
-
-                      ? "Ocultar contraseña"
-
-                      : "Mostrar contraseña"
-
+                    showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
                   }
-
                 >
-
-                  {showPassword ? "◉" : "◌"}
-
+                  {showPassword ? '◉' : '◌'}
                 </button>
-
               </label>
 
-
-
-              {/* ERROR */}
-
               {error && (
-
-                <div
-
-                  className="login-error"
-
-                  role="alert"
-
-                >
-
+                <div className="login-error" role="alert">
                   {error}
-
                 </div>
-
               )}
 
-
-
-              {/* INICIAR SESIÓN */}
-
               <button
-
                 className="login-submit"
-
                 type="submit"
-
                 disabled={loading}
-
               >
-
-                {loading
-
-                  ? "Ingresando..."
-
-                  : "Iniciar sesión"}
-
+                {loading ? 'Ingresando...' : 'Iniciar sesión'}
               </button>
-
-
-
-              {/* RECUPERACIÓN */}
 
               <button
-
                 type="button"
-
                 className="forgot-password"
-
                 disabled={loading}
-
                 onClick={() => {
-
                   alert(
-
-                    "La recuperación de acceso se implementará posteriormente."
-
+                    'La recuperación de acceso se implementará posteriormente.',
                   );
-
                 }}
-
               >
-
                 ¿Olvidaste tu contraseña?
-
               </button>
-
             </form>
-
           </div>
 
-
-
-          {/* =================================================
-
-              IMAGEN DEL CAMPUS
-
-          ================================================= */}
-
+          {/* IMAGEN DEL CAMPUS */}
           <div className="login-image-section">
-
             <img
-
               src="/campus-san-jose.jpg"
-
               alt="Campus Tecnológico de San José"
-
             />
-
-
 
             <div className="login-image-overlay" />
 
-
-
             <div className="login-image-message">
-
               <h2>
-
                 Conocimiento
-
                 <br />
-
                 que conecta
-
               </h2>
 
-
-
               <div className="login-image-line" />
-
             </div>
-
           </div>
-
         </section>
-
       </main>
-
     </div>
-
   );
-
 }
-
-
-
 
 /* =========================================================
    CAMBIO OBLIGATORIO DE CONTRASEÑA
 ========================================================= */
 
 export function ChangePassword() {
-  const {
-    user,
-    completePasswordChange,
-  } = useAuth();
+  const { user, completePasswordChange } = useAuth();
 
-  const navigate =
-    useNavigate();
+  const navigate = useNavigate();
 
-  const [currentPassword, setCurrentPassword] =
-    useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPasswords, setShowPasswords] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const [newPassword, setNewPassword] =
-    useState('');
-
-  const [confirmPassword, setConfirmPassword] =
-    useState('');
-
-  const [showPasswords, setShowPasswords] =
-    useState(false);
-
-  const [loading, setLoading] =
-    useState(false);
-
-  const [error, setError] =
-    useState('');
-
-  const submit = async (
-    event:
-      React.FormEvent<HTMLFormElement>,
-  ) => {
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (
-      newPassword.length < 8
-    ) {
-      setError(
-        'La nueva contraseña debe tener al menos 8 caracteres.',
-      );
+    if (newPassword.length < 8) {
+      setError('La nueva contraseña debe tener al menos 8 caracteres.');
       return;
     }
 
-    if (
-      newPassword !==
-      confirmPassword
-    ) {
-      setError(
-        'Las contraseñas nuevas no coinciden.',
-      );
+    if (newPassword !== confirmPassword) {
+      setError('Las contraseñas nuevas no coinciden.');
       return;
     }
 
@@ -612,32 +286,19 @@ export function ChangePassword() {
       setLoading(true);
       setError('');
 
-      await api.post(
-        '/auth/change-password',
-        {
-          currentPassword,
-          newPassword,
-        },
-      );
+      await api.post('/auth/change-password', {
+        currentPassword,
+        newPassword,
+      });
 
       completePasswordChange();
 
-      navigate(
-        '/',
-        {
-          replace: true,
-        },
-      );
+      navigate('/', { replace: true });
     } catch (requestError: any) {
-      console.error(
-        'Error cambiando contraseña:',
-        requestError,
-      );
+      console.error('Error cambiando contraseña:', requestError);
 
       setError(
-        requestError
-          ?.response?.data
-          ?.message ||
+        requestError?.response?.data?.message ||
           'No se pudo cambiar la contraseña.',
       );
     } finally {
@@ -654,38 +315,23 @@ export function ChangePassword() {
           className="password-change-logo"
         />
 
-        <Badge tone="blue">
-          Primer ingreso
-        </Badge>
+        <Badge tone="blue">Primer ingreso</Badge>
 
-        <h1>
-          Cambie su contraseña
-        </h1>
+        <h1>Cambie su contraseña</h1>
 
         <p>
-          Hola {user?.name || 'usuario'}. La contraseña entregada por el administrador es temporal. Debe definir una contraseña personal antes de continuar.
+          Hola {user?.name || 'usuario'}. La contraseña entregada por el
+          administrador es temporal. Debe definir una contraseña personal antes
+          de continuar.
         </p>
 
-        <form
-          className="password-change-form"
-          onSubmit={submit}
-        >
+        <form className="password-change-form" onSubmit={submit}>
           <label>
             Contraseña temporal actual
             <input
-              type={
-                showPasswords
-                  ? 'text'
-                  : 'password'
-              }
-              value={
-                currentPassword
-              }
-              onChange={(e) =>
-                setCurrentPassword(
-                  e.target.value,
-                )
-              }
+              type={showPasswords ? 'text' : 'password'}
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
               required
               autoComplete="current-password"
             />
@@ -694,19 +340,9 @@ export function ChangePassword() {
           <label>
             Nueva contraseña
             <input
-              type={
-                showPasswords
-                  ? 'text'
-                  : 'password'
-              }
-              value={
-                newPassword
-              }
-              onChange={(e) =>
-                setNewPassword(
-                  e.target.value,
-                )
-              }
+              type={showPasswords ? 'text' : 'password'}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
               required
               minLength={8}
               autoComplete="new-password"
@@ -716,19 +352,9 @@ export function ChangePassword() {
           <label>
             Confirmar nueva contraseña
             <input
-              type={
-                showPasswords
-                  ? 'text'
-                  : 'password'
-              }
-              value={
-                confirmPassword
-              }
-              onChange={(e) =>
-                setConfirmPassword(
-                  e.target.value,
-                )
-              }
+              type={showPasswords ? 'text' : 'password'}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
               required
               minLength={8}
               autoComplete="new-password"
@@ -738,34 +364,16 @@ export function ChangePassword() {
           <label className="password-change-show">
             <input
               type="checkbox"
-              checked={
-                showPasswords
-              }
-              onChange={(e) =>
-                setShowPasswords(
-                  e.target.checked,
-                )
-              }
+              checked={showPasswords}
+              onChange={(e) => setShowPasswords(e.target.checked)}
             />
             Mostrar contraseñas
           </label>
 
-          {error && (
-            <div className="login-error">
-              {error}
-            </div>
-          )}
+          {error && <div className="login-error">{error}</div>}
 
-          <button
-            type="submit"
-            className="btn"
-            disabled={
-              loading
-            }
-          >
-            {loading
-              ? 'Actualizando...'
-              : 'Guardar nueva contraseña'}
+          <button type="submit" className="btn" disabled={loading}>
+            {loading ? 'Actualizando...' : 'Guardar nueva contraseña'}
           </button>
         </form>
       </section>
@@ -773,40 +381,23 @@ export function ChangePassword() {
   );
 }
 
-
 /* =========================================================
-
    DASHBOARD
-
-\========================================================= */
-
-
+========================================================= */
 
 export function Dashboard() {
-  const { user } =
-    useAuth();
+  const { user } = useAuth();
 
-  const [corr, setCorr] =
-    useState<any[]>([]);
+  const [corr, setCorr] = useState<any[]>([]);
+  const [repo, setRepo] = useState<any[]>([]);
+  const [procs, setProcs] = useState<any[]>([]);
+  const [forms, setForms] = useState<any[]>([]);
+  const [news, setNews] = useState<any[]>([]);
 
-  const [repo, setRepo] =
-    useState<any[]>([]);
-
-  const [procs, setProcs] =
-    useState<any[]>([]);
-
-  const [forms, setForms] =
-    useState<any[]>([]);
-
-  const [news, setNews] =
-    useState<any[]>([]);
-
-  const roles =
-    user?.roles || [];
+  const roles = user?.roles || [];
 
   const canViewCorrespondence =
-    roles.includes('ADMIN') ||
-    roles.includes('EDITOR');
+    roles.includes('ADMIN') || roles.includes('EDITOR');
 
   useEffect(() => {
     const requests = [
@@ -824,39 +415,21 @@ export function Dashboard() {
           formsResponse,
           newsResponse,
         ]) => {
-          setRepo(
-            repositoryResponse.data,
-          );
-
-          setProcs(
-            proceduresResponse.data,
-          );
-
-          setForms(
-            formsResponse.data,
-          );
-
-          setNews(
-            newsResponse.data,
-          );
+          setRepo(repositoryResponse.data);
+          setProcs(proceduresResponse.data);
+          setForms(formsResponse.data);
+          setNews(newsResponse.data);
         },
       )
       .catch((error) => {
-        console.error(
-          'Error cargando el dashboard:',
-          error,
-        );
+        console.error('Error cargando el dashboard:', error);
       });
 
-    if (
-      canViewCorrespondence
-    ) {
+    if (canViewCorrespondence) {
       api
         .get('/correspondence')
         .then((response) => {
-          setCorr(
-            response.data,
-          );
+          setCorr(response.data);
         })
         .catch((error) => {
           console.error(
@@ -867,9 +440,7 @@ export function Dashboard() {
     } else {
       setCorr([]);
     }
-  }, [
-    canViewCorrespondence,
-  ]);
+  }, [canViewCorrespondence]);
 
   return (
     <>
@@ -877,9 +448,7 @@ export function Dashboard() {
         <div>
           <h1>¡Hola!</h1>
 
-          <h3>
-            Campus Tecnológico de San José
-          </h3>
+          <h3>Campus Tecnológico de San José</h3>
 
           <p>
             Tu punto de acceso a información y seguimiento institucional.
@@ -889,118 +458,69 @@ export function Dashboard() {
 
       <div
         className={
-          canViewCorrespondence
-            ? 'stats'
-            : 'stats dashboard-stats-consultor'
+          canViewCorrespondence ? 'stats' : 'stats dashboard-stats-consultor'
         }
       >
         {canViewCorrespondence && (
           <Card>
-            <b>
-              Asignaciones
-            </b>
-
-            <strong>
-              {corr.length}
-            </strong>
-
-            <span>
-              Actividades en seguimiento
-            </span>
+            <b>Asignaciones</b>
+            <strong>{corr.length}</strong>
+            <span>Actividades en seguimiento</span>
           </Card>
         )}
 
         <Card>
           <b>Repositorio</b>
-
-          <strong>
-            {repo.length}
-          </strong>
-
-          <span>
-            Documentos disponibles
-          </span>
+          <strong>{repo.length}</strong>
+          <span>Documentos disponibles</span>
         </Card>
 
         <Card>
           <b>Procedimientos</b>
-
-          <strong>
-            {procs.length}
-          </strong>
-
-          <span>
-            Procesos registrados
-          </span>
+          <strong>{procs.length}</strong>
+          <span>Procesos registrados</span>
         </Card>
 
         <Card>
           <b>Formularios</b>
-
-          <strong>
-            {forms.length}
-          </strong>
-
-          <span>
-            Recursos disponibles
-          </span>
+          <strong>{forms.length}</strong>
+          <span>Recursos disponibles</span>
         </Card>
 
         <Card>
           <b>Noticias</b>
-
-          <strong>
-            {news.length}
-          </strong>
-
-          <span>
-            Publicaciones
-          </span>
+          <strong>{news.length}</strong>
+          <span>Publicaciones</span>
         </Card>
       </div>
 
       <div
         className={
-          canViewCorrespondence
-            ? 'grid2'
-            : 'grid2 dashboard-grid-consultor'
+          canViewCorrespondence ? 'grid2' : 'grid2 dashboard-grid-consultor'
         }
       >
         {canViewCorrespondence && (
           <Card>
-            <h2>
-              Mis asignaciones
-            </h2>
+            <h2>Mis asignaciones</h2>
 
             {corr.length ? (
-              corr
-                .slice(0, 5)
-                .map((x) => (
-                  <div
-                    className="row"
-                    key={x.id}
-                  >
-                    <Link
-                      to={`/asignaciones/${x.id}`}
-                    >
-                      {x.subject}
-                    </Link>
+              corr.slice(0, 5).map((x) => (
+                <div className="row" key={x.id}>
+                  <Link to={`/asignaciones/${x.id}`}>{x.subject}</Link>
 
-                    <Badge
-                      tone={
-                        x.status ===
-                        'VENCIDO'
-                          ? 'red'
-                          : x.status ===
-                            'RESPONDIDO'
-                          ? 'green'
-                          : 'blue'
-                      }
-                    >
-                      {x.status}
-                    </Badge>
-                  </div>
-                ))
+                  <Badge
+                    tone={
+                      x.status === 'VENCIDO'
+                        ? 'red'
+                        : x.status === 'RESPONDIDO'
+                        ? 'green'
+                        : 'blue'
+                    }
+                  >
+                    {x.status}
+                  </Badge>
+                </div>
+              ))
             ) : (
               <Empty text="No hay asignaciones pendientes." />
             )}
@@ -1008,27 +528,16 @@ export function Dashboard() {
         )}
 
         <Card>
-          <h2>
-            Noticias recientes
-          </h2>
+          <h2>Noticias recientes</h2>
 
           {news.length ? (
-            news
-              .slice(0, 5)
-              .map((n) => (
-                <div
-                  className="row"
-                  key={n.id}
-                >
-                  <span>
-                    {n.title}
-                  </span>
+            news.slice(0, 5).map((n) => (
+              <div className="row" key={n.id}>
+                <span>{n.title}</span>
 
-                  <Badge>
-                    {n.category}
-                  </Badge>
-                </div>
-              ))
+                <Badge>{n.category}</Badge>
+              </div>
+            ))
           ) : (
             <Empty text="No hay noticias recientes." />
           )}
@@ -1038,367 +547,188 @@ export function Dashboard() {
   );
 }
 
-
 /* =========================================================
-
    ASIGNACIONES - LISTA
-
-\========================================================= */
-
-
+========================================================= */
 
 export function CorrespondenceList() {
-
   const [data, setData] = useState<any[]>([]);
 
-
-
   useEffect(() => {
-
     api
-
       .get('/correspondence')
-
       .then((r) => setData(r.data))
-
       .catch((error) => {
-
         console.error('Error cargando correspondencia:', error);
-
       });
-
   }, []);
 
-
-
   return (
-
     <>
-
       <div className="titlebar">
-
         <div>
-
           <h1>Asignaciones</h1>
 
           <p>Actividades y requerimientos asignados para seguimiento</p>
-
         </div>
 
-
-
         <Link className="btn" to="/asignaciones/nueva">
-
           + Nueva asignación
-
         </Link>
-
       </div>
-
-
 
       <div className="stats mini">
-
         <Card>
-
-          <strong>
-
-            {data.filter((x) => x.status === 'PENDIENTE').length}
-
-          </strong>
-
+          <strong>{data.filter((x) => x.status === 'PENDIENTE').length}</strong>
           <span>Pendientes</span>
-
         </Card>
 
-
-
         <Card>
-
-          <strong>
-
-            {data.filter((x) => x.status === 'VENCIDO').length}
-
-          </strong>
-
+          <strong>{data.filter((x) => x.status === 'VENCIDO').length}</strong>
           <span>Vencidos</span>
-
         </Card>
 
-
-
         <Card>
-
           <strong>
-
             {data.filter((x) => x.status === 'EN_REVISION').length}
-
           </strong>
-
           <span>En revisión</span>
-
         </Card>
-
-
 
         <Card>
-
           <strong>
-
             {data.filter((x) => x.status === 'RESPONDIDO').length}
-
           </strong>
-
           <span>Respondidos</span>
-
         </Card>
-
       </div>
 
-
-
       <Card>
-
         <table>
-
           <thead>
-
             <tr>
-
               <th>Asunto</th>
-
               <th>Enviado por</th>
-
               <th>Responsable</th>
-
               <th>Fecha límite</th>
-
               <th>Estado</th>
-
               <th>Acciones</th>
-
             </tr>
-
           </thead>
 
-
-
           <tbody>
-
             {data.map((x) => (
-
               <tr key={x.id}>
-
                 <td>
-
-                  <Link to={`/asignaciones/${x.id}`}>
-
-                    {x.subject}
-
-                  </Link>
-
-
+                  <Link to={`/asignaciones/${x.id}`}>{x.subject}</Link>
 
                   <small>{x.code}</small>
-
                 </td>
-
-
 
                 <td>{x.sender?.name ?? '-'}</td>
 
-
-
                 <td>{x.responsible?.name ?? '-'}</td>
 
-
-
                 <td>
-
-                  {x.dueDate
-
-                    ? new Date(x.dueDate).toLocaleDateString()
-
-                    : '-'}
-
+                  {x.dueDate ? new Date(x.dueDate).toLocaleDateString() : '-'}
                 </td>
 
-
-
                 <td>
-
                   <Badge
-
                     tone={
-
                       x.status === 'VENCIDO'
-
                         ? 'red'
-
                         : x.status === 'RESPONDIDO'
-
                         ? 'green'
-
                         : 'blue'
-
                     }
-
                   >
-
                     {x.status}
-
                   </Badge>
-
                 </td>
-
-
 
                 <td>
-
-                  <Link to={`/asignaciones/${x.id}`}>
-
-                    Ver
-
-                  </Link>
-
+                  <Link to={`/asignaciones/${x.id}`}>Ver</Link>
                 </td>
-
               </tr>
-
             ))}
-
           </tbody>
-
         </table>
-
       </Card>
-
     </>
-
   );
-
 }
 
-
-
-
-
 /* =========================================================
-
    NUEVA ASIGNACIÓN
-
-\========================================================= */
-
-
+========================================================= */
 
 export function NewCorrespondence() {
-  const nav =
-    useNavigate();
+  const nav = useNavigate();
 
-  const [users, setUsers] =
-    useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [files, setFiles] = useState<File[]>([]);
+  const [saving, setSaving] = useState(false);
 
-  const [files, setFiles] =
-    useState<File[]>([]);
-
-  const [saving, setSaving] =
-    useState(false);
-
-  const [f, setF] =
-    useState<any>({
-      subject: '',
-      description: '',
-      type: 'Solicitud',
-      priority: 'MEDIA',
-      responsibleId: '',
-      dueDate: '',
-    });
+  const [f, setF] = useState<any>({
+    subject: '',
+    description: '',
+    type: 'Solicitud',
+    priority: 'MEDIA',
+    responsibleId: '',
+    dueDate: '',
+  });
 
   useEffect(() => {
     api
       .get('/users')
-      .then((r) =>
-        setUsers(r.data),
-      )
+      .then((r) => setUsers(r.data))
       .catch((error) => {
-        console.error(
-          'Error cargando usuarios:',
-          error,
-        );
+        console.error('Error cargando usuarios:', error);
       });
   }, []);
 
-  const submit = async (
-    e: React.FormEvent,
-  ) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
       setSaving(true);
 
-      const response =
-        await api.post(
-          '/correspondence',
-          f,
-        );
+      const response = await api.post('/correspondence', f);
 
-      const correspondence =
-        response.data;
+      const correspondence = response.data;
 
-      if (
-        files.length &&
-        correspondence?.id
-      ) {
-        for (
-          const selectedFile
-          of files
-        ) {
-          const form =
-            new FormData();
+      if (files.length && correspondence?.id) {
+        for (const selectedFile of files) {
+          const form = new FormData();
 
-          form.append(
-            'file',
-            selectedFile,
-          );
+          form.append('file', selectedFile);
 
           await api.post(
             `/correspondence/${correspondence.id}/attachments`,
             form,
             {
               headers: {
-                'Content-Type':
-                  'multipart/form-data',
+                'Content-Type': 'multipart/form-data',
               },
             },
           );
         }
       }
 
-      nav(
-        `/asignaciones/${correspondence.id}`,
-      );
+      nav(`/asignaciones/${correspondence.id}`);
     } catch (error) {
-      console.error(
-        'Error creando correspondencia:',
-        error,
-      );
+      console.error('Error creando correspondencia:', error);
 
-      alert(
-        'No se pudo crear la asignación o subir alguno de los archivos.',
-      );
+      alert('No se pudo crear la asignación o subir alguno de los archivos.');
     } finally {
       setSaving(false);
     }
   };
 
-  const removeSelectedFile = (
-    index: number,
-  ) => {
+  const removeSelectedFile = (index: number) => {
     setFiles((current) =>
-      current.filter(
-        (_file, fileIndex) =>
-          fileIndex !== index,
-      ),
+      current.filter((_file, fileIndex) => fileIndex !== index),
     );
   };
 
@@ -1406,43 +736,31 @@ export function NewCorrespondence() {
     <>
       <div className="titlebar">
         <div>
-          <h1>
-            Nueva asignación
-          </h1>
+          <h1>Nueva asignación</h1>
 
           <p>
-            Registra una actividad o requerimiento, asigna un responsable y adjunta los archivos necesarios.
+            Registra una actividad o requerimiento, asigna un responsable y
+            adjunta los archivos necesarios.
           </p>
         </div>
 
         <button
           type="button"
           className="btn secondary"
-          onClick={() =>
-            nav('/asignaciones')
-          }
+          onClick={() => nav('/asignaciones')}
         >
           ← Volver
         </button>
       </div>
 
       <Card>
-        <form
-          className="form"
-          onSubmit={submit}
-        >
+        <form className="form" onSubmit={submit}>
           <label>
             Asunto
             <input
               required
               value={f.subject}
-              onChange={(e) =>
-                setF({
-                  ...f,
-                  subject:
-                    e.target.value,
-                })
-              }
+              onChange={(e) => setF({ ...f, subject: e.target.value })}
             />
           </label>
 
@@ -1450,13 +768,7 @@ export function NewCorrespondence() {
             Tipo
             <input
               value={f.type}
-              onChange={(e) =>
-                setF({
-                  ...f,
-                  type:
-                    e.target.value,
-                })
-              }
+              onChange={(e) => setF({ ...f, type: e.target.value })}
             />
           </label>
 
@@ -1464,42 +776,20 @@ export function NewCorrespondence() {
             Descripción / instrucciones
             <textarea
               required
-              value={
-                f.description
-              }
-              onChange={(e) =>
-                setF({
-                  ...f,
-                  description:
-                    e.target.value,
-                })
-              }
+              value={f.description}
+              onChange={(e) => setF({ ...f, description: e.target.value })}
             />
           </label>
 
           <label>
             Prioridad
             <select
-              value={
-                f.priority
-              }
-              onChange={(e) =>
-                setF({
-                  ...f,
-                  priority:
-                    e.target.value,
-                })
-              }
+              value={f.priority}
+              onChange={(e) => setF({ ...f, priority: e.target.value })}
             >
-              <option value="BAJA">
-                Baja
-              </option>
-              <option value="MEDIA">
-                Media
-              </option>
-              <option value="ALTA">
-                Alta
-              </option>
+              <option value="BAJA">Baja</option>
+              <option value="MEDIA">Media</option>
+              <option value="ALTA">Alta</option>
             </select>
           </label>
 
@@ -1507,32 +797,15 @@ export function NewCorrespondence() {
             Responsable
             <select
               required
-              value={
-                f.responsibleId
-              }
-              onChange={(e) =>
-                setF({
-                  ...f,
-                  responsibleId:
-                    e.target.value,
-                })
-              }
+              value={f.responsibleId}
+              onChange={(e) => setF({ ...f, responsibleId: e.target.value })}
             >
-              <option value="">
-                Seleccione
-              </option>
+              <option value="">Seleccione</option>
 
               {users
-                .filter(
-                  (u) =>
-                    !u.deletedAt &&
-                    u.active,
-                )
+                .filter((u) => !u.deletedAt && u.active)
                 .map((u) => (
-                  <option
-                    key={u.id}
-                    value={u.id}
-                  >
+                  <option key={u.id} value={u.id}>
                     {u.name}
                   </option>
                 ))}
@@ -1543,36 +816,24 @@ export function NewCorrespondence() {
             Fecha límite
             <input
               type="date"
-              value={
-                f.dueDate
-              }
-              onChange={(e) =>
-                setF({
-                  ...f,
-                  dueDate:
-                    e.target.value,
-                })
-              }
+              value={f.dueDate}
+              onChange={(e) => setF({ ...f, dueDate: e.target.value })}
             />
           </label>
 
           <div className="full correspondence-create-attachments">
             <div className="correspondence-create-attachments-header">
               <div>
-                <strong>
-                  Archivos adjuntos
-                </strong>
+                <strong>Archivos adjuntos</strong>
 
                 <p>
-                  Puedes seleccionar uno o varios archivos. No hay restricción de extensión.
+                  Puedes seleccionar uno o varios archivos. No hay restricción
+                  de extensión.
                 </p>
               </div>
 
               {files.length > 0 && (
-                <Badge tone="blue">
-                  {files.length}{' '}
-                  seleccionado(s)
-                </Badge>
+                <Badge tone="blue">{files.length} seleccionado(s)</Badge>
               )}
             </div>
 
@@ -1580,52 +841,32 @@ export function NewCorrespondence() {
               type="file"
               multiple
               onChange={(event) =>
-                setFiles(
-                  Array.from(
-                    event.target
-                      .files || [],
-                  ),
-                )
+                setFiles(Array.from(event.target.files || []))
               }
             />
 
             {files.length > 0 && (
               <div className="correspondence-create-file-list">
-                {files.map(
-                  (
-                    selectedFile,
-                    index,
-                  ) => (
-                    <div
-                      className="correspondence-create-file-item"
-                      key={`${selectedFile.name}-${selectedFile.size}-${index}`}
-                    >
-                      <div>
-                        <strong>
-                          {selectedFile.name}
-                        </strong>
+                {files.map((selectedFile, index) => (
+                  <div
+                    className="correspondence-create-file-item"
+                    key={`${selectedFile.name}-${selectedFile.size}-${index}`}
+                  >
+                    <div>
+                      <strong>{selectedFile.name}</strong>
 
-                        <small>
-                          {formatFileSize(
-                            selectedFile.size,
-                          )}
-                        </small>
-                      </div>
-
-                      <button
-                        type="button"
-                        className="procedure-remove-step"
-                        onClick={() =>
-                          removeSelectedFile(
-                            index,
-                          )
-                        }
-                      >
-                        Quitar
-                      </button>
+                      <small>{formatFileSize(selectedFile.size)}</small>
                     </div>
-                  ),
-                )}
+
+                    <button
+                      type="button"
+                      className="procedure-remove-step"
+                      onClick={() => removeSelectedFile(index)}
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -1634,24 +875,14 @@ export function NewCorrespondence() {
             <button
               type="button"
               className="btn secondary"
-              onClick={() =>
-                nav(
-                  '/asignaciones',
-                )
-              }
+              onClick={() => nav('/asignaciones')}
               disabled={saving}
             >
               Cancelar
             </button>
 
-            <button
-              className="btn"
-              type="submit"
-              disabled={saving}
-            >
-              {saving
-                ? 'Creando y subiendo...'
-                : 'Crear asignación'}
+            <button className="btn" type="submit" disabled={saving}>
+              {saving ? 'Creando y subiendo...' : 'Crear asignación'}
             </button>
           </div>
         </form>
@@ -1660,56 +891,30 @@ export function NewCorrespondence() {
   );
 }
 
-
 /* =========================================================
-
    DETALLE ASIGNACIÓN
-
-\========================================================= */
-
-
+========================================================= */
 
 export function CorrespondenceDetail() {
-  const { id } =
-    useParams();
+  const { id } = useParams();
 
-  const nav =
-    useNavigate();
+  const nav = useNavigate();
 
-  const [x, setX] =
-    useState<any>();
-
-  const [body, setBody] =
-    useState('');
-
-  const [files, setFiles] =
-    useState<File[]>([]);
-
-  const [uploading, setUploading] =
-    useState(false);
-
-  const [downloadingId, setDownloadingId] =
-    useState<string | null>(
-      null,
-    );
-
-  const [downloadingAll, setDownloadingAll] =
-    useState(false);
+  const [x, setX] = useState<any>();
+  const [body, setBody] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [downloadingAll, setDownloadingAll] = useState(false);
 
   const load = () => {
     return api
-      .get(
-        '/correspondence/' +
-          id,
-      )
+      .get('/correspondence/' + id)
       .then((r) => {
         setX(r.data);
       })
       .catch((error) => {
-        console.error(
-          'Error cargando detalle de correspondencia:',
-          error,
-        );
+        console.error('Error cargando detalle de correspondencia:', error);
       });
   };
 
@@ -1718,9 +923,7 @@ export function CorrespondenceDetail() {
   }, [id]);
 
   if (!x) {
-    return (
-      <Empty text="Cargando..." />
-    );
+    return <Empty text="Cargando..." />;
   }
 
   const comment = async () => {
@@ -1729,264 +932,153 @@ export function CorrespondenceDetail() {
     }
 
     try {
-      await api.post(
-        `/correspondence/${id}/comments`,
-        {
-          body,
-        },
-      );
+      await api.post(`/correspondence/${id}/comments`, { body });
 
       setBody('');
 
       await load();
     } catch (error) {
-      console.error(
-        'Error publicando comentario:',
-        error,
-      );
+      console.error('Error publicando comentario:', error);
 
-      alert(
-        'No se pudo publicar el comentario.',
-      );
+      alert('No se pudo publicar el comentario.');
     }
   };
 
   const attend = async () => {
     try {
-      await api.patch(
-        `/correspondence/${id}`,
-        {
-          status:
-            'RESPONDIDO',
-        },
-      );
+      await api.patch(`/correspondence/${id}`, { status: 'RESPONDIDO' });
 
       await load();
     } catch (error) {
-      console.error(
-        'Error actualizando correspondencia:',
-        error,
-      );
+      console.error('Error actualizando correspondencia:', error);
 
-      alert(
-        'No se pudo actualizar la correspondencia.',
-      );
+      alert('No se pudo actualizar la correspondencia.');
     }
   };
 
-  const uploadAttachments =
-    async (
-      event:
-        React.FormEvent<HTMLFormElement>,
-    ) => {
-      event.preventDefault();
-
-      if (!files.length) {
-        alert(
-          'Seleccione al menos un archivo para adjuntar.',
-        );
-        return;
-      }
-
-      try {
-        setUploading(true);
-
-        for (
-          const selectedFile
-          of files
-        ) {
-          const form =
-            new FormData();
-
-          form.append(
-            'file',
-            selectedFile,
-          );
-
-          await api.post(
-            `/correspondence/${id}/attachments`,
-            form,
-            {
-              headers: {
-                'Content-Type':
-                  'multipart/form-data',
-              },
-            },
-          );
-        }
-
-        setFiles([]);
-
-        const input =
-          document.getElementById(
-            'correspondence-attachment-input',
-          ) as HTMLInputElement | null;
-
-        if (input) {
-          input.value = '';
-        }
-
-        await load();
-      } catch (error) {
-        console.error(
-          'Error adjuntando archivos:',
-          error,
-        );
-
-        alert(
-          'No se pudieron adjuntar todos los archivos.',
-        );
-      } finally {
-        setUploading(false);
-      }
-    };
-
-  const downloadAttachment =
-    async (
-      attachment: any,
-    ) => {
-      try {
-        setDownloadingId(
-          attachment.id,
-        );
-
-        const response =
-          await api.get(
-            `/correspondence/${id}/attachments/${attachment.id}/download`,
-            {
-              responseType:
-                'blob',
-            },
-          );
-
-        const url =
-          URL.createObjectURL(
-            response.data,
-          );
-
-        const anchor =
-          document.createElement(
-            'a',
-          );
-
-        anchor.href = url;
-
-        anchor.download =
-          attachment.originalName ||
-          'archivo';
-
-        document.body
-          .appendChild(
-            anchor,
-          );
-
-        anchor.click();
-
-        anchor.remove();
-
-        URL.revokeObjectURL(
-          url,
-        );
-      } catch (error) {
-        console.error(
-          'Error descargando adjunto:',
-          error,
-        );
-
-        alert(
-          'No se pudo descargar el archivo adjunto.',
-        );
-      } finally {
-        setDownloadingId(
-          null,
-        );
-      }
-    };
-
-  const downloadAllAttachments =
-    async () => {
-      try {
-        setDownloadingAll(
-          true,
-        );
-
-        const response =
-          await api.get(
-            `/correspondence/${id}/attachments/download-all`,
-            {
-              responseType:
-                'blob',
-            },
-          );
-
-        const url =
-          URL.createObjectURL(
-            response.data,
-          );
-
-        const anchor =
-          document.createElement(
-            'a',
-          );
-
-        anchor.href = url;
-
-        anchor.download =
-          `${x.code || 'correspondencia'}-adjuntos.zip`;
-
-        document.body
-          .appendChild(
-            anchor,
-          );
-
-        anchor.click();
-
-        anchor.remove();
-
-        URL.revokeObjectURL(
-          url,
-        );
-      } catch (error) {
-        console.error(
-          'Error descargando ZIP de adjuntos:',
-          error,
-        );
-
-        alert(
-          'No se pudieron descargar todos los archivos adjuntos.',
-        );
-      } finally {
-        setDownloadingAll(
-          false,
-        );
-      }
-    };
-
-  const removeSelectedFile = (
-    index: number,
+  const uploadAttachments = async (
+    event: React.FormEvent<HTMLFormElement>,
   ) => {
+    event.preventDefault();
+
+    if (!files.length) {
+      alert('Seleccione al menos un archivo para adjuntar.');
+      return;
+    }
+
+    try {
+      setUploading(true);
+
+      for (const selectedFile of files) {
+        const form = new FormData();
+
+        form.append('file', selectedFile);
+
+        await api.post(`/correspondence/${id}/attachments`, form, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      }
+
+      setFiles([]);
+
+      const input = document.getElementById(
+        'correspondence-attachment-input',
+      ) as HTMLInputElement | null;
+
+      if (input) {
+        input.value = '';
+      }
+
+      await load();
+    } catch (error) {
+      console.error('Error adjuntando archivos:', error);
+
+      alert('No se pudieron adjuntar todos los archivos.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const downloadAttachment = async (attachment: any) => {
+    try {
+      setDownloadingId(attachment.id);
+
+      const response = await api.get(
+        `/correspondence/${id}/attachments/${attachment.id}/download`,
+        { responseType: 'blob' },
+      );
+
+      const url = URL.createObjectURL(response.data);
+
+      const anchor = document.createElement('a');
+
+      anchor.href = url;
+
+      anchor.download = attachment.originalName || 'archivo';
+
+      document.body.appendChild(anchor);
+
+      anchor.click();
+
+      anchor.remove();
+
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error descargando adjunto:', error);
+
+      alert('No se pudo descargar el archivo adjunto.');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const downloadAllAttachments = async () => {
+    try {
+      setDownloadingAll(true);
+
+      const response = await api.get(
+        `/correspondence/${id}/attachments/download-all`,
+        { responseType: 'blob' },
+      );
+
+      const url = URL.createObjectURL(response.data);
+
+      const anchor = document.createElement('a');
+
+      anchor.href = url;
+
+      anchor.download = `${x.code || 'correspondencia'}-adjuntos.zip`;
+
+      document.body.appendChild(anchor);
+
+      anchor.click();
+
+      anchor.remove();
+
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error descargando ZIP de adjuntos:', error);
+
+      alert('No se pudieron descargar todos los archivos adjuntos.');
+    } finally {
+      setDownloadingAll(false);
+    }
+  };
+
+  const removeSelectedFile = (index: number) => {
     setFiles((current) =>
-      current.filter(
-        (_file, fileIndex) =>
-          fileIndex !== index,
-      ),
+      current.filter((_file, fileIndex) => fileIndex !== index),
     );
   };
 
-  const attachments =
-    Array.isArray(
-      x.attachments,
-    )
-      ? [...x.attachments].sort(
-          (a: any, b: any) =>
-            new Date(
-              b.createdAt,
-            ).getTime() -
-            new Date(
-              a.createdAt,
-            ).getTime(),
-        )
-      : [];
+  const attachments = Array.isArray(x.attachments)
+    ? [...x.attachments].sort(
+        (a: any, b: any) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
+    : [];
 
   return (
     <>
@@ -1995,22 +1087,14 @@ export function CorrespondenceDetail() {
           <button
             type="button"
             className="btn secondary correspondence-back-button"
-            onClick={() =>
-              nav(
-                '/asignaciones',
-              )
-            }
+            onClick={() => nav('/asignaciones')}
           >
             ← Volver
           </button>
 
-          <h1>
-            Detalle de asignación
-          </h1>
+          <h1>Detalle de asignación</h1>
 
-          <h2>
-            {x.subject}
-          </h2>
+          <h2>{x.subject}</h2>
         </div>
 
         <div className="correspondence-detail-actions">
@@ -2018,67 +1102,45 @@ export function CorrespondenceDetail() {
             <button
               type="button"
               className="btn secondary"
-              disabled={
-                downloadingAll
-              }
-              onClick={() =>
-                void downloadAllAttachments()
-              }
+              disabled={downloadingAll}
+              onClick={() => void downloadAllAttachments()}
             >
-              {downloadingAll
-                ? 'Preparando ZIP...'
-                : 'Descargar todos (.zip)'}
+              {downloadingAll ? 'Preparando ZIP...' : 'Descargar todos (.zip)'}
             </button>
           )}
 
-          <Btn onClick={attend}>
-            Marcar como atendido
-          </Btn>
+          <Btn onClick={attend}>Marcar como atendido</Btn>
         </div>
       </div>
 
       <div className="grid2">
         <Card>
-          <h2>
-            Resumen
-          </h2>
+          <h2>Resumen</h2>
 
           <p>
-            <b>Código:</b>{' '}
-            {x.code}
+            <b>Código:</b> {x.code}
           </p>
 
           <p>
-            <b>Enviado por:</b>{' '}
-            {x.sender?.name ??
-              '-'}
+            <b>Enviado por:</b> {x.sender?.name ?? '-'}
           </p>
 
           <p>
-            <b>Responsable:</b>{' '}
-            {x.responsible
-              ?.name ?? '-'}
+            <b>Responsable:</b> {x.responsible?.name ?? '-'}
           </p>
 
           <p>
             <b>Fecha límite:</b>{' '}
-            {x.dueDate
-              ? new Date(
-                  x.dueDate,
-                ).toLocaleDateString()
-              : '-'}
+            {x.dueDate ? new Date(x.dueDate).toLocaleDateString() : '-'}
           </p>
 
           <p>
             <b>Estado:</b>{' '}
-
             <Badge
               tone={
-                x.status ===
-                'VENCIDO'
+                x.status === 'VENCIDO'
                   ? 'red'
-                  : x.status ===
-                    'RESPONDIDO'
+                  : x.status === 'RESPONDIDO'
                   ? 'green'
                   : 'blue'
               }
@@ -2087,70 +1149,38 @@ export function CorrespondenceDetail() {
             </Badge>
           </p>
 
-          <h3>
-            Indicaciones
-          </h3>
+          <h3>Indicaciones</h3>
 
-          <p>
-            {x.description}
-          </p>
+          <p>{x.description}</p>
         </Card>
 
         <Card>
-          <h2>
-            Personas involucradas
-          </h2>
+          <h2>Personas involucradas</h2>
 
           {x.participants?.length ? (
-            x.participants.map(
-              (p: any) => (
-                <div
-                  className="row"
-                  key={p.id}
-                >
-                  {p.name}
-                </div>
-              ),
-            )
+            x.participants.map((p: any) => (
+              <div className="row" key={p.id}>
+                {p.name}
+              </div>
+            ))
           ) : (
-            <p>
-              No hay personas adicionales involucradas.
-            </p>
+            <p>No hay personas adicionales involucradas.</p>
           )}
 
-          <h2>
-            Seguimiento
-          </h2>
+          <h2>Seguimiento</h2>
 
           {x.comments?.length ? (
-            x.comments.map(
-              (c: any) => (
-                <div
-                  className="comment"
-                  key={c.id}
-                >
-                  <b>
-                    {c.author
-                      ?.name ??
-                      'Usuario'}
-                  </b>
+            x.comments.map((c: any) => (
+              <div className="comment" key={c.id}>
+                <b>{c.author?.name ?? 'Usuario'}</b>
 
-                  <small>
-                    {new Date(
-                      c.createdAt,
-                    ).toLocaleString()}
-                  </small>
+                <small>{new Date(c.createdAt).toLocaleString()}</small>
 
-                  <p>
-                    {c.body}
-                  </p>
-                </div>
-              ),
-            )
+                <p>{c.body}</p>
+              </div>
+            ))
           ) : (
-            <p>
-              No hay comentarios todavía.
-            </p>
+            <p>No hay comentarios todavía.</p>
           )}
         </Card>
       </div>
@@ -2158,26 +1188,20 @@ export function CorrespondenceDetail() {
       <Card>
         <div className="correspondence-attachments-header">
           <div>
-            <h2>
-              Archivos adjuntos
-            </h2>
+            <h2>Archivos adjuntos</h2>
 
             <p>
-              Adjunta uno o varios documentos de respaldo o archivos relacionados con esta asignación.
+              Adjunta uno o varios documentos de respaldo o archivos
+              relacionados con esta asignación.
             </p>
           </div>
 
-          <Badge tone="blue">
-            {attachments.length}{' '}
-            archivo(s)
-          </Badge>
+          <Badge tone="blue">{attachments.length} archivo(s)</Badge>
         </div>
 
         <form
           className="correspondence-upload-form correspondence-upload-form-multiple"
-          onSubmit={
-            uploadAttachments
-          }
+          onSubmit={uploadAttachments}
         >
           <label>
             Seleccionar archivos
@@ -2186,12 +1210,7 @@ export function CorrespondenceDetail() {
               type="file"
               multiple
               onChange={(event) =>
-                setFiles(
-                  Array.from(
-                    event.target
-                      .files || [],
-                  ),
-                )
+                setFiles(Array.from(event.target.files || []))
               }
             />
           </label>
@@ -2199,40 +1218,27 @@ export function CorrespondenceDetail() {
           <div className="correspondence-multiple-summary">
             {files.length ? (
               <>
-                <strong>
-                  {files.length}{' '}
-                  archivo(s) seleccionado(s)
-                </strong>
+                <strong>{files.length} archivo(s) seleccionado(s)</strong>
 
                 <small>
                   Tamaño total:{' '}
                   {formatFileSize(
                     files.reduce(
-                      (
-                        total,
-                        selectedFile,
-                      ) =>
-                        total +
-                        selectedFile.size,
+                      (total, selectedFile) => total + selectedFile.size,
                       0,
                     ),
                   )}
                 </small>
               </>
             ) : (
-              <small>
-                Aún no has seleccionado archivos.
-              </small>
+              <small>Aún no has seleccionado archivos.</small>
             )}
           </div>
 
           <button
             type="submit"
             className="btn"
-            disabled={
-              uploading ||
-              !files.length
-            }
+            disabled={uploading || !files.length}
           >
             {uploading
               ? 'Adjuntando...'
@@ -2248,102 +1254,64 @@ export function CorrespondenceDetail() {
 
         {files.length > 0 && (
           <div className="correspondence-create-file-list correspondence-detail-selected-list">
-            {files.map(
-              (
-                selectedFile,
-                index,
-              ) => (
-                <div
-                  className="correspondence-create-file-item"
-                  key={`${selectedFile.name}-${selectedFile.size}-${index}`}
-                >
-                  <div>
-                    <strong>
-                      {selectedFile.name}
-                    </strong>
+            {files.map((selectedFile, index) => (
+              <div
+                className="correspondence-create-file-item"
+                key={`${selectedFile.name}-${selectedFile.size}-${index}`}
+              >
+                <div>
+                  <strong>{selectedFile.name}</strong>
 
-                    <small>
-                      {formatFileSize(
-                        selectedFile.size,
-                      )}
-                    </small>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="procedure-remove-step"
-                    onClick={() =>
-                      removeSelectedFile(
-                        index,
-                      )
-                    }
-                  >
-                    Quitar
-                  </button>
+                  <small>{formatFileSize(selectedFile.size)}</small>
                 </div>
-              ),
-            )}
+
+                <button
+                  type="button"
+                  className="procedure-remove-step"
+                  onClick={() => removeSelectedFile(index)}
+                >
+                  Quitar
+                </button>
+              </div>
+            ))}
           </div>
         )}
 
         {attachments.length ? (
           <div className="correspondence-attachment-list">
-            {attachments.map(
-              (attachment: any) => (
-                <div
-                  className="correspondence-attachment-item"
-                  key={
-                    attachment.id
-                  }
-                >
-                  <div className="correspondence-attachment-info">
-                    <strong>
-                      {attachment.originalName}
-                    </strong>
+            {attachments.map((attachment: any) => (
+              <div
+                className="correspondence-attachment-item"
+                key={attachment.id}
+              >
+                <div className="correspondence-attachment-info">
+                  <strong>{attachment.originalName}</strong>
 
-                    <div>
-                      <span>
-                        {formatFileSize(
-                          attachment.size,
-                        )}
-                      </span>
+                  <div>
+                    <span>{formatFileSize(attachment.size)}</span>
 
-                      <span>
-                        {attachment.mimeType ||
-                          'Tipo desconocido'}
-                      </span>
+                    <span>{attachment.mimeType || 'Tipo desconocido'}</span>
 
-                      <span>
-                        {attachment.createdAt
-                          ? new Date(
-                              attachment.createdAt,
-                            ).toLocaleString()
-                          : '-'}
-                      </span>
-                    </div>
+                    <span>
+                      {attachment.createdAt
+                        ? new Date(attachment.createdAt).toLocaleString()
+                        : '-'}
+                    </span>
                   </div>
-
-                  <button
-                    type="button"
-                    className="btn secondary"
-                    disabled={
-                      downloadingId ===
-                      attachment.id
-                    }
-                    onClick={() =>
-                      void downloadAttachment(
-                        attachment,
-                      )
-                    }
-                  >
-                    {downloadingId ===
-                    attachment.id
-                      ? 'Descargando...'
-                      : 'Descargar'}
-                  </button>
                 </div>
-              ),
-            )}
+
+                <button
+                  type="button"
+                  className="btn secondary"
+                  disabled={downloadingId === attachment.id}
+                  onClick={() => void downloadAttachment(attachment)}
+                >
+                  {downloadingId === attachment.id
+                    ? 'Descargando...'
+                    : 'Descargar'}
+                </button>
+              </div>
+            ))}
           </div>
         ) : (
           <Empty text="Esta asignación todavía no tiene archivos adjuntos." />
@@ -2351,29 +1319,19 @@ export function CorrespondenceDetail() {
       </Card>
 
       <Card>
-        <h2>
-          Respuesta / observaciones
-        </h2>
+        <h2>Respuesta / observaciones</h2>
 
         <textarea
           value={body}
-          onChange={(e) =>
-            setBody(
-              e.target.value,
-            )
-          }
+          onChange={(e) => setBody(e.target.value)}
           placeholder="Escriba un comentario..."
         />
 
-        <Btn onClick={comment}>
-          Publicar comentario
-        </Btn>
+        <Btn onClick={comment}>Publicar comentario</Btn>
       </Card>
     </>
   );
 }
-
-
 
 /* =========================================================
    CORRESPONDENCIA INSTITUCIONAL - LISTA
@@ -2402,10 +1360,7 @@ function institutionalStatusTone(
     return 'red';
   }
 
-  if (
-    status === 'RESPONDIDA' ||
-    status === 'CERRADA'
-  ) {
+  if (status === 'RESPONDIDA' || status === 'CERRADA') {
     return 'green';
   }
 
@@ -2413,17 +1368,13 @@ function institutionalStatusTone(
 }
 
 export function InstitutionalCorrespondenceList() {
-  const [data, setData] =
-    useState<any[]>([]);
+  const [data, setData] = useState<any[]>([]);
 
-  const [search, setSearch] =
-    useState('');
+  const [search, setSearch] = useState('');
 
-  const [direction, setDirection] =
-    useState('TODAS');
+  const [direction, setDirection] = useState('TODAS');
 
-  const [status, setStatus] =
-    useState('TODOS');
+  const [status, setStatus] = useState('TODOS');
 
   useEffect(() => {
     api
@@ -2440,8 +1391,7 @@ export function InstitutionalCorrespondenceList() {
   }, []);
 
   const filtered = data.filter((item) => {
-    const query =
-      search.trim().toLowerCase();
+    const query = search.trim().toLowerCase();
 
     const matchesText =
       !query ||
@@ -2460,71 +1410,46 @@ export function InstitutionalCorrespondenceList() {
       );
 
     const matchesDirection =
-      direction === 'TODAS' ||
-      item.direction === direction;
+      direction === 'TODAS' || item.direction === direction;
 
-    const matchesStatus =
-      status === 'TODOS' ||
-      item.status === status;
+    const matchesStatus = status === 'TODOS' || item.status === status;
 
-    return (
-      matchesText &&
-      matchesDirection &&
-      matchesStatus
-    );
+    return matchesText && matchesDirection && matchesStatus;
   });
 
   return (
     <>
       <div className="titlebar">
         <div>
-          <h1>
-            Correspondencia
-          </h1>
+          <h1>Correspondencia</h1>
 
           <p>
-            Registro y seguimiento de oficios, memorandos y comunicaciones institucionales de entrada y salida.
+            Registro y seguimiento de oficios, memorandos y comunicaciones
+            institucionales de entrada y salida.
           </p>
         </div>
 
-        <Link
-          className="btn"
-          to="/correspondencia/nueva"
-        >
+        <Link className="btn" to="/correspondencia/nueva">
           + Nueva correspondencia
         </Link>
       </div>
 
       <div className="stats mini">
         <Card>
-          <strong>
-            {data.length}
-          </strong>
+          <strong>{data.length}</strong>
           <span>Total</span>
         </Card>
 
         <Card>
           <strong>
-            {
-              data.filter(
-                (item) =>
-                  item.direction ===
-                  'ENTRADA',
-              ).length
-            }
+            {data.filter((item) => item.direction === 'ENTRADA').length}
           </strong>
           <span>Entradas</span>
         </Card>
 
         <Card>
           <strong>
-            {
-              data.filter(
-                (item) =>
-                  item.direction ===
-                  'SALIDA',
-              ).length
-            }
+            {data.filter((item) => item.direction === 'SALIDA').length}
           </strong>
           <span>Salidas</span>
         </Card>
@@ -2534,10 +1459,7 @@ export function InstitutionalCorrespondenceList() {
             {
               data.filter(
                 (item) =>
-                  item.status ===
-                    'RESPONDIDA' ||
-                  item.status ===
-                    'CERRADA',
+                  item.status === 'RESPONDIDA' || item.status === 'CERRADA',
               ).length
             }
           </strong>
@@ -2550,63 +1472,33 @@ export function InstitutionalCorrespondenceList() {
           <input
             type="search"
             value={search}
-            onChange={(event) =>
-              setSearch(
-                event.target.value,
-              )
-            }
+            onChange={(event) => setSearch(event.target.value)}
             placeholder="Buscar por código, oficio, asunto, remitente o destinatario..."
           />
 
           <select
             value={direction}
-            onChange={(event) =>
-              setDirection(
-                event.target.value,
-              )
-            }
+            onChange={(event) => setDirection(event.target.value)}
           >
-            <option value="TODAS">
-              Todas las direcciones
-            </option>
-            <option value="ENTRADA">
-              Entrada
-            </option>
-            <option value="SALIDA">
-              Salida
-            </option>
+            <option value="TODAS">Todas las direcciones</option>
+            <option value="ENTRADA">Entrada</option>
+            <option value="SALIDA">Salida</option>
           </select>
 
           <select
             value={status}
-            onChange={(event) =>
-              setStatus(
-                event.target.value,
-              )
-            }
+            onChange={(event) => setStatus(event.target.value)}
           >
-            <option value="TODOS">
-              Todos los estados
-            </option>
+            <option value="TODOS">Todos los estados</option>
 
-            {INSTITUTIONAL_CORRESPONDENCE_STATUSES.map(
-              (item) => (
-                <option
-                  key={item}
-                  value={item}
-                >
-                  {institutionalStatusLabel(
-                    item,
-                  )}
-                </option>
-              ),
-            )}
+            {INSTITUTIONAL_CORRESPONDENCE_STATUSES.map((item) => (
+              <option key={item} value={item}>
+                {institutionalStatusLabel(item)}
+              </option>
+            ))}
           </select>
 
-          <span>
-            {filtered.length}{' '}
-            registro(s)
-          </span>
+          <span>{filtered.length} registro(s)</span>
         </div>
       </Card>
 
@@ -2627,80 +1519,47 @@ export function InstitutionalCorrespondenceList() {
             </thead>
 
             <tbody>
-              {filtered.map(
-                (item) => (
-                  <tr key={item.id}>
-                    <td>
-                      <Link
-                        to={`/correspondencia/${item.id}`}
-                      >
-                        <strong>
-                          {item.subject}
-                        </strong>
-                      </Link>
+              {filtered.map((item) => (
+                <tr key={item.id}>
+                  <td>
+                    <Link to={`/correspondencia/${item.id}`}>
+                      <strong>{item.subject}</strong>
+                    </Link>
 
-                      <small>
-                        {item.referenceNumber ||
-                          item.code}
-                      </small>
-                    </td>
+                    <small>{item.referenceNumber || item.code}</small>
+                  </td>
 
-                    <td>
-                      <Badge
-                        tone={
-                          item.direction ===
-                          'ENTRADA'
-                            ? 'blue'
-                            : 'green'
-                        }
-                      >
-                        {item.direction}
-                      </Badge>
-                    </td>
+                  <td>
+                    <Badge
+                      tone={item.direction === 'ENTRADA' ? 'blue' : 'green'}
+                    >
+                      {item.direction}
+                    </Badge>
+                  </td>
 
-                    <td>
-                      {item.sender || '-'}
-                    </td>
+                  <td>{item.sender || '-'}</td>
 
-                    <td>
-                      {item.recipient || '-'}
-                    </td>
+                  <td>{item.recipient || '-'}</td>
 
-                    <td>
-                      {item.responsible
-                        ?.name || '-'}
-                    </td>
+                  <td>{item.responsible?.name || '-'}</td>
 
-                    <td>
-                      {item.dueDate
-                        ? new Date(
-                            item.dueDate,
-                          ).toLocaleDateString()
-                        : '-'}
-                    </td>
+                  <td>
+                    {item.dueDate
+                      ? new Date(item.dueDate).toLocaleDateString()
+                      : '-'}
+                  </td>
 
-                    <td>
-                      <Badge
-                        tone={institutionalStatusTone(
-                          item.status,
-                        )}
-                      >
-                        {institutionalStatusLabel(
-                          item.status,
-                        )}
-                      </Badge>
-                    </td>
+                  <td>
+                    <Badge tone={institutionalStatusTone(item.status)}>
+                      {institutionalStatusLabel(item.status)}
+                    </Badge>
+                  </td>
 
-                    <td>
-                      <Link
-                        to={`/correspondencia/${item.id}`}
-                      >
-                        Ver
-                      </Link>
-                    </td>
-                  </tr>
-                ),
-              )}
+                  <td>
+                    <Link to={`/correspondencia/${item.id}`}>Ver</Link>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         ) : (
@@ -2711,63 +1570,46 @@ export function InstitutionalCorrespondenceList() {
   );
 }
 
-
 /* =========================================================
    NUEVA CORRESPONDENCIA INSTITUCIONAL
 ========================================================= */
 
 export function NewInstitutionalCorrespondence() {
-  const nav =
-    useNavigate();
+  const nav = useNavigate();
 
-  const { user } =
-    useAuth();
+  const { user } = useAuth();
 
-  const roles =
-    user?.roles || [];
+  const roles = user?.roles || [];
 
-  const isAdmin =
-    roles.includes('ADMIN');
+  const isAdmin = roles.includes('ADMIN');
 
-  const currentUserId =
-    (user as any)?.id ||
-    (user as any)?.sub ||
-    '';
+  const currentUserId = (user as any)?.id || (user as any)?.sub || '';
 
-  const [users, setUsers] =
-    useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
 
-  const [files, setFiles] =
-    useState<File[]>([]);
+  const [files, setFiles] = useState<File[]>([]);
 
-  const [saving, setSaving] =
-    useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const [form, setForm] =
-    useState({
-      direction: 'ENTRADA',
-      referenceNumber: '',
-      documentType: 'Oficio',
-      subject: '',
-      description: '',
-      sender: '',
-      recipient: '',
-      receivedDate: '',
-      issuedDate: '',
-      dueDate: '',
-      responsibleId:
-        isAdmin
-          ? ''
-          : currentUserId,
-    });
+  const [form, setForm] = useState({
+    direction: 'ENTRADA',
+    referenceNumber: '',
+    documentType: 'Oficio',
+    subject: '',
+    description: '',
+    sender: '',
+    recipient: '',
+    receivedDate: '',
+    issuedDate: '',
+    dueDate: '',
+    responsibleId: isAdmin ? '' : currentUserId,
+  });
 
   useEffect(() => {
     if (!isAdmin) {
       setForm((current) => ({
         ...current,
-        responsibleId:
-          current.responsibleId ||
-          currentUserId,
+        responsibleId: current.responsibleId || currentUserId,
       }));
 
       return;
@@ -2777,28 +1619,15 @@ export function NewInstitutionalCorrespondence() {
       .get('/users')
       .then((response) => {
         setUsers(
-          response.data.filter(
-            (item: any) =>
-              item.active &&
-              !item.deletedAt,
-          ),
+          response.data.filter((item: any) => item.active && !item.deletedAt),
         );
       })
       .catch((error) => {
-        console.error(
-          'Error cargando responsables:',
-          error,
-        );
+        console.error('Error cargando responsables:', error);
       });
-  }, [
-    isAdmin,
-    currentUserId,
-  ]);
+  }, [isAdmin, currentUserId]);
 
-  const submit = async (
-    event:
-      React.FormEvent<HTMLFormElement>,
-  ) => {
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     try {
@@ -2806,75 +1635,49 @@ export function NewInstitutionalCorrespondence() {
 
       const payload = {
         ...form,
-        responsibleId:
-          form.responsibleId ||
-          null,
+        responsibleId: form.responsibleId || null,
         receivedDate:
-          form.direction ===
-            'ENTRADA' &&
-          form.receivedDate
+          form.direction === 'ENTRADA' && form.receivedDate
             ? form.receivedDate
             : null,
         issuedDate:
-          form.direction ===
-            'SALIDA' &&
-          form.issuedDate
+          form.direction === 'SALIDA' && form.issuedDate
             ? form.issuedDate
             : null,
-        dueDate:
-          form.dueDate || null,
+        dueDate: form.dueDate || null,
       };
 
-      const response =
-        await api.post(
-          '/institutional-correspondence',
-          payload,
-        );
+      const response = await api.post(
+        '/institutional-correspondence',
+        payload,
+      );
 
-      const created =
-        response.data;
+      const created = response.data;
 
-      if (
-        files.length &&
-        created?.id
-      ) {
-        for (
-          const selectedFile
-          of files
-        ) {
-          const upload =
-            new FormData();
+      if (files.length && created?.id) {
+        for (const selectedFile of files) {
+          const upload = new FormData();
 
-          upload.append(
-            'file',
-            selectedFile,
-          );
+          upload.append('file', selectedFile);
 
           await api.post(
             `/institutional-correspondence/${created.id}/attachments`,
             upload,
             {
               headers: {
-                'Content-Type':
-                  'multipart/form-data',
+                'Content-Type': 'multipart/form-data',
               },
             },
           );
         }
       }
 
-      nav(
-        `/correspondencia/${created.id}`,
-      );
+      nav(`/correspondencia/${created.id}`);
     } catch (error: any) {
-      console.error(
-        'Error creando correspondencia institucional:',
-        error,
-      );
+      console.error('Error creando correspondencia institucional:', error);
 
       alert(
-        error?.response?.data
-          ?.message ||
+        error?.response?.data?.message ||
           'No se pudo registrar la correspondencia.',
       );
     } finally {
@@ -2882,14 +1685,9 @@ export function NewInstitutionalCorrespondence() {
     }
   };
 
-  const removeSelectedFile = (
-    index: number,
-  ) => {
+  const removeSelectedFile = (index: number) => {
     setFiles((current) =>
-      current.filter(
-        (_file, fileIndex) =>
-          fileIndex !== index,
-      ),
+      current.filter((_file, fileIndex) => fileIndex !== index),
     );
   };
 
@@ -2897,101 +1695,60 @@ export function NewInstitutionalCorrespondence() {
     <>
       <div className="titlebar">
         <div>
-          <h1>
-            Nueva correspondencia
-          </h1>
+          <h1>Nueva correspondencia</h1>
 
           <p>
-            Registra una comunicación institucional de entrada o salida y adjunta los documentos relacionados.
+            Registra una comunicación institucional de entrada o salida y
+            adjunta los documentos relacionados.
           </p>
         </div>
 
         <button
           type="button"
           className="btn secondary"
-          onClick={() =>
-            nav('/correspondencia')
-          }
+          onClick={() => nav('/correspondencia')}
         >
           ← Volver
         </button>
       </div>
 
       <Card>
-        <form
-          className="form"
-          onSubmit={submit}
-        >
+        <form className="form" onSubmit={submit}>
           <label>
             Dirección
             <select
-              value={
-                form.direction
-              }
+              value={form.direction}
               onChange={(event) =>
-                setForm({
-                  ...form,
-                  direction:
-                    event.target
-                      .value,
-                })
+                setForm({ ...form, direction: event.target.value })
               }
             >
-              <option value="ENTRADA">
-                Entrada
-              </option>
-              <option value="SALIDA">
-                Salida
-              </option>
+              <option value="ENTRADA">Entrada</option>
+              <option value="SALIDA">Salida</option>
             </select>
           </label>
 
           <label>
             Tipo de documento
             <select
-              value={
-                form.documentType
-              }
+              value={form.documentType}
               onChange={(event) =>
-                setForm({
-                  ...form,
-                  documentType:
-                    event.target
-                      .value,
-                })
+                setForm({ ...form, documentType: event.target.value })
               }
             >
-              <option value="Oficio">
-                Oficio
-              </option>
-              <option value="Memorando">
-                Memorando
-              </option>
-              <option value="Circular">
-                Circular
-              </option>
-              <option value="Nota">
-                Nota
-              </option>
-              <option value="Otro">
-                Otro
-              </option>
+              <option value="Oficio">Oficio</option>
+              <option value="Memorando">Memorando</option>
+              <option value="Circular">Circular</option>
+              <option value="Nota">Nota</option>
+              <option value="Otro">Otro</option>
             </select>
           </label>
 
           <label>
             Número / referencia
             <input
-              value={
-                form.referenceNumber
-              }
+              value={form.referenceNumber}
               onChange={(event) =>
-                setForm({
-                  ...form,
-                  referenceNumber:
-                    event.target
-                      .value,
-                })
+                setForm({ ...form, referenceNumber: event.target.value })
               }
               placeholder="Ej. CTSJ-OF-123-2026"
             />
@@ -3001,45 +1758,26 @@ export function NewInstitutionalCorrespondence() {
             Responsable
             {isAdmin ? (
               <select
-                value={
-                  form.responsibleId
-                }
+                value={form.responsibleId}
                 onChange={(event) =>
-                  setForm({
-                    ...form,
-                    responsibleId:
-                      event.target
-                        .value,
-                  })
+                  setForm({ ...form, responsibleId: event.target.value })
                 }
               >
-                <option value="">
-                  Sin asignar
-                </option>
+                <option value="">Sin asignar</option>
 
-                {users.map(
-                  (item) => (
-                    <option
-                      key={item.id}
-                      value={item.id}
-                    >
-                      {item.name}
-                    </option>
-                  ),
-                )}
+                {users.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
               </select>
             ) : (
               <>
-                <input
-                  value={
-                    user?.name ||
-                    'Usuario actual'
-                  }
-                  disabled
-                />
+                <input value={user?.name || 'Usuario actual'} disabled />
 
                 <small>
-                  La correspondencia quedará asignada inicialmente a su usuario.
+                  La correspondencia quedará asignada inicialmente a su
+                  usuario.
                 </small>
               </>
             )}
@@ -3049,16 +1787,9 @@ export function NewInstitutionalCorrespondence() {
             Asunto
             <input
               required
-              value={
-                form.subject
-              }
+              value={form.subject}
               onChange={(event) =>
-                setForm({
-                  ...form,
-                  subject:
-                    event.target
-                      .value,
-                })
+                setForm({ ...form, subject: event.target.value })
               }
             />
           </label>
@@ -3067,16 +1798,9 @@ export function NewInstitutionalCorrespondence() {
             Remitente
             <input
               required
-              value={
-                form.sender
-              }
+              value={form.sender}
               onChange={(event) =>
-                setForm({
-                  ...form,
-                  sender:
-                    event.target
-                      .value,
-                })
+                setForm({ ...form, sender: event.target.value })
               }
               placeholder="Persona, oficina o institución"
             />
@@ -3086,37 +1810,22 @@ export function NewInstitutionalCorrespondence() {
             Destinatario
             <input
               required
-              value={
-                form.recipient
-              }
+              value={form.recipient}
               onChange={(event) =>
-                setForm({
-                  ...form,
-                  recipient:
-                    event.target
-                      .value,
-                })
+                setForm({ ...form, recipient: event.target.value })
               }
               placeholder="Persona, oficina o institución"
             />
           </label>
 
-          {form.direction ===
-            'ENTRADA' ? (
+          {form.direction === 'ENTRADA' ? (
             <label>
               Fecha de recepción
               <input
                 type="date"
-                value={
-                  form.receivedDate
-                }
+                value={form.receivedDate}
                 onChange={(event) =>
-                  setForm({
-                    ...form,
-                    receivedDate:
-                      event.target
-                        .value,
-                  })
+                  setForm({ ...form, receivedDate: event.target.value })
                 }
               />
             </label>
@@ -3125,16 +1834,9 @@ export function NewInstitutionalCorrespondence() {
               Fecha de emisión / envío
               <input
                 type="date"
-                value={
-                  form.issuedDate
-                }
+                value={form.issuedDate}
                 onChange={(event) =>
-                  setForm({
-                    ...form,
-                    issuedDate:
-                      event.target
-                        .value,
-                  })
+                  setForm({ ...form, issuedDate: event.target.value })
                 }
               />
             </label>
@@ -3144,16 +1846,9 @@ export function NewInstitutionalCorrespondence() {
             Fecha límite de atención
             <input
               type="date"
-              value={
-                form.dueDate
-              }
+              value={form.dueDate}
               onChange={(event) =>
-                setForm({
-                  ...form,
-                  dueDate:
-                    event.target
-                      .value,
-                })
+                setForm({ ...form, dueDate: event.target.value })
               }
             />
           </label>
@@ -3161,16 +1856,9 @@ export function NewInstitutionalCorrespondence() {
           <label className="full">
             Descripción / observaciones
             <textarea
-              value={
-                form.description
-              }
+              value={form.description}
               onChange={(event) =>
-                setForm({
-                  ...form,
-                  description:
-                    event.target
-                      .value,
-                })
+                setForm({ ...form, description: event.target.value })
               }
             />
           </label>
@@ -3178,20 +1866,16 @@ export function NewInstitutionalCorrespondence() {
           <div className="full correspondence-create-attachments">
             <div className="correspondence-create-attachments-header">
               <div>
-                <strong>
-                  Archivos adjuntos
-                </strong>
+                <strong>Archivos adjuntos</strong>
 
                 <p>
-                  Puedes seleccionar uno o varios archivos. No hay restricción de extensión.
+                  Puedes seleccionar uno o varios archivos. No hay restricción
+                  de extensión.
                 </p>
               </div>
 
               {files.length > 0 && (
-                <Badge tone="blue">
-                  {files.length}{' '}
-                  seleccionado(s)
-                </Badge>
+                <Badge tone="blue">{files.length} seleccionado(s)</Badge>
               )}
             </div>
 
@@ -3199,52 +1883,32 @@ export function NewInstitutionalCorrespondence() {
               type="file"
               multiple
               onChange={(event) =>
-                setFiles(
-                  Array.from(
-                    event.target
-                      .files || [],
-                  ),
-                )
+                setFiles(Array.from(event.target.files || []))
               }
             />
 
             {files.length > 0 && (
               <div className="correspondence-create-file-list">
-                {files.map(
-                  (
-                    selectedFile,
-                    index,
-                  ) => (
-                    <div
-                      className="correspondence-create-file-item"
-                      key={`${selectedFile.name}-${selectedFile.size}-${index}`}
-                    >
-                      <div>
-                        <strong>
-                          {selectedFile.name}
-                        </strong>
+                {files.map((selectedFile, index) => (
+                  <div
+                    className="correspondence-create-file-item"
+                    key={`${selectedFile.name}-${selectedFile.size}-${index}`}
+                  >
+                    <div>
+                      <strong>{selectedFile.name}</strong>
 
-                        <small>
-                          {formatFileSize(
-                            selectedFile.size,
-                          )}
-                        </small>
-                      </div>
-
-                      <button
-                        type="button"
-                        className="procedure-remove-step"
-                        onClick={() =>
-                          removeSelectedFile(
-                            index,
-                          )
-                        }
-                      >
-                        Quitar
-                      </button>
+                      <small>{formatFileSize(selectedFile.size)}</small>
                     </div>
-                  ),
-                )}
+
+                    <button
+                      type="button"
+                      className="procedure-remove-step"
+                      onClick={() => removeSelectedFile(index)}
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -3253,24 +1917,14 @@ export function NewInstitutionalCorrespondence() {
             <button
               type="button"
               className="btn secondary"
-              onClick={() =>
-                nav(
-                  '/correspondencia',
-                )
-              }
+              onClick={() => nav('/correspondencia')}
               disabled={saving}
             >
               Cancelar
             </button>
 
-            <button
-              className="btn"
-              type="submit"
-              disabled={saving}
-            >
-              {saving
-                ? 'Registrando...'
-                : 'Registrar correspondencia'}
+            <button className="btn" type="submit" disabled={saving}>
+              {saving ? 'Registrando...' : 'Registrar correspondencia'}
             </button>
           </div>
         </form>
@@ -3279,108 +1933,56 @@ export function NewInstitutionalCorrespondence() {
   );
 }
 
-
 /* =========================================================
    DETALLE DE CORRESPONDENCIA INSTITUCIONAL
 ========================================================= */
 
 export function InstitutionalCorrespondenceDetail() {
-  const { id } =
-    useParams();
+  const { id } = useParams();
 
-  const nav =
-    useNavigate();
+  const nav = useNavigate();
 
-  const { user } =
-    useAuth();
+  const { user } = useAuth();
 
-  const roles =
-    user?.roles || [];
+  const roles = user?.roles || [];
 
-  const isAdmin =
-    roles.includes('ADMIN');
+  const isAdmin = roles.includes('ADMIN');
 
-  const [item, setItem] =
-    useState<any>();
-
-  const [users, setUsers] =
-    useState<any[]>([]);
-
-  const [files, setFiles] =
-    useState<File[]>([]);
-
-  const [uploading, setUploading] =
-    useState(false);
-
-  const [saving, setSaving] =
-    useState(false);
-
-  const [downloadingId, setDownloadingId] =
-    useState<string | null>(
-      null,
-    );
-
-  const [downloadingAll, setDownloadingAll] =
-    useState(false);
-
-  const [status, setStatus] =
-    useState('');
-
-  const [responsibleId, setResponsibleId] =
-    useState('');
-
-  const [responseReference, setResponseReference] =
-    useState('');
-
-  const [responseDate, setResponseDate] =
-    useState('');
-
-  const [responseSummary, setResponseSummary] =
-    useState('');
+  const [item, setItem] = useState<any>();
+  const [users, setUsers] = useState<any[]>([]);
+  const [files, setFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [downloadingAll, setDownloadingAll] = useState(false);
+  const [status, setStatus] = useState('');
+  const [responsibleId, setResponsibleId] = useState('');
+  const [responseReference, setResponseReference] = useState('');
+  const [responseDate, setResponseDate] = useState('');
+  const [responseSummary, setResponseSummary] = useState('');
 
   const load = () =>
     api
-      .get(
-        `/institutional-correspondence/${id}`,
-      )
+      .get(`/institutional-correspondence/${id}`)
       .then((response) => {
-        const value =
-          response.data;
+        const value = response.data;
 
         setItem(value);
 
-        setStatus(
-          value.status || 'RECIBIDA',
-        );
+        setStatus(value.status || 'RECIBIDA');
 
-        setResponsibleId(
-          value.responsible
-            ?.id || '',
-        );
+        setResponsibleId(value.responsible?.id || '');
 
-        setResponseReference(
-          value.responseReference ||
-            '',
-        );
+        setResponseReference(value.responseReference || '');
 
         setResponseDate(
-          value.responseDate
-            ? String(
-                value.responseDate,
-              ).slice(0, 10)
-            : '',
+          value.responseDate ? String(value.responseDate).slice(0, 10) : '',
         );
 
-        setResponseSummary(
-          value.responseSummary ||
-            '',
-        );
+        setResponseSummary(value.responseSummary || '');
       })
       .catch((error) => {
-        console.error(
-          'Error cargando correspondencia institucional:',
-          error,
-        );
+        console.error('Error cargando correspondencia institucional:', error);
       });
 
   useEffect(() => {
@@ -3396,272 +1998,163 @@ export function InstitutionalCorrespondenceDetail() {
       .get('/users')
       .then((response) => {
         setUsers(
-          response.data.filter(
-            (entry: any) =>
-              entry.active &&
-              !entry.deletedAt,
-          ),
+          response.data.filter((entry: any) => entry.active && !entry.deletedAt),
         );
       })
       .catch((error) => {
-        console.error(
-          'Error cargando responsables:',
-          error,
-        );
+        console.error('Error cargando responsables:', error);
       });
   }, [isAdmin]);
 
   if (!item) {
-    return (
-      <Empty text="Cargando correspondencia..." />
-    );
+    return <Empty text="Cargando correspondencia..." />;
   }
 
-  const attachments =
-    Array.isArray(
-      item.attachments,
-    )
-      ? [...item.attachments].sort(
-          (a: any, b: any) =>
-            new Date(
-              b.createdAt,
-            ).getTime() -
-            new Date(
-              a.createdAt,
-            ).getTime(),
-        )
-      : [];
+  const attachments = Array.isArray(item.attachments)
+    ? [...item.attachments].sort(
+        (a: any, b: any) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
+    : [];
 
-  const saveTracking =
-    async () => {
-      try {
-        setSaving(true);
+  const saveTracking = async () => {
+    try {
+      setSaving(true);
 
-        const payload: any = {
-          status,
-          responseReference:
-            responseReference.trim() ||
-            null,
-          responseDate:
-            responseDate || null,
-          responseSummary:
-            responseSummary.trim() ||
-            null,
-        };
+      const payload: any = {
+        status,
+        responseReference: responseReference.trim() || null,
+        responseDate: responseDate || null,
+        responseSummary: responseSummary.trim() || null,
+      };
 
-        if (isAdmin) {
-          payload.responsibleId =
-            responsibleId ||
-            null;
-        }
-
-        await api.patch(
-          `/institutional-correspondence/${id}`,
-          payload,
-        );
-
-        await load();
-      } catch (error: any) {
-        console.error(
-          'Error actualizando seguimiento:',
-          error,
-        );
-
-        alert(
-          error?.response?.data
-            ?.message ||
-            'No se pudo actualizar la correspondencia.',
-        );
-      } finally {
-        setSaving(false);
-      }
-    };
-
-  const uploadAttachments =
-    async (
-      event:
-        React.FormEvent<HTMLFormElement>,
-    ) => {
-      event.preventDefault();
-
-      if (!files.length) {
-        alert(
-          'Seleccione al menos un archivo.',
-        );
-        return;
+      if (isAdmin) {
+        payload.responsibleId = responsibleId || null;
       }
 
-      try {
-        setUploading(true);
+      await api.patch(`/institutional-correspondence/${id}`, payload);
 
-        for (
-          const selectedFile
-          of files
-        ) {
-          const form =
-            new FormData();
+      await load();
+    } catch (error: any) {
+      console.error('Error actualizando seguimiento:', error);
 
-          form.append(
-            'file',
-            selectedFile,
-          );
+      alert(
+        error?.response?.data?.message ||
+          'No se pudo actualizar la correspondencia.',
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
 
-          await api.post(
-            `/institutional-correspondence/${id}/attachments`,
-            form,
-            {
-              headers: {
-                'Content-Type':
-                  'multipart/form-data',
-              },
-            },
-          );
-        }
+  const uploadAttachments = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
 
-        setFiles([]);
+    if (!files.length) {
+      alert('Seleccione al menos un archivo.');
+      return;
+    }
 
-        const input =
-          document.getElementById(
-            'institutional-correspondence-attachment-input',
-          ) as HTMLInputElement | null;
+    try {
+      setUploading(true);
 
-        if (input) {
-          input.value = '';
-        }
+      for (const selectedFile of files) {
+        const form = new FormData();
 
-        await load();
-      } catch (error) {
-        console.error(
-          'Error adjuntando archivos:',
-          error,
-        );
+        form.append('file', selectedFile);
 
-        alert(
-          'No se pudieron adjuntar todos los archivos.',
-        );
-      } finally {
-        setUploading(false);
+        await api.post(`/institutional-correspondence/${id}/attachments`, form, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
       }
-    };
 
-  const downloadAttachment =
-    async (
-      attachment: any,
-    ) => {
-      try {
-        setDownloadingId(
-          attachment.id,
-        );
+      setFiles([]);
 
-        const response =
-          await api.get(
-            `/institutional-correspondence/${id}/attachments/${attachment.id}/download`,
-            {
-              responseType:
-                'blob',
-            },
-          );
+      const input = document.getElementById(
+        'institutional-correspondence-attachment-input',
+      ) as HTMLInputElement | null;
 
-        const url =
-          URL.createObjectURL(
-            response.data,
-          );
-
-        const anchor =
-          document.createElement(
-            'a',
-          );
-
-        anchor.href = url;
-
-        anchor.download =
-          attachment.originalName ||
-          'archivo';
-
-        document.body
-          .appendChild(
-            anchor,
-          );
-
-        anchor.click();
-        anchor.remove();
-
-        URL.revokeObjectURL(
-          url,
-        );
-      } catch (error) {
-        console.error(
-          'Error descargando adjunto:',
-          error,
-        );
-
-        alert(
-          'No se pudo descargar el archivo.',
-        );
-      } finally {
-        setDownloadingId(
-          null,
-        );
+      if (input) {
+        input.value = '';
       }
-    };
 
-  const downloadAllAttachments =
-    async () => {
-      try {
-        setDownloadingAll(
-          true,
-        );
+      await load();
+    } catch (error) {
+      console.error('Error adjuntando archivos:', error);
 
-        const response =
-          await api.get(
-            `/institutional-correspondence/${id}/attachments/download-all`,
-            {
-              responseType:
-                'blob',
-            },
-          );
+      alert('No se pudieron adjuntar todos los archivos.');
+    } finally {
+      setUploading(false);
+    }
+  };
 
-        const url =
-          URL.createObjectURL(
-            response.data,
-          );
+  const downloadAttachment = async (attachment: any) => {
+    try {
+      setDownloadingId(attachment.id);
 
-        const anchor =
-          document.createElement(
-            'a',
-          );
+      const response = await api.get(
+        `/institutional-correspondence/${id}/attachments/${attachment.id}/download`,
+        { responseType: 'blob' },
+      );
 
-        anchor.href = url;
+      const url = URL.createObjectURL(response.data);
 
-        anchor.download =
-          `${item.code || 'correspondencia'}-adjuntos.zip`;
+      const anchor = document.createElement('a');
 
-        document.body
-          .appendChild(
-            anchor,
-          );
+      anchor.href = url;
 
-        anchor.click();
-        anchor.remove();
+      anchor.download = attachment.originalName || 'archivo';
 
-        URL.revokeObjectURL(
-          url,
-        );
-      } catch (error) {
-        console.error(
-          'Error descargando ZIP:',
-          error,
-        );
+      document.body.appendChild(anchor);
 
-        alert(
-          'No se pudieron descargar todos los archivos.',
-        );
-      } finally {
-        setDownloadingAll(
-          false,
-        );
-      }
-    };
+      anchor.click();
+      anchor.remove();
+
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error descargando adjunto:', error);
+
+      alert('No se pudo descargar el archivo.');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const downloadAllAttachments = async () => {
+    try {
+      setDownloadingAll(true);
+
+      const response = await api.get(
+        `/institutional-correspondence/${id}/attachments/download-all`,
+        { responseType: 'blob' },
+      );
+
+      const url = URL.createObjectURL(response.data);
+
+      const anchor = document.createElement('a');
+
+      anchor.href = url;
+
+      anchor.download = `${item.code || 'correspondencia'}-adjuntos.zip`;
+
+      document.body.appendChild(anchor);
+
+      anchor.click();
+      anchor.remove();
+
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error descargando ZIP:', error);
+
+      alert('No se pudieron descargar todos los archivos.');
+    } finally {
+      setDownloadingAll(false);
+    }
+  };
 
   return (
     <>
@@ -3670,45 +2163,27 @@ export function InstitutionalCorrespondenceDetail() {
           <button
             type="button"
             className="btn secondary correspondence-back-button"
-            onClick={() =>
-              nav(
-                '/correspondencia',
-              )
-            }
+            onClick={() => nav('/correspondencia')}
           >
             ← Volver
           </button>
 
-          <small className="procedure-code">
-            {item.code}
-          </small>
+          <small className="procedure-code">{item.code}</small>
 
-          <h1>
-            {item.subject}
-          </h1>
+          <h1>{item.subject}</h1>
 
-          <p>
-            {item.referenceNumber ||
-              'Sin número de referencia'}
-          </p>
+          <p>{item.referenceNumber || 'Sin número de referencia'}</p>
         </div>
 
         <div className="correspondence-detail-actions">
-          {attachments.length >
-            0 && (
+          {attachments.length > 0 && (
             <button
               type="button"
               className="btn secondary"
-              disabled={
-                downloadingAll
-              }
-              onClick={() =>
-                void downloadAllAttachments()
-              }
+              disabled={downloadingAll}
+              onClick={() => void downloadAllAttachments()}
             >
-              {downloadingAll
-                ? 'Preparando ZIP...'
-                : 'Descargar todos (.zip)'}
+              {downloadingAll ? 'Preparando ZIP...' : 'Descargar todos (.zip)'}
             </button>
           )}
         </div>
@@ -3716,111 +2191,70 @@ export function InstitutionalCorrespondenceDetail() {
 
       <div className="grid2">
         <Card>
-          <h2>
-            Información del documento
-          </h2>
+          <h2>Información del documento</h2>
 
           <p>
             <b>Dirección:</b>{' '}
-            <Badge
-              tone={
-                item.direction ===
-                'ENTRADA'
-                  ? 'blue'
-                  : 'green'
-              }
-            >
+            <Badge tone={item.direction === 'ENTRADA' ? 'blue' : 'green'}>
               {item.direction}
             </Badge>
           </p>
 
           <p>
-            <b>Tipo:</b>{' '}
-            {item.documentType ||
-              '-'}
+            <b>Tipo:</b> {item.documentType || '-'}
           </p>
 
           <p>
-            <b>Remitente:</b>{' '}
-            {item.sender || '-'}
+            <b>Remitente:</b> {item.sender || '-'}
           </p>
 
           <p>
-            <b>Destinatario:</b>{' '}
-            {item.recipient || '-'}
+            <b>Destinatario:</b> {item.recipient || '-'}
           </p>
 
           <p>
             <b>Fecha de recepción:</b>{' '}
             {item.receivedDate
-              ? new Date(
-                  item.receivedDate,
-                ).toLocaleDateString()
+              ? new Date(item.receivedDate).toLocaleDateString()
               : '-'}
           </p>
 
           <p>
             <b>Fecha de emisión:</b>{' '}
             {item.issuedDate
-              ? new Date(
-                  item.issuedDate,
-                ).toLocaleDateString()
+              ? new Date(item.issuedDate).toLocaleDateString()
               : '-'}
           </p>
 
           <p>
             <b>Fecha límite:</b>{' '}
-            {item.dueDate
-              ? new Date(
-                  item.dueDate,
-                ).toLocaleDateString()
-              : '-'}
+            {item.dueDate ? new Date(item.dueDate).toLocaleDateString() : '-'}
           </p>
 
           <p>
-            <b>Registrado por:</b>{' '}
-            {item.createdBy
-              ?.name || '-'}
+            <b>Registrado por:</b> {item.createdBy?.name || '-'}
           </p>
 
-          <h3>
-            Descripción / observaciones
-          </h3>
+          <h3>Descripción / observaciones</h3>
 
-          <p>
-            {item.description ||
-              'Sin observaciones.'}
-          </p>
+          <p>{item.description || 'Sin observaciones.'}</p>
         </Card>
 
         <Card>
-          <h2>
-            Seguimiento
-          </h2>
+          <h2>Seguimiento</h2>
 
           <div className="form">
             <label>
               Estado
               <select
                 value={status}
-                onChange={(event) =>
-                  setStatus(
-                    event.target.value,
-                  )
-                }
+                onChange={(event) => setStatus(event.target.value)}
               >
-                {INSTITUTIONAL_CORRESPONDENCE_STATUSES.map(
-                  (value) => (
-                    <option
-                      key={value}
-                      value={value}
-                    >
-                      {institutionalStatusLabel(
-                        value,
-                      )}
-                    </option>
-                  ),
-                )}
+                {INSTITUTIONAL_CORRESPONDENCE_STATUSES.map((value) => (
+                  <option key={value} value={value}>
+                    {institutionalStatusLabel(value)}
+                  </option>
+                ))}
               </select>
             </label>
 
@@ -3828,38 +2262,21 @@ export function InstitutionalCorrespondenceDetail() {
               Responsable
               {isAdmin ? (
                 <select
-                  value={
-                    responsibleId
-                  }
-                  onChange={(event) =>
-                    setResponsibleId(
-                      event.target.value,
-                    )
-                  }
+                  value={responsibleId}
+                  onChange={(event) => setResponsibleId(event.target.value)}
                 >
-                  <option value="">
-                    Sin asignar
-                  </option>
+                  <option value="">Sin asignar</option>
 
-                  {users.map(
-                    (entry) => (
-                      <option
-                        key={entry.id}
-                        value={entry.id}
-                      >
-                        {entry.name}
-                      </option>
-                    ),
-                  )}
+                  {users.map((entry) => (
+                    <option key={entry.id} value={entry.id}>
+                      {entry.name}
+                    </option>
+                  ))}
                 </select>
               ) : (
                 <input
                   disabled
-                  value={
-                    item.responsible
-                      ?.name ||
-                    'Sin asignar'
-                  }
+                  value={item.responsible?.name || 'Sin asignar'}
                 />
               )}
             </label>
@@ -3867,15 +2284,8 @@ export function InstitutionalCorrespondenceDetail() {
             <label>
               Oficio / referencia de respuesta
               <input
-                value={
-                  responseReference
-                }
-                onChange={(event) =>
-                  setResponseReference(
-                    event.target
-                      .value,
-                  )
-                }
+                value={responseReference}
+                onChange={(event) => setResponseReference(event.target.value)}
                 placeholder="Ej. CTSJ-OF-200-2026"
               />
             </label>
@@ -3884,30 +2294,16 @@ export function InstitutionalCorrespondenceDetail() {
               Fecha de respuesta
               <input
                 type="date"
-                value={
-                  responseDate
-                }
-                onChange={(event) =>
-                  setResponseDate(
-                    event.target
-                      .value,
-                  )
-                }
+                value={responseDate}
+                onChange={(event) => setResponseDate(event.target.value)}
               />
             </label>
 
             <label className="full">
               Respuesta / solución
               <textarea
-                value={
-                  responseSummary
-                }
-                onChange={(event) =>
-                  setResponseSummary(
-                    event.target
-                      .value,
-                  )
-                }
+                value={responseSummary}
+                onChange={(event) => setResponseSummary(event.target.value)}
                 placeholder="Describa cómo se atendió o respondió la correspondencia..."
               />
             </label>
@@ -3917,13 +2313,9 @@ export function InstitutionalCorrespondenceDetail() {
                 type="button"
                 className="btn"
                 disabled={saving}
-                onClick={() =>
-                  void saveTracking()
-                }
+                onClick={() => void saveTracking()}
               >
-                {saving
-                  ? 'Guardando...'
-                  : 'Guardar seguimiento'}
+                {saving ? 'Guardando...' : 'Guardar seguimiento'}
               </button>
             </div>
           </div>
@@ -3933,26 +2325,17 @@ export function InstitutionalCorrespondenceDetail() {
       <Card>
         <div className="correspondence-attachments-header">
           <div>
-            <h2>
-              Archivos adjuntos
-            </h2>
+            <h2>Archivos adjuntos</h2>
 
-            <p>
-              Documentos asociados a esta correspondencia institucional.
-            </p>
+            <p>Documentos asociados a esta correspondencia institucional.</p>
           </div>
 
-          <Badge tone="blue">
-            {attachments.length}{' '}
-            archivo(s)
-          </Badge>
+          <Badge tone="blue">{attachments.length} archivo(s)</Badge>
         </div>
 
         <form
           className="correspondence-upload-form correspondence-upload-form-multiple"
-          onSubmit={
-            uploadAttachments
-          }
+          onSubmit={uploadAttachments}
         >
           <label>
             Seleccionar archivos
@@ -3961,12 +2344,7 @@ export function InstitutionalCorrespondenceDetail() {
               type="file"
               multiple
               onChange={(event) =>
-                setFiles(
-                  Array.from(
-                    event.target
-                      .files || [],
-                  ),
-                )
+                setFiles(Array.from(event.target.files || []))
               }
             />
           </label>
@@ -3974,105 +2352,67 @@ export function InstitutionalCorrespondenceDetail() {
           <div className="correspondence-multiple-summary">
             {files.length ? (
               <>
-                <strong>
-                  {files.length}{' '}
-                  archivo(s) seleccionado(s)
-                </strong>
+                <strong>{files.length} archivo(s) seleccionado(s)</strong>
 
                 <small>
                   Tamaño total:{' '}
                   {formatFileSize(
                     files.reduce(
-                      (
-                        total,
-                        selectedFile,
-                      ) =>
-                        total +
-                        selectedFile.size,
+                      (total, selectedFile) => total + selectedFile.size,
                       0,
                     ),
                   )}
                 </small>
               </>
             ) : (
-              <small>
-                Aún no has seleccionado archivos.
-              </small>
+              <small>Aún no has seleccionado archivos.</small>
             )}
           </div>
 
           <button
             type="submit"
             className="btn"
-            disabled={
-              uploading ||
-              !files.length
-            }
+            disabled={uploading || !files.length}
           >
-            {uploading
-              ? 'Adjuntando...'
-              : 'Adjuntar archivos'}
+            {uploading ? 'Adjuntando...' : 'Adjuntar archivos'}
           </button>
         </form>
 
         {attachments.length ? (
           <div className="correspondence-attachment-list">
-            {attachments.map(
-              (attachment: any) => (
-                <div
-                  className="correspondence-attachment-item"
-                  key={
-                    attachment.id
-                  }
-                >
-                  <div className="correspondence-attachment-info">
-                    <strong>
-                      {attachment.originalName}
-                    </strong>
+            {attachments.map((attachment: any) => (
+              <div
+                className="correspondence-attachment-item"
+                key={attachment.id}
+              >
+                <div className="correspondence-attachment-info">
+                  <strong>{attachment.originalName}</strong>
 
-                    <div>
-                      <span>
-                        {formatFileSize(
-                          attachment.size,
-                        )}
-                      </span>
+                  <div>
+                    <span>{formatFileSize(attachment.size)}</span>
 
-                      <span>
-                        {attachment.mimeType ||
-                          'Tipo desconocido'}
-                      </span>
+                    <span>{attachment.mimeType || 'Tipo desconocido'}</span>
 
-                      <span>
-                        {attachment.createdAt
-                          ? new Date(
-                              attachment.createdAt,
-                            ).toLocaleString()
-                          : '-'}
-                      </span>
-                    </div>
+                    <span>
+                      {attachment.createdAt
+                        ? new Date(attachment.createdAt).toLocaleString()
+                        : '-'}
+                    </span>
                   </div>
-
-                  <button
-                    type="button"
-                    className="btn secondary"
-                    disabled={
-                      downloadingId ===
-                      attachment.id
-                    }
-                    onClick={() =>
-                      void downloadAttachment(
-                        attachment,
-                      )
-                    }
-                  >
-                    {downloadingId ===
-                    attachment.id
-                      ? 'Descargando...'
-                      : 'Descargar'}
-                  </button>
                 </div>
-              ),
-            )}
+
+                <button
+                  type="button"
+                  className="btn secondary"
+                  disabled={downloadingId === attachment.id}
+                  onClick={() => void downloadAttachment(attachment)}
+                >
+                  {downloadingId === attachment.id
+                    ? 'Descargando...'
+                    : 'Descargar'}
+                </button>
+              </div>
+            ))}
           </div>
         ) : (
           <Empty text="Esta correspondencia todavía no tiene archivos adjuntos." />
@@ -4082,151 +2422,71 @@ export function InstitutionalCorrespondenceDetail() {
   );
 }
 
-
-
 /* =========================================================
-
    COMPONENTE TABLA SIMPLE
-
-\========================================================= */
-
-
+========================================================= */
 
 type ColumnDefinition = {
-
   k: string;
-
   l: string;
-
   render?: (x: any) => React.ReactNode;
-
 };
 
-
-
 function SimpleTable({
-
   endpoint,
-
   columns,
-
 }: {
-
   endpoint: string;
-
   columns: ColumnDefinition[];
-
 }) {
-
   const [d, setD] = useState<any[]>([]);
 
-
-
   useEffect(() => {
-
     api
-
       .get(endpoint)
-
       .then((r) => setD(r.data))
-
       .catch((error) => {
-
-        console.error(
-
-          `Error cargando ${endpoint}:`,
-
-          error
-
-        );
-
+        console.error(`Error cargando ${endpoint}:`, error);
       });
-
   }, [endpoint]);
 
-
-
   return (
-
     <Card>
-
       <table>
-
         <thead>
-
           <tr>
-
             {columns.map((c) => (
-
               <th key={c.k}>{c.l}</th>
-
             ))}
-
           </tr>
-
         </thead>
 
-
-
         <tbody>
-
           {d.map((x, i) => (
-
             <tr key={x.id || i}>
-
               {columns.map((c) => (
-
-                <td key={c.k}>
-
-                  {c.render
-
-                    ? c.render(x)
-
-                    : String(x[c.k] ?? '')}
-
-                </td>
-
+                <td key={c.k}>{c.render ? c.render(x) : String(x[c.k] ?? '')}</td>
               ))}
-
             </tr>
-
           ))}
-
         </tbody>
-
       </table>
-
     </Card>
-
   );
-
 }
-
-
-
-
 
 /* =========================================================
    REPOSITORIO
 ========================================================= */
 
-function formatFileSize(
-  value?: number | string | null,
-) {
-  if (
-    value === null ||
-    value === undefined
-  ) {
+function formatFileSize(value?: number | string | null) {
+  if (value === null || value === undefined) {
     return '-';
   }
 
-  const bytes =
-    Number(value);
+  const bytes = Number(value);
 
-  if (
-    Number.isNaN(bytes) ||
-    bytes <= 0
-  ) {
+  if (Number.isNaN(bytes) || bytes <= 0) {
     return '-';
   }
 
@@ -4234,70 +2494,48 @@ function formatFileSize(
     return `${bytes} B`;
   }
 
-  if (
-    bytes <
-    1024 * 1024
-  ) {
-    return `${(
-      bytes / 1024
-    ).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
   }
 
-  return `${(
-    bytes /
-    (1024 * 1024)
-  ).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export function Repository() {
-  const { user } =
-    useAuth();
+  const { user } = useAuth();
 
-  const [data, setData] =
-    useState<any[]>([]);
+  const folderNav = useFolderNav();
 
-  const [search, setSearch] =
-    useState('');
+  const [data, setData] = useState<any[]>([]);
 
-  const [showForm, setShowForm] =
-    useState(false);
+  const [search, setSearch] = useState('');
 
-  const [saving, setSaving] =
-    useState(false);
+  const [showForm, setShowForm] = useState(false);
 
-  const [file, setFile] =
-    useState<File | null>(
-      null,
-    );
+  const [saving, setSaving] = useState(false);
 
-  const [f, setF] =
-    useState({
-      name: '',
-      type: 'Otro',
-      category: 'Otros',
-      description: '',
-      version: '1.0',
-      status: 'ACTIVO',
-    });
+  const [file, setFile] = useState<File | null>(null);
 
-  const roles =
-    user?.roles || [];
+  const [f, setF] = useState({
+    name: '',
+    type: 'Otro',
+    category: 'Otros',
+    description: '',
+    version: '1.0',
+    status: 'ACTIVO',
+    folderId: '',
+  });
 
-  const canManage =
-    roles.includes('ADMIN') ||
-    roles.includes('EDITOR');
+  const roles = user?.roles || [];
+
+  const canManage = roles.includes('ADMIN') || roles.includes('EDITOR');
 
   const load = () => {
     return api
       .get('/repository')
-      .then((r) =>
-        setData(r.data),
-      )
+      .then((r) => setData(r.data))
       .catch((error) => {
-        console.error(
-          'Error cargando repositorio:',
-          error,
-        );
+        console.error('Error cargando repositorio:', error);
       });
   };
 
@@ -4305,17 +2543,14 @@ export function Repository() {
     void load();
   }, []);
 
-  const filtered =
-    data.filter((x) => {
-      const q =
-        search
-          .trim()
-          .toLowerCase();
+  /*
+   * Con texto de búsqueda se busca en todo el repositorio.
+   * Sin texto, solo se muestran los documentos de la carpeta actual.
+   */
+  const searchText = search.trim().toLowerCase();
 
-      if (!q) {
-        return true;
-      }
-
+  const filtered = data.filter((x) => {
+    if (searchText) {
       return [
         x.name,
         x.type,
@@ -4323,12 +2558,16 @@ export function Repository() {
         x.description,
         x.originalName,
         x.responsible?.name,
+        folderNav.pathLabel(x.folder?.id),
       ].some((value) =>
         String(value ?? '')
           .toLowerCase()
-          .includes(q),
+          .includes(searchText),
       );
-    });
+    }
+
+    return folderNav.currentId ? x.folder?.id === folderNav.currentId : false;
+  });
 
   const resetForm = () => {
     setF({
@@ -4338,143 +2577,80 @@ export function Repository() {
       description: '',
       version: '1.0',
       status: 'ACTIVO',
+      folderId: '',
     });
 
     setFile(null);
     setShowForm(false);
   };
 
-  const upload = async (
-    e: React.FormEvent,
-  ) => {
+  const upload = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!file) {
-      alert(
-        'Seleccione un archivo para subir.',
-      );
+      alert('Seleccione un archivo para subir.');
       return;
     }
 
     try {
       setSaving(true);
 
-      const form =
-        new FormData();
+      const form = new FormData();
 
-      form.append(
-        'file',
-        file,
-      );
+      form.append('file', file);
+      form.append('name', f.name.trim());
+      form.append('type', f.type.trim());
+      form.append('category', f.category.trim());
+      form.append('description', f.description.trim());
+      form.append('version', f.version.trim());
+      form.append('status', f.status);
+      form.append('folderId', f.folderId || folderNav.currentId || '');
 
-      form.append(
-        'name',
-        f.name.trim(),
-      );
-
-      form.append(
-        'type',
-        f.type.trim(),
-      );
-
-      form.append(
-        'category',
-        f.category.trim(),
-      );
-
-      form.append(
-        'description',
-        f.description.trim(),
-      );
-
-      form.append(
-        'version',
-        f.version.trim(),
-      );
-
-      form.append(
-        'status',
-        f.status,
-      );
-
-      await api.post(
-        '/repository/upload',
-        form,
-        {
-          headers: {
-            'Content-Type':
-              'multipart/form-data',
-          },
+      await api.post('/repository/upload', form, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
         },
-      );
+      });
 
       await load();
 
+      await folderNav.reload();
+
       resetForm();
     } catch (error) {
-      console.error(
-        'Error subiendo documento:',
-        error,
-      );
+      console.error('Error subiendo documento:', error);
 
-      alert(
-        'No se pudo subir el archivo.',
-      );
+      alert('No se pudo subir el archivo.');
     } finally {
       setSaving(false);
     }
   };
 
-  const download = async (
-    item: any,
-  ) => {
+  const download = async (item: any) => {
     try {
-      const response =
-        await api.get(
-          `/repository/${item.id}/download`,
-          {
-            responseType:
-              'blob',
-          },
-        );
+      const response = await api.get(`/repository/${item.id}/download`, {
+        responseType: 'blob',
+      });
 
-      const url =
-        URL.createObjectURL(
-          response.data,
-        );
+      const url = URL.createObjectURL(response.data);
 
-      const anchor =
-        document.createElement(
-          'a',
-        );
+      const anchor = document.createElement('a');
 
       anchor.href = url;
 
-      anchor.download =
-        item.originalName ||
-        item.name;
+      anchor.download = item.originalName || item.name;
 
-      document.body
-        .appendChild(
-          anchor,
-        );
+      document.body.appendChild(anchor);
 
       anchor.click();
 
       anchor.remove();
 
-      URL.revokeObjectURL(
-        url,
-      );
+      URL.revokeObjectURL(url);
     } catch (error) {
-      console.error(
-        'Error descargando archivo:',
-        error,
-      );
+      console.error('Error descargando archivo:', error);
 
-      alert(
-        'No se pudo descargar el archivo.',
-      );
+      alert('No se pudo descargar el archivo.');
     }
   };
 
@@ -4482,12 +2658,11 @@ export function Repository() {
     <>
       <div className="titlebar">
         <div>
-          <h1>
-            Repositorio documental
-          </h1>
+          <h1>Repositorio documental</h1>
 
           <p>
-            Documentos institucionales de consulta del Campus Tecnológico de San José.
+            Documentos institucionales de consulta del Campus Tecnológico de
+            San José.
           </p>
         </div>
 
@@ -4495,44 +2670,26 @@ export function Repository() {
           <button
             type="button"
             className="btn"
-            onClick={() =>
-              setShowForm(
-                (value) =>
-                  !value,
-              )
-            }
+            onClick={() => setShowForm((value) => !value)}
           >
-            {showForm
-              ? 'Cerrar formulario'
-              : '+ Nuevo documento'}
+            {showForm ? 'Cerrar formulario' : '+ Nuevo documento'}
           </button>
         )}
       </div>
 
-      {canManage &&
-        showForm && (
-        <Card>
-          <h2>
-            Subir documento
-          </h2>
+      <FolderBar nav={folderNav} kind="documents" />
 
-          <form
-            className="form"
-            onSubmit={upload}
-          >
+      {canManage && showForm && (
+        <Card>
+          <h2>Subir documento</h2>
+
+          <form className="form" onSubmit={upload}>
             <label>
               Nombre del documento
               <input
                 required
                 value={f.name}
-                onChange={(e) =>
-                  setF({
-                    ...f,
-                    name:
-                      e.target
-                        .value,
-                  })
-                }
+                onChange={(e) => setF({ ...f, name: e.target.value })}
               />
             </label>
 
@@ -4541,14 +2698,7 @@ export function Repository() {
               <input
                 required
                 value={f.type}
-                onChange={(e) =>
-                  setF({
-                    ...f,
-                    type:
-                      e.target
-                        .value,
-                  })
-                }
+                onChange={(e) => setF({ ...f, type: e.target.value })}
                 placeholder="Reglamento, acta, guía..."
               />
             </label>
@@ -4557,62 +2707,38 @@ export function Repository() {
               Categoría
               <input
                 required
-                value={
-                  f.category
-                }
-                onChange={(e) =>
-                  setF({
-                    ...f,
-                    category:
-                      e.target
-                        .value,
-                  })
-                }
+                value={f.category}
+                onChange={(e) => setF({ ...f, category: e.target.value })}
               />
             </label>
 
             <label>
               Versión
               <input
-                value={
-                  f.version
-                }
-                onChange={(e) =>
-                  setF({
-                    ...f,
-                    version:
-                      e.target
-                        .value,
-                  })
-                }
+                value={f.version}
+                onChange={(e) => setF({ ...f, version: e.target.value })}
               />
             </label>
 
             <label>
               Estado
               <select
-                value={
-                  f.status
-                }
-                onChange={(e) =>
-                  setF({
-                    ...f,
-                    status:
-                      e.target
-                        .value,
-                  })
-                }
+                value={f.status}
+                onChange={(e) => setF({ ...f, status: e.target.value })}
               >
-                <option value="ACTIVO">
-                  Activo
-                </option>
-                <option value="EN_REVISION">
-                  En revisión
-                </option>
-                <option value="INACTIVO">
-                  Inactivo
-                </option>
+                <option value="ACTIVO">Activo</option>
+                <option value="EN_REVISION">En revisión</option>
+                <option value="INACTIVO">Inactivo</option>
               </select>
+            </label>
+
+            <label>
+              Carpeta institucional
+              <FolderSelect
+                required
+                value={f.folderId || folderNav.currentId || ''}
+                onChange={(value) => setF({ ...f, folderId: value })}
+              />
             </label>
 
             <label>
@@ -4620,52 +2746,27 @@ export function Repository() {
               <input
                 required
                 type="file"
-                onChange={(e) =>
-                  setFile(
-                    e.target
-                      .files?.[0] ||
-                      null,
-                  )
-                }
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
               />
 
-              <small>
-                Se permite cualquier tipo de archivo.
-              </small>
+              <small>Se permite cualquier tipo de archivo.</small>
             </label>
 
             <label className="full">
               Descripción
               <textarea
-                value={
-                  f.description
-                }
-                onChange={(e) =>
-                  setF({
-                    ...f,
-                    description:
-                      e.target
-                        .value,
-                  })
-                }
+                value={f.description}
+                onChange={(e) => setF({ ...f, description: e.target.value })}
               />
             </label>
 
             {file && (
               <div className="repository-selected-file full">
-                <b>
-                  Archivo seleccionado:
-                </b>
+                <b>Archivo seleccionado:</b>
 
-                <span>
-                  {file.name}
-                </span>
+                <span>{file.name}</span>
 
-                <small>
-                  {formatFileSize(
-                    file.size,
-                  )}
-                </small>
+                <small>{formatFileSize(file.size)}</small>
               </div>
             )}
 
@@ -4673,23 +2774,13 @@ export function Repository() {
               <button
                 type="button"
                 className="btn secondary"
-                onClick={
-                  resetForm
-                }
+                onClick={resetForm}
               >
                 Cancelar
               </button>
 
-              <button
-                type="submit"
-                className="btn"
-                disabled={
-                  saving
-                }
-              >
-                {saving
-                  ? 'Subiendo...'
-                  : 'Subir documento'}
+              <button type="submit" className="btn" disabled={saving}>
+                {saving ? 'Subiendo...' : 'Subir documento'}
               </button>
             </div>
           </form>
@@ -4701,18 +2792,11 @@ export function Repository() {
           <input
             type="search"
             value={search}
-            onChange={(e) =>
-              setSearch(
-                e.target.value,
-              )
-            }
-            placeholder="Buscar por nombre, tipo, categoría o archivo..."
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por nombre, tipo, categoría, carpeta o archivo..."
           />
 
-          <span>
-            {filtered.length}{' '}
-            documento(s)
-          </span>
+          <span>{filtered.length} documento(s)</span>
         </div>
       </Card>
 
@@ -4722,12 +2806,11 @@ export function Repository() {
             <thead>
               <tr>
                 <th>Documento</th>
+                <th>Carpeta</th>
                 <th>Tipo</th>
                 <th>Categoría</th>
                 <th>Versión</th>
-                <th>
-                  Responsable
-                </th>
+                <th>Responsable</th>
                 <th>Archivo</th>
                 <th>Tamaño</th>
                 <th>Estado</th>
@@ -4736,96 +2819,72 @@ export function Repository() {
             </thead>
 
             <tbody>
-              {filtered.map(
-                (x) => (
-                  <tr key={x.id}>
-                    <td>
-                      <strong>
-                        {x.name}
-                      </strong>
+              {filtered.map((x) => (
+                <tr key={x.id}>
+                  <td>
+                    <strong>{x.name}</strong>
 
-                      <small>
-                        {x.description ||
-                          'Sin descripción'}
-                      </small>
-                    </td>
+                    <small>{x.description || 'Sin descripción'}</small>
+                  </td>
 
-                    <td>
-                      {x.type}
-                    </td>
+                  <td>{folderNav.pathLabel(x.folder?.id) || '-'}</td>
 
-                    <td>
-                      {x.category}
-                    </td>
+                  <td>{x.type}</td>
 
-                    <td>
-                      {x.version ||
-                        '-'}
-                    </td>
+                  <td>{x.category}</td>
 
-                    <td>
-                      {x.responsible
-                        ?.name ||
-                        '-'}
-                    </td>
+                  <td>{x.version || '-'}</td>
 
-                    <td>
-                      {x.originalName ||
-                        'Sin archivo'}
-                    </td>
+                  <td>{x.responsible?.name || '-'}</td>
 
-                    <td>
-                      {formatFileSize(
-                        x.size,
-                      )}
-                    </td>
+                  <td>{x.originalName || 'Sin archivo'}</td>
 
-                    <td>
-                      <Badge
-                        tone={
-                          x.status ===
-                          'ACTIVO'
-                            ? 'green'
-                            : x.status ===
-                              'INACTIVO'
-                            ? 'red'
-                            : 'blue'
-                        }
+                  <td>{formatFileSize(x.size)}</td>
+
+                  <td>
+                    <Badge
+                      tone={
+                        x.status === 'ACTIVO'
+                          ? 'green'
+                          : x.status === 'INACTIVO'
+                          ? 'red'
+                          : 'blue'
+                      }
+                    >
+                      {x.status}
+                    </Badge>
+                  </td>
+
+                  <td>
+                    {x.storedName ? (
+                      <button
+                        type="button"
+                        className="btn secondary"
+                        onClick={() => download(x)}
                       >
-                        {x.status}
-                      </Badge>
-                    </td>
-
-                    <td>
-                      {x.storedName ? (
-                        <button
-                          type="button"
-                          className="btn secondary"
-                          onClick={() =>
-                            download(x)
-                          }
-                        >
-                          Descargar
-                        </button>
-                      ) : (
-                        <span>
-                          No disponible
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ),
-              )}
+                        Descargar
+                      </button>
+                    ) : (
+                      <span>No disponible</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         ) : (
-          <Empty text="No se encontraron documentos." />
+          <Empty
+            text={
+              searchText || folderNav.currentId
+                ? 'No se encontraron documentos.'
+                : 'Seleccione una carpeta para ver sus documentos, o use el buscador.'
+            }
+          />
         )}
       </Card>
     </>
   );
 }
-
 
 /* =========================================================
    PROCEDIMIENTOS
@@ -4845,6 +2904,7 @@ type ProcedureFormState = {
   category: string;
   status: string;
   responsibleArea: string;
+  folderId: string;
   validFrom: string;
   validUntil: string;
   normative: string;
@@ -4863,6 +2923,7 @@ function emptyProcedureForm(): ProcedureFormState {
     category: 'Administrativo',
     status: 'ACTIVO',
     responsibleArea: '',
+    folderId: '',
     validFrom: '',
     validUntil: '',
     normative: '',
@@ -4890,226 +2951,166 @@ function splitLines(value: string) {
 function parseLinks(value: string) {
   return splitLines(value)
     .map((line) => {
-      const parts =
-        line.split('|');
+      const parts = line.split('|');
 
       return {
-        label:
-          (parts[0] || '').trim(),
-        url:
-          (parts[1] || '').trim(),
+        label: (parts[0] || '').trim(),
+        url: (parts[1] || '').trim(),
       };
     })
-    .filter(
-      (x) => x.label && x.url,
-    );
+    .filter((x) => x.label && x.url);
 }
 
 function parseLabels(value: string) {
-  return splitLines(value).map(
-    (label) => ({
-      label,
-    }),
-  );
+  return splitLines(value).map((label) => ({
+    label,
+  }));
 }
 
-function procedurePayload(
-  f: ProcedureFormState,
-) {
+function procedurePayload(f: ProcedureFormState) {
   return {
     code: f.code.trim(),
     name: f.name.trim(),
-    description:
-      f.description.trim(),
-    category:
-      f.category.trim(),
+    description: f.description.trim(),
+    category: f.category.trim(),
     status: f.status,
-    responsibleArea:
-      f.responsibleArea.trim(),
-    validFrom:
-      f.validFrom || null,
-    validUntil:
-      f.validUntil || null,
-    normative:
-      f.normative.trim() || null,
-    requirements:
-      splitLines(
-        f.requirements,
-      ),
-    steps:
-      f.steps
-        .map(
-          (
-            step,
-            index,
-          ) => ({
-            ...step,
-            stepOrder: index + 1,
-            title:
-              step.title.trim(),
-            description:
-              step.description.trim(),
-          }),
-        )
-        .filter(
-          (step) =>
-            step.title ||
-            step.description,
-        ),
-    links:
-      parseLinks(f.links),
-    relatedForms:
-      f.relatedFormIds.map(
-        (formId) => ({
-          formId,
-        }),
-      ),
-    relatedDocuments:
-      f.relatedDocumentIds.map(
-        (documentId) => ({
-          documentId,
-        }),
-      ),
+    responsibleArea: f.responsibleArea.trim(),
+    folderId: f.folderId || null,
+    validFrom: f.validFrom || null,
+    validUntil: f.validUntil || null,
+    normative: f.normative.trim() || null,
+    requirements: splitLines(f.requirements),
+    steps: f.steps
+      .map((step, index) => ({
+        ...step,
+        stepOrder: index + 1,
+        title: step.title.trim(),
+        description: step.description.trim(),
+      }))
+      .filter((step) => step.title || step.description),
+    links: parseLinks(f.links),
+    relatedForms: f.relatedFormIds.map((formId) => ({
+      formId,
+    })),
+    relatedDocuments: f.relatedDocumentIds.map((documentId) => ({
+      documentId,
+    })),
   };
 }
 
 export function Procedures() {
   const { user } = useAuth();
 
-  const [data, setData] =
-    useState<any[]>([]);
+  const folderNav = useFolderNav();
 
-  const [search, setSearch] =
-    useState('');
+  const [data, setData] = useState<any[]>([]);
 
-  const [category, setCategory] =
-    useState('TODAS');
+  const [search, setSearch] = useState('');
 
-  const [status, setStatus] =
-    useState('TODOS');
+  const [category, setCategory] = useState('TODAS');
 
-  const [area, setArea] =
-    useState('TODAS');
+  const [status, setStatus] = useState('TODOS');
+
+  const [area, setArea] = useState('TODAS');
 
   useEffect(() => {
     api
       .get('/procedures')
       .then((r) => setData(r.data))
       .catch((error) => {
-        console.error(
-          'Error cargando procedimientos:',
-          error,
-        );
+        console.error('Error cargando procedimientos:', error);
       });
   }, []);
 
-  const canManage =
-    canManageProcedures(user);
+  const canManage = canManageProcedures(user);
 
   const categories = Array.from(
-    new Set(
-      data
-        .map((x) => x.category)
-        .filter(Boolean),
-    ),
+    new Set(data.map((x) => x.category).filter(Boolean)),
   ).sort();
 
   const areas = Array.from(
-    new Set(
-      data
-        .map((x) => x.responsibleArea)
-        .filter(Boolean),
-    ),
+    new Set(data.map((x) => x.responsibleArea).filter(Boolean)),
   ).sort();
 
-  const filtered =
-    data.filter((x) => {
-      const q =
-        search
-          .trim()
-          .toLowerCase();
+  /*
+   * Con texto de búsqueda se busca en todos los procedimientos.
+   * Sin texto, solo se muestran los de la carpeta actual.
+   */
+  const searchText = search.trim().toLowerCase();
 
-      const matchesText =
-        !q ||
-        [
-          x.code,
-          x.name,
-          x.description,
-          x.category,
-          x.responsibleArea,
-        ].some((value) =>
-          String(value ?? '')
-            .toLowerCase()
-            .includes(q),
-        );
-
-      return (
-        matchesText &&
-        (
-          category === 'TODAS' ||
-          x.category === category
-        ) &&
-        (
-          status === 'TODOS' ||
-          x.status === status
-        ) &&
-        (
-          area === 'TODAS' ||
-          x.responsibleArea === area
-        )
+  const filtered = data.filter((x) => {
+    const matchesText =
+      !searchText ||
+      [
+        x.code,
+        x.name,
+        x.description,
+        x.category,
+        x.responsibleArea,
+        folderNav.pathLabel(x.folder?.id),
+      ].some((value) =>
+        String(value ?? '')
+          .toLowerCase()
+          .includes(searchText),
       );
-    });
+
+    const inFolder = searchText
+      ? true
+      : folderNav.currentId
+      ? x.folder?.id === folderNav.currentId
+      : false;
+
+    return (
+      matchesText &&
+      inFolder &&
+      (category === 'TODAS' || x.category === category) &&
+      (status === 'TODOS' || x.status === status) &&
+      (area === 'TODAS' || x.responsibleArea === area)
+    );
+  });
 
   return (
     <>
       <div className="titlebar">
         <div>
-          <h1>
-            Procedimientos institucionales
-          </h1>
+          <h1>Procedimientos institucionales</h1>
 
           <p>
-            Consulta y gestiona los procedimientos del Campus Tecnológico de San José.
+            Consulta y gestiona los procedimientos del Campus Tecnológico de
+            San José.
           </p>
         </div>
 
         {canManage && (
           <Link
             className="btn"
-            to="/procedimientos/nuevo"
+            to={`/procedimientos/nuevo${
+              folderNav.currentId ? `?carpeta=${folderNav.currentId}` : ''
+            }`}
           >
             + Nuevo procedimiento
           </Link>
         )}
       </div>
 
+      <FolderBar nav={folderNav} kind="procedures" />
+
       <div className="procedure-stats">
         <Card>
           <b>Total</b>
-          <strong>
-            {data.length}
-          </strong>
-          <span>
-            Procedimientos registrados
-          </span>
+          <strong>{data.length}</strong>
+          <span>Procedimientos registrados</span>
         </Card>
 
         <Card>
           <b>Activos</b>
           <strong>
             {
-              data.filter(
-                (x) =>
-                  String(
-                    x.status,
-                  ).toUpperCase() ===
-                  'ACTIVO',
-              ).length
+              data.filter((x) => String(x.status).toUpperCase() === 'ACTIVO')
+                .length
             }
           </strong>
-          <span>
-            Disponibles para consulta
-          </span>
+          <span>Disponibles para consulta</span>
         </Card>
 
         <Card>
@@ -5117,17 +3118,11 @@ export function Procedures() {
           <strong>
             {
               data.filter(
-                (x) =>
-                  String(
-                    x.status,
-                  ).toUpperCase() ===
-                  'EN_REVISION',
+                (x) => String(x.status).toUpperCase() === 'EN_REVISION',
               ).length
             }
           </strong>
-          <span>
-            Pendientes de actualización
-          </span>
+          <span>Pendientes de actualización</span>
         </Card>
       </div>
 
@@ -5138,12 +3133,8 @@ export function Procedures() {
             <input
               type="search"
               value={search}
-              onChange={(e) =>
-                setSearch(
-                  e.target.value,
-                )
-              }
-              placeholder="Nombre, código o descripción"
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Nombre, código, carpeta o descripción"
             />
           </label>
 
@@ -5151,78 +3142,38 @@ export function Procedures() {
             Categoría
             <select
               value={category}
-              onChange={(e) =>
-                setCategory(
-                  e.target.value,
-                )
-              }
+              onChange={(e) => setCategory(e.target.value)}
             >
-              <option value="TODAS">
-                Todas
-              </option>
+              <option value="TODAS">Todas</option>
 
-              {categories.map(
-                (item) => (
-                  <option
-                    key={item}
-                    value={item}
-                  >
-                    {item}
-                  </option>
-                ),
-              )}
+              {categories.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
             </select>
           </label>
 
           <label>
             Estado
-            <select
-              value={status}
-              onChange={(e) =>
-                setStatus(
-                  e.target.value,
-                )
-              }
-            >
-              <option value="TODOS">
-                Todos
-              </option>
-              <option value="ACTIVO">
-                Activo
-              </option>
-              <option value="EN_REVISION">
-                En revisión
-              </option>
-              <option value="INACTIVO">
-                Inactivo
-              </option>
+            <select value={status} onChange={(e) => setStatus(e.target.value)}>
+              <option value="TODOS">Todos</option>
+              <option value="ACTIVO">Activo</option>
+              <option value="EN_REVISION">En revisión</option>
+              <option value="INACTIVO">Inactivo</option>
             </select>
           </label>
 
           <label>
             Área responsable
-            <select
-              value={area}
-              onChange={(e) =>
-                setArea(
-                  e.target.value,
-                )
-              }
-            >
-              <option value="TODAS">
-                Todas
-              </option>
+            <select value={area} onChange={(e) => setArea(e.target.value)}>
+              <option value="TODAS">Todas</option>
 
-              {areas.map(
-                (item) => (
-                  <option
-                    key={item}
-                    value={item}
-                  >
-                    {item}
-                  </option>
-                ),
-              )}
+              {areas.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
             </select>
           </label>
         </div>
@@ -5234,10 +3185,9 @@ export function Procedures() {
             <thead>
               <tr>
                 <th>Procedimiento</th>
+                <th>Carpeta</th>
                 <th>Categoría</th>
-                <th>
-                  Área responsable
-                </th>
+                <th>Área responsable</th>
                 <th>Estado</th>
                 <th>Vigencia</th>
                 <th>Actualizado</th>
@@ -5246,103 +3196,86 @@ export function Procedures() {
             </thead>
 
             <tbody>
-              {filtered.map(
-                (x) => (
-                  <tr key={x.id}>
-                    <td>
+              {filtered.map((x) => (
+                <tr key={x.id}>
+                  <td>
+                    <Link
+                      className="procedure-name-link"
+                      to={`/procedimientos/${x.id}`}
+                    >
+                      {x.name}
+                    </Link>
+
+                    <small>{x.code}</small>
+                  </td>
+
+                  <td>{folderNav.pathLabel(x.folder?.id) || '-'}</td>
+
+                  <td>{x.category}</td>
+
+                  <td>{x.responsibleArea}</td>
+
+                  <td>
+                    <Badge
+                      tone={
+                        String(x.status).toUpperCase() === 'ACTIVO'
+                          ? 'green'
+                          : String(x.status).toUpperCase() === 'INACTIVO'
+                          ? 'red'
+                          : 'blue'
+                      }
+                    >
+                      {String(x.status).replace('_', ' ')}
+                    </Badge>
+                  </td>
+
+                  <td>
+                    {x.validFrom
+                      ? new Date(x.validFrom).toLocaleDateString()
+                      : 'Sin fecha'}
+
+                    {x.validUntil
+                      ? ` - ${new Date(x.validUntil).toLocaleDateString()}`
+                      : ''}
+                  </td>
+
+                  <td>
+                    {x.updatedAt
+                      ? new Date(x.updatedAt).toLocaleDateString()
+                      : '-'}
+                  </td>
+
+                  <td>
+                    <div className="procedure-actions">
                       <Link
-                        className="procedure-name-link"
+                        className="btn secondary"
                         to={`/procedimientos/${x.id}`}
                       >
-                        {x.name}
+                        Ver
                       </Link>
 
-                      <small>
-                        {x.code}
-                      </small>
-                    </td>
-
-                    <td>
-                      {x.category}
-                    </td>
-
-                    <td>
-                      {x.responsibleArea}
-                    </td>
-
-                    <td>
-                      <Badge
-                        tone={
-                          String(
-                            x.status,
-                          ).toUpperCase() ===
-                          'ACTIVO'
-                            ? 'green'
-                            : String(
-                                x.status,
-                              ).toUpperCase() ===
-                              'INACTIVO'
-                            ? 'red'
-                            : 'blue'
-                        }
-                      >
-                        {String(
-                          x.status,
-                        ).replace(
-                          '_',
-                          ' ',
-                        )}
-                      </Badge>
-                    </td>
-
-                    <td>
-                      {x.validFrom
-                        ? new Date(
-                            x.validFrom,
-                          ).toLocaleDateString()
-                        : 'Sin fecha'}
-
-                      {x.validUntil
-                        ? ` - ${new Date(
-                            x.validUntil,
-                          ).toLocaleDateString()}`
-                        : ''}
-                    </td>
-
-                    <td>
-                      {x.updatedAt
-                        ? new Date(
-                            x.updatedAt,
-                          ).toLocaleDateString()
-                        : '-'}
-                    </td>
-
-                    <td>
-                      <div className="procedure-actions">
+                      {canManage && (
                         <Link
                           className="btn secondary"
-                          to={`/procedimientos/${x.id}`}
+                          to={`/procedimientos/${x.id}/editar`}
                         >
-                          Ver
+                          Editar
                         </Link>
-
-                        {canManage && (
-                          <Link
-                            className="btn secondary"
-                            to={`/procedimientos/${x.id}/editar`}
-                          >
-                            Editar
-                          </Link>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ),
-              )}
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         ) : (
-          <Empty text="No se encontraron procedimientos." />
+          <Empty
+            text={
+              searchText || folderNav.currentId
+                ? 'No se encontraron procedimientos.'
+                : 'Seleccione una carpeta para ver sus procedimientos, o use el buscador.'
+            }
+          />
         )}
       </Card>
     </>
@@ -5360,75 +3293,46 @@ function ProcedureForm({
   initial: ProcedureFormState;
   title: string;
   submitText: string;
-  onSubmit: (
-    form: ProcedureFormState,
-  ) => Promise<void>;
+  onSubmit: (form: ProcedureFormState) => Promise<void>;
   backPath?: string;
   backLabel?: string;
 }) {
-  const nav =
-    useNavigate();
+  const nav = useNavigate();
 
-  const [f, setF] =
-    useState(initial);
+  const [f, setF] = useState(initial);
 
-  const [saving, setSaving] =
-    useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const [repositoryDocuments, setRepositoryDocuments] =
-    useState<any[]>([]);
+  const [repositoryDocuments, setRepositoryDocuments] = useState<any[]>([]);
 
-  const [institutionalForms, setInstitutionalForms] =
-    useState<any[]>([]);
+  const [institutionalForms, setInstitutionalForms] = useState<any[]>([]);
 
   useEffect(() => {
-    Promise.all([
-      api.get('/repository'),
-      api.get('/forms'),
-    ])
+    Promise.all([api.get('/repository'), api.get('/forms')])
       .then(([documentsResponse, formsResponse]) => {
         setRepositoryDocuments(documentsResponse.data);
         setInstitutionalForms(formsResponse.data);
       })
       .catch((error) => {
-        console.error(
-          'Error cargando recursos relacionados:',
-          error,
-        );
+        console.error('Error cargando recursos relacionados:', error);
       });
   }, []);
 
-  const toggleDocument = (
-    documentId: string,
-  ) => {
+  const toggleDocument = (documentId: string) => {
     setF((current) => ({
       ...current,
-      relatedDocumentIds:
-        current.relatedDocumentIds.includes(documentId)
-          ? current.relatedDocumentIds.filter(
-              (id) => id !== documentId,
-            )
-          : [
-              ...current.relatedDocumentIds,
-              documentId,
-            ],
+      relatedDocumentIds: current.relatedDocumentIds.includes(documentId)
+        ? current.relatedDocumentIds.filter((id) => id !== documentId)
+        : [...current.relatedDocumentIds, documentId],
     }));
   };
 
-  const toggleForm = (
-    formId: string,
-  ) => {
+  const toggleForm = (formId: string) => {
     setF((current) => ({
       ...current,
-      relatedFormIds:
-        current.relatedFormIds.includes(formId)
-          ? current.relatedFormIds.filter(
-              (id) => id !== formId,
-            )
-          : [
-              ...current.relatedFormIds,
-              formId,
-            ],
+      relatedFormIds: current.relatedFormIds.includes(formId)
+        ? current.relatedFormIds.filter((id) => id !== formId)
+        : [...current.relatedFormIds, formId],
     }));
   };
 
@@ -5438,8 +3342,7 @@ function ProcedureForm({
       steps: [
         ...f.steps,
         {
-          stepOrder:
-            f.steps.length + 1,
+          stepOrder: f.steps.length + 1,
           title: '',
           description: '',
         },
@@ -5447,43 +3350,29 @@ function ProcedureForm({
     });
   };
 
-  const removeStep = (
-    index: number,
-  ) => {
+  const removeStep = (index: number) => {
     setF({
       ...f,
-      steps:
-        f.steps
-          .filter(
-            (_x, i) =>
-              i !== index,
-          )
-          .map(
-            (x, i) => ({
-              ...x,
-              stepOrder: i + 1,
-            }),
-          ),
+      steps: f.steps
+        .filter((_x, i) => i !== index)
+        .map((x, i) => ({
+          ...x,
+          stepOrder: i + 1,
+        })),
     });
   };
 
-  const submit = async (
-    e: React.FormEvent,
-  ) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
       setSaving(true);
+
       await onSubmit(f);
     } catch (error) {
-      console.error(
-        'Error guardando procedimiento:',
-        error,
-      );
+      console.error('Error guardando procedimiento:', error);
 
-      alert(
-        'No se pudo guardar el procedimiento.',
-      );
+      alert('No se pudo guardar el procedimiento.');
     } finally {
       setSaving(false);
     }
@@ -5494,30 +3383,22 @@ function ProcedureForm({
       <div className="titlebar">
         <div>
           <h1>{title}</h1>
-          <p>
-            Complete la información del procedimiento institucional.
-          </p>
+
+          <p>Complete la información del procedimiento institucional.</p>
         </div>
 
         <button
           className="btn secondary"
           type="button"
-          onClick={() =>
-            nav(backPath)
-          }
+          onClick={() => nav(backPath)}
         >
           {backLabel}
         </button>
       </div>
 
-      <form
-        className="procedure-form"
-        onSubmit={submit}
-      >
+      <form className="procedure-form" onSubmit={submit}>
         <Card>
-          <h2>
-            Información general
-          </h2>
+          <h2>Información general</h2>
 
           <div className="form">
             <label>
@@ -5525,13 +3406,7 @@ function ProcedureForm({
               <input
                 required
                 value={f.code}
-                onChange={(e) =>
-                  setF({
-                    ...f,
-                    code:
-                      e.target.value,
-                  })
-                }
+                onChange={(e) => setF({ ...f, code: e.target.value })}
                 placeholder="SG-PR-02"
               />
             </label>
@@ -5541,13 +3416,7 @@ function ProcedureForm({
               <input
                 required
                 value={f.name}
-                onChange={(e) =>
-                  setF({
-                    ...f,
-                    name:
-                      e.target.value,
-                  })
-                }
+                onChange={(e) => setF({ ...f, name: e.target.value })}
               />
             </label>
 
@@ -5556,13 +3425,7 @@ function ProcedureForm({
               <input
                 required
                 value={f.category}
-                onChange={(e) =>
-                  setF({
-                    ...f,
-                    category:
-                      e.target.value,
-                  })
-                }
+                onChange={(e) => setF({ ...f, category: e.target.value })}
               />
             </label>
 
@@ -5570,23 +3433,11 @@ function ProcedureForm({
               Estado
               <select
                 value={f.status}
-                onChange={(e) =>
-                  setF({
-                    ...f,
-                    status:
-                      e.target.value,
-                  })
-                }
+                onChange={(e) => setF({ ...f, status: e.target.value })}
               >
-                <option value="ACTIVO">
-                  Activo
-                </option>
-                <option value="EN_REVISION">
-                  En revisión
-                </option>
-                <option value="INACTIVO">
-                  Inactivo
-                </option>
+                <option value="ACTIVO">Activo</option>
+                <option value="EN_REVISION">En revisión</option>
+                <option value="INACTIVO">Inactivo</option>
               </select>
             </label>
 
@@ -5594,16 +3445,19 @@ function ProcedureForm({
               Área responsable
               <input
                 required
-                value={
-                  f.responsibleArea
-                }
+                value={f.responsibleArea}
                 onChange={(e) =>
-                  setF({
-                    ...f,
-                    responsibleArea:
-                      e.target.value,
-                  })
+                  setF({ ...f, responsibleArea: e.target.value })
                 }
+              />
+            </label>
+
+            <label className="full">
+              Carpeta institucional
+              <FolderSelect
+                required
+                value={f.folderId}
+                onChange={(value) => setF({ ...f, folderId: value })}
               />
             </label>
 
@@ -5612,13 +3466,7 @@ function ProcedureForm({
               <input
                 type="date"
                 value={f.validFrom}
-                onChange={(e) =>
-                  setF({
-                    ...f,
-                    validFrom:
-                      e.target.value,
-                  })
-                }
+                onChange={(e) => setF({ ...f, validFrom: e.target.value })}
               />
             </label>
 
@@ -5627,13 +3475,7 @@ function ProcedureForm({
               <input
                 type="date"
                 value={f.validUntil}
-                onChange={(e) =>
-                  setF({
-                    ...f,
-                    validUntil:
-                      e.target.value,
-                  })
-                }
+                onChange={(e) => setF({ ...f, validUntil: e.target.value })}
               />
             </label>
 
@@ -5641,16 +3483,8 @@ function ProcedureForm({
               Descripción
               <textarea
                 required
-                value={
-                  f.description
-                }
-                onChange={(e) =>
-                  setF({
-                    ...f,
-                    description:
-                      e.target.value,
-                  })
-                }
+                value={f.description}
+                onChange={(e) => setF({ ...f, description: e.target.value })}
               />
             </label>
 
@@ -5658,13 +3492,7 @@ function ProcedureForm({
               Normativa relacionada
               <textarea
                 value={f.normative}
-                onChange={(e) =>
-                  setF({
-                    ...f,
-                    normative:
-                      e.target.value,
-                  })
-                }
+                onChange={(e) => setF({ ...f, normative: e.target.value })}
               />
             </label>
 
@@ -5672,13 +3500,7 @@ function ProcedureForm({
               Requisitos
               <textarea
                 value={f.requirements}
-                onChange={(e) =>
-                  setF({
-                    ...f,
-                    requirements:
-                      e.target.value,
-                  })
-                }
+                onChange={(e) => setF({ ...f, requirements: e.target.value })}
                 placeholder="Un requisito por línea"
               />
             </label>
@@ -5688,124 +3510,83 @@ function ProcedureForm({
         <Card>
           <div className="procedure-section-header">
             <div>
-              <h2>
-                Paso a paso
-              </h2>
-              <p>
-                Agregue los pasos en el orden correcto.
-              </p>
+              <h2>Paso a paso</h2>
+
+              <p>Agregue los pasos en el orden correcto.</p>
             </div>
 
-            <button
-              className="btn secondary"
-              type="button"
-              onClick={addStep}
-            >
+            <button className="btn secondary" type="button" onClick={addStep}>
               + Agregar paso
             </button>
           </div>
 
           <div className="procedure-step-list">
-            {f.steps.map(
-              (
-                step,
-                index,
-              ) => (
-                <div
-                  className="procedure-step-editor"
-                  key={
-                    step.id ||
-                    index
-                  }
-                >
-                  <div className="procedure-step-number">
-                    {index + 1}
-                  </div>
+            {f.steps.map((step, index) => (
+              <div className="procedure-step-editor" key={step.id || index}>
+                <div className="procedure-step-number">{index + 1}</div>
 
-                  <div className="procedure-step-fields">
-                    <input
-                      value={
-                        step.title
-                      }
-                      placeholder="Título del paso"
-                      onChange={(e) => {
-                        const steps =
-                          [...f.steps];
+                <div className="procedure-step-fields">
+                  <input
+                    value={step.title}
+                    placeholder="Título del paso"
+                    onChange={(e) => {
+                      const steps = [...f.steps];
 
-                        steps[index] = {
-                          ...steps[index],
-                          title:
-                            e.target.value,
-                        };
+                      steps[index] = {
+                        ...steps[index],
+                        title: e.target.value,
+                      };
 
-                        setF({
-                          ...f,
-                          steps,
-                        });
-                      }}
-                    />
+                      setF({ ...f, steps });
+                    }}
+                  />
 
-                    <textarea
-                      value={
-                        step.description
-                      }
-                      placeholder="Descripción del paso"
-                      onChange={(e) => {
-                        const steps =
-                          [...f.steps];
+                  <textarea
+                    value={step.description}
+                    placeholder="Descripción del paso"
+                    onChange={(e) => {
+                      const steps = [...f.steps];
 
-                        steps[index] = {
-                          ...steps[index],
-                          description:
-                            e.target.value,
-                        };
+                      steps[index] = {
+                        ...steps[index],
+                        description: e.target.value,
+                      };
 
-                        setF({
-                          ...f,
-                          steps,
-                        });
-                      }}
-                    />
-                  </div>
-
-                  {f.steps.length >
-                    1 && (
-                    <button
-                      className="procedure-remove-step"
-                      type="button"
-                      onClick={() =>
-                        removeStep(
-                          index,
-                        )
-                      }
-                    >
-                      Eliminar
-                    </button>
-                  )}
+                      setF({ ...f, steps });
+                    }}
+                  />
                 </div>
-              ),
-            )}
+
+                {f.steps.length > 1 && (
+                  <button
+                    className="procedure-remove-step"
+                    type="button"
+                    onClick={() => removeStep(index)}
+                  >
+                    Eliminar
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
         </Card>
 
         <Card>
-          <h2>
-            Recursos relacionados
-          </h2>
+          <h2>Recursos relacionados</h2>
 
           <div className="procedure-resource-grid">
             <div className="procedure-resource-selector">
               <div className="procedure-resource-selector-header">
                 <div>
                   <h3>Documentos del repositorio</h3>
+
                   <p>
-                    Seleccione los documentos que forman parte de este procedimiento.
+                    Seleccione los documentos que forman parte de este
+                    procedimiento.
                   </p>
                 </div>
 
-                <Badge>
-                  {f.relatedDocumentIds.length} seleccionado(s)
-                </Badge>
+                <Badge>{f.relatedDocumentIds.length} seleccionado(s)</Badge>
               </div>
 
               {repositoryDocuments.length ? (
@@ -5818,13 +3599,12 @@ function ProcedureForm({
                       <input
                         type="checkbox"
                         checked={f.relatedDocumentIds.includes(document.id)}
-                        onChange={() =>
-                          toggleDocument(document.id)
-                        }
+                        onChange={() => toggleDocument(document.id)}
                       />
 
                       <span>
                         <strong>{document.name}</strong>
+
                         <small>
                           {document.originalName ||
                             document.type ||
@@ -5845,14 +3625,14 @@ function ProcedureForm({
               <div className="procedure-resource-selector-header">
                 <div>
                   <h3>Formularios institucionales</h3>
+
                   <p>
-                    Seleccione los formularios necesarios para completar el trámite.
+                    Seleccione los formularios necesarios para completar el
+                    trámite.
                   </p>
                 </div>
 
-                <Badge>
-                  {f.relatedFormIds.length} seleccionado(s)
-                </Badge>
+                <Badge>{f.relatedFormIds.length} seleccionado(s)</Badge>
               </div>
 
               {institutionalForms.length ? (
@@ -5865,17 +3645,14 @@ function ProcedureForm({
                       <input
                         type="checkbox"
                         checked={f.relatedFormIds.includes(form.id)}
-                        onChange={() =>
-                          toggleForm(form.id)
-                        }
+                        onChange={() => toggleForm(form.id)}
                       />
 
                       <span>
                         <strong>{form.name}</strong>
+
                         <small>
-                          {form.originalName ||
-                            form.format ||
-                            'Formulario'}
+                          {form.originalName || form.format || 'Formulario'}
                         </small>
                       </span>
                     </label>
@@ -5894,13 +3671,7 @@ function ProcedureForm({
               Enlaces externos
               <textarea
                 value={f.links}
-                onChange={(e) =>
-                  setF({
-                    ...f,
-                    links:
-                      e.target.value,
-                  })
-                }
+                onChange={(e) => setF({ ...f, links: e.target.value })}
                 placeholder="Nombre | https://ejemplo.com"
               />
             </label>
@@ -5911,21 +3682,13 @@ function ProcedureForm({
           <button
             className="btn secondary"
             type="button"
-            onClick={() =>
-              nav(backPath)
-            }
+            onClick={() => nav(backPath)}
           >
             Cancelar
           </button>
 
-          <button
-            className="btn"
-            type="submit"
-            disabled={saving}
-          >
-            {saving
-              ? 'Guardando...'
-              : submitText}
+          <button className="btn" type="submit" disabled={saving}>
+            {saving ? 'Guardando...' : submitText}
           </button>
         </div>
       </form>
@@ -5934,150 +3697,79 @@ function ProcedureForm({
 }
 
 export function NewProcedure() {
-  const nav =
-    useNavigate();
+  const nav = useNavigate();
+
+  const [params] = useSearchParams();
 
   return (
     <ProcedureForm
-      initial={
-        emptyProcedureForm()
-      }
+      initial={{
+        ...emptyProcedureForm(),
+        folderId: params.get('carpeta') || '',
+      }}
       title="Nuevo procedimiento"
       submitText="Crear procedimiento"
       onSubmit={async (f) => {
-        const r =
-          await api.post(
-            '/procedures',
-            procedurePayload(f),
-          );
+        const r = await api.post('/procedures', procedurePayload(f));
 
-        nav(
-          `/procedimientos/${r.data.id}`,
-        );
+        nav(`/procedimientos/${r.data.id}`);
       }}
     />
   );
 }
 
 export function EditProcedure() {
-  const { id } =
-    useParams();
+  const { id } = useParams();
 
-  const nav =
-    useNavigate();
+  const nav = useNavigate();
 
-  const [initial, setInitial] =
-    useState<ProcedureFormState | null>(
-      null,
-    );
+  const [initial, setInitial] = useState<ProcedureFormState | null>(null);
 
   useEffect(() => {
-    api
-      .get(
-        `/procedures/${id}`,
-      )
-      .then((r) => {
-        const x = r.data;
+    api.get(`/procedures/${id}`).then((r) => {
+      const x = r.data;
 
-        setInitial({
-          code:
-            x.code || '',
-          name:
-            x.name || '',
-          description:
-            x.description || '',
-          category:
-            x.category || '',
-          status:
-            x.status ||
-            'ACTIVO',
-          responsibleArea:
-            x.responsibleArea ||
-            '',
-          validFrom:
-            x.validFrom
-              ? String(
-                  x.validFrom,
-                ).slice(0, 10)
-              : '',
-          validUntil:
-            x.validUntil
-              ? String(
-                  x.validUntil,
-                ).slice(0, 10)
-              : '',
-          normative:
-            x.normative || '',
-          requirements:
-            Array.isArray(
-              x.requirements,
-            )
-              ? x.requirements.join(
-                  '\n',
-                )
-              : '',
-          steps:
-            Array.isArray(
-              x.steps,
-            ) &&
-            x.steps.length
-              ? [...x.steps].sort(
-                  (
-                    a: any,
-                    b: any,
-                  ) =>
-                    a.stepOrder -
-                    b.stepOrder,
-                )
-              : [
-                  {
-                    stepOrder: 1,
-                    title: '',
-                    description:
-                      '',
-                  },
-                ],
-          links:
-            Array.isArray(
-              x.links,
-            )
-              ? x.links
-                  .map(
-                    (l: any) =>
-                      `${l.label} | ${l.url}`,
-                  )
-                  .join('\n')
-              : '',
-          relatedFormIds:
-            Array.isArray(
-              x.relatedForms,
-            )
-              ? x.relatedForms
-                  .map(
-                    (form: any) =>
-                      form.formId,
-                  )
-                  .filter(Boolean)
-              : [],
-          relatedDocumentIds:
-            Array.isArray(
-              x.relatedDocuments,
-            )
-              ? x.relatedDocuments
-                  .map(
-                    (document: any) =>
-                      document.documentId,
-                  )
-                  .filter(Boolean)
-              : [],
-        });
+      setInitial({
+        code: x.code || '',
+        name: x.name || '',
+        description: x.description || '',
+        category: x.category || '',
+        status: x.status || 'ACTIVO',
+        responsibleArea: x.responsibleArea || '',
+        folderId: x.folder?.id || '',
+        validFrom: x.validFrom ? String(x.validFrom).slice(0, 10) : '',
+        validUntil: x.validUntil ? String(x.validUntil).slice(0, 10) : '',
+        normative: x.normative || '',
+        requirements: Array.isArray(x.requirements)
+          ? x.requirements.join('\n')
+          : '',
+        steps:
+          Array.isArray(x.steps) && x.steps.length
+            ? [...x.steps].sort((a: any, b: any) => a.stepOrder - b.stepOrder)
+            : [
+                {
+                  stepOrder: 1,
+                  title: '',
+                  description: '',
+                },
+              ],
+        links: Array.isArray(x.links)
+          ? x.links.map((l: any) => `${l.label} | ${l.url}`).join('\n')
+          : '',
+        relatedFormIds: Array.isArray(x.relatedForms)
+          ? x.relatedForms.map((form: any) => form.formId).filter(Boolean)
+          : [],
+        relatedDocumentIds: Array.isArray(x.relatedDocuments)
+          ? x.relatedDocuments
+              .map((document: any) => document.documentId)
+              .filter(Boolean)
+          : [],
       });
+    });
   }, [id]);
 
   if (!initial) {
-    return (
-      <Empty text="Cargando procedimiento..." />
-    );
+    return <Empty text="Cargando procedimiento..." />;
   }
 
   return (
@@ -6088,37 +3780,28 @@ export function EditProcedure() {
       backPath={`/procedimientos/${id}`}
       backLabel="Volver al procedimiento"
       onSubmit={async (f) => {
-        await api.patch(
-          `/procedures/${id}`,
-          procedurePayload(f),
-        );
+        await api.patch(`/procedures/${id}`, procedurePayload(f));
 
-        nav(
-          `/procedimientos/${id}`,
-        );
+        nav(`/procedimientos/${id}`);
       }}
     />
   );
 }
 
 export function ProcedureDetail() {
-  const { id } =
-    useParams();
+  const { id } = useParams();
 
-  const { user } =
-    useAuth();
+  const { user } = useAuth();
 
-  const [x, setX] =
-    useState<any>();
+  const { pathLabel } = useFolderTree();
 
-  const [repositoryDocuments, setRepositoryDocuments] =
-    useState<any[]>([]);
+  const [x, setX] = useState<any>();
 
-  const [institutionalForms, setInstitutionalForms] =
-    useState<any[]>([]);
+  const [repositoryDocuments, setRepositoryDocuments] = useState<any[]>([]);
 
-  const [downloadingAll, setDownloadingAll] =
-    useState(false);
+  const [institutionalForms, setInstitutionalForms] = useState<any[]>([]);
+
+  const [downloadingAll, setDownloadingAll] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -6126,239 +3809,158 @@ export function ProcedureDetail() {
       api.get('/repository'),
       api.get('/forms'),
     ])
-      .then(
-        ([
-          procedureResponse,
-          documentsResponse,
-          formsResponse,
-        ]) => {
-          setX(procedureResponse.data);
-          setRepositoryDocuments(documentsResponse.data);
-          setInstitutionalForms(formsResponse.data);
-        },
-      )
+      .then(([procedureResponse, documentsResponse, formsResponse]) => {
+        setX(procedureResponse.data);
+        setRepositoryDocuments(documentsResponse.data);
+        setInstitutionalForms(formsResponse.data);
+      })
       .catch((error) => {
-        console.error(
-          'Error cargando procedimiento:',
-          error,
-        );
+        console.error('Error cargando procedimiento:', error);
       });
   }, [id]);
 
   if (!x) {
-    return (
-      <Empty text="Cargando..." />
-    );
+    return <Empty text="Cargando..." />;
   }
 
-  const canManage =
-    canManageProcedures(user);
+  const canManage = canManageProcedures(user);
 
-  const steps =
-    Array.isArray(x.steps)
-      ? [...x.steps].sort(
-          (
-            a: any,
-            b: any,
-          ) =>
-            a.stepOrder -
-            b.stepOrder,
-        )
-      : [];
+  const steps = Array.isArray(x.steps)
+    ? [...x.steps].sort((a: any, b: any) => a.stepOrder - b.stepOrder)
+    : [];
 
-  const relatedDocuments =
-    Array.isArray(x.relatedDocuments)
-      ? x.relatedDocuments
-          .map((relation: any) => {
-            const document =
-              repositoryDocuments.find(
-                (item) =>
-                  item.id === relation.documentId,
-              );
+  const relatedDocuments = Array.isArray(x.relatedDocuments)
+    ? x.relatedDocuments
+        .map((relation: any) => {
+          const document = repositoryDocuments.find(
+            (item) => item.id === relation.documentId,
+          );
 
-            return document
-              ? {
-                  ...document,
-                  relationLabel: relation.label,
-                }
-              : relation.documentId
-              ? null
-              : {
-                  id: null,
-                  name:
-                    relation.label ||
-                    'Documento relacionado',
-                  originalName: null,
-                  storedName: null,
-                };
-          })
-          .filter(Boolean)
-      : [];
+          return document
+            ? {
+                ...document,
+                relationLabel: relation.label,
+              }
+            : relation.documentId
+            ? null
+            : {
+                id: null,
+                name: relation.label || 'Documento relacionado',
+                originalName: null,
+                storedName: null,
+              };
+        })
+        .filter(Boolean)
+    : [];
 
-  const relatedForms =
-    Array.isArray(x.relatedForms)
-      ? x.relatedForms
-          .map((relation: any) => {
-            const form =
-              institutionalForms.find(
-                (item) =>
-                  item.id === relation.formId,
-              );
+  const relatedForms = Array.isArray(x.relatedForms)
+    ? x.relatedForms
+        .map((relation: any) => {
+          const form = institutionalForms.find(
+            (item) => item.id === relation.formId,
+          );
 
-            return form
-              ? {
-                  ...form,
-                  relationLabel: relation.label,
-                }
-              : relation.formId
-              ? null
-              : {
-                  id: null,
-                  name:
-                    relation.label ||
-                    'Formulario relacionado',
-                  originalName: null,
-                  storedName: null,
-                };
-          })
-          .filter(Boolean)
-      : [];
+          return form
+            ? {
+                ...form,
+                relationLabel: relation.label,
+              }
+            : relation.formId
+            ? null
+            : {
+                id: null,
+                name: relation.label || 'Formulario relacionado',
+                originalName: null,
+                storedName: null,
+              };
+        })
+        .filter(Boolean)
+    : [];
 
   const downloadRelatedResource = async (
     endpoint: string,
     fileName: string,
   ) => {
     try {
-      const response =
-        await api.get(endpoint, {
-          responseType: 'blob',
-        });
+      const response = await api.get(endpoint, {
+        responseType: 'blob',
+      });
 
-      const url =
-        URL.createObjectURL(
-          response.data,
-        );
+      const url = URL.createObjectURL(response.data);
 
-      const anchor =
-        document.createElement('a');
+      const anchor = document.createElement('a');
 
       anchor.href = url;
       anchor.download = fileName;
 
-      document.body.appendChild(
-        anchor,
-      );
+      document.body.appendChild(anchor);
 
       anchor.click();
       anchor.remove();
 
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error(
-        'Error descargando recurso relacionado:',
-        error,
-      );
+      console.error('Error descargando recurso relacionado:', error);
 
-      alert(
-        'No se pudo descargar el recurso.',
-      );
+      alert('No se pudo descargar el recurso.');
     }
   };
 
-  const downloadableResources =
-    [
-      ...relatedDocuments,
-      ...relatedForms,
-    ].filter(
-      (resource: any) =>
-        resource.id &&
-        resource.storedName,
-    );
+  const downloadableResources = [...relatedDocuments, ...relatedForms].filter(
+    (resource: any) => resource.id && resource.storedName,
+  );
 
-  const downloadAllResources =
-    async () => {
-      if (
-        !downloadableResources.length
-      ) {
-        alert(
-          'No hay archivos relacionados disponibles para descargar.',
-        );
-        return;
-      }
+  const downloadAllResources = async () => {
+    if (!downloadableResources.length) {
+      alert('No hay archivos relacionados disponibles para descargar.');
+      return;
+    }
 
-      try {
-        setDownloadingAll(true);
+    try {
+      setDownloadingAll(true);
 
-        const response =
-          await api.get(
-            `/procedures/${id}/resources/download-all`,
-            {
-              responseType:
-                'blob',
-            },
-          );
+      const response = await api.get(`/procedures/${id}/resources/download-all`, {
+        responseType: 'blob',
+      });
 
-        const url =
-          URL.createObjectURL(
-            response.data,
-          );
+      const url = URL.createObjectURL(response.data);
 
-        const anchor =
-          document.createElement(
-            'a',
-          );
+      const anchor = document.createElement('a');
 
-        anchor.href = url;
+      anchor.href = url;
 
-        anchor.download =
-          `${x.code || 'procedimiento'}-recursos.zip`;
+      anchor.download = `${x.code || 'procedimiento'}-recursos.zip`;
 
-        document.body
-          .appendChild(
-            anchor,
-          );
+      document.body.appendChild(anchor);
 
-        anchor.click();
-        anchor.remove();
+      anchor.click();
+      anchor.remove();
 
-        URL.revokeObjectURL(
-          url,
-        );
-      } catch (error) {
-        console.error(
-          'Error descargando recursos en ZIP:',
-          error,
-        );
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error descargando recursos en ZIP:', error);
 
-        alert(
-          'No se pudieron descargar todos los recursos.',
-        );
-      } finally {
-        setDownloadingAll(false);
-      }
-    };
-
+      alert('No se pudieron descargar todos los recursos.');
+    } finally {
+      setDownloadingAll(false);
+    }
+  };
 
   return (
     <>
       <div className="titlebar">
         <div>
-          <small className="procedure-code">
-            {x.code}
-          </small>
+          <small className="procedure-code">{x.code}</small>
 
           <h1>{x.name}</h1>
 
-          <p>
-            {x.responsibleArea}
-          </p>
+          <p>{x.responsibleArea}</p>
+
+          {x.folder && <p>Carpeta: {pathLabel(x.folder.id) || x.folder.name}</p>}
         </div>
 
         <div className="procedure-detail-actions">
-          <Link
-            className="btn secondary"
-            to="/procedimientos"
-          >
+          <Link className="btn secondary" to="/procedimientos">
             ← Volver
           </Link>
 
@@ -6366,24 +3968,15 @@ export function ProcedureDetail() {
             <button
               type="button"
               className="btn secondary"
-              onClick={
-                downloadAllResources
-              }
-              disabled={
-                downloadingAll
-              }
+              onClick={downloadAllResources}
+              disabled={downloadingAll}
             >
-              {downloadingAll
-                ? 'Generando ZIP...'
-                : 'Descargar todos (.zip)'}
+              {downloadingAll ? 'Generando ZIP...' : 'Descargar todos (.zip)'}
             </button>
           )}
 
           {canManage && (
-            <Link
-              className="btn"
-              to={`/procedimientos/${x.id}/editar`}
-            >
+            <Link className="btn" to={`/procedimientos/${x.id}/editar`}>
               Editar procedimiento
             </Link>
           )}
@@ -6393,189 +3986,129 @@ export function ProcedureDetail() {
       <div className="procedure-detail-summary">
         <Card>
           <b>Estado</b>
+
           <Badge
             tone={
-              String(
-                x.status,
-              ).toUpperCase() ===
-              'ACTIVO'
+              String(x.status).toUpperCase() === 'ACTIVO'
                 ? 'green'
-                : String(
-                    x.status,
-                  ).toUpperCase() ===
-                  'INACTIVO'
+                : String(x.status).toUpperCase() === 'INACTIVO'
                 ? 'red'
                 : 'blue'
             }
           >
-            {String(
-              x.status,
-            ).replace(
-              '_',
-              ' ',
-            )}
+            {String(x.status).replace('_', ' ')}
           </Badge>
         </Card>
 
         <Card>
           <b>Categoría</b>
-          <span>
-            {x.category || '-'}
-          </span>
+
+          <span>{x.category || '-'}</span>
         </Card>
 
         <Card>
           <b>Vigencia</b>
+
           <span>
             {x.validFrom
-              ? new Date(
-                  x.validFrom,
-                ).toLocaleDateString()
+              ? new Date(x.validFrom).toLocaleDateString()
               : 'Sin fecha'}
 
             {x.validUntil
-              ? ` - ${new Date(
-                  x.validUntil,
-                ).toLocaleDateString()}`
+              ? ` - ${new Date(x.validUntil).toLocaleDateString()}`
               : ''}
           </span>
         </Card>
 
         <Card>
-          <b>
-            Última actualización
-          </b>
+          <b>Última actualización</b>
+
           <span>
-            {x.updatedAt
-              ? new Date(
-                  x.updatedAt,
-                ).toLocaleDateString()
-              : '-'}
+            {x.updatedAt ? new Date(x.updatedAt).toLocaleDateString() : '-'}
           </span>
         </Card>
       </div>
 
       <div className="grid2">
         <Card>
-          <h2>
-            Descripción general
-          </h2>
+          <h2>Descripción general</h2>
 
           <p>{x.description}</p>
 
           <h2>Requisitos</h2>
 
           {x.requirements?.length ? (
-            x.requirements.map(
-              (r: string) => (
-                <div
-                  className="check"
-                  key={r}
-                >
-                  ✓ {r}
-                </div>
-              ),
-            )
+            x.requirements.map((r: string) => (
+              <div className="check" key={r}>
+                ✓ {r}
+              </div>
+            ))
           ) : (
-            <p>
-              No se registraron requisitos.
-            </p>
+            <p>No se registraron requisitos.</p>
           )}
 
-          <h2>
-            Normativa relacionada
-          </h2>
+          <h2>Normativa relacionada</h2>
 
-          <p>
-            {x.normative ||
-              'No se registró normativa relacionada.'}
-          </p>
+          <p>{x.normative || 'No se registró normativa relacionada.'}</p>
         </Card>
 
         <Card>
-          <h2>
-            Pasos del procedimiento
-          </h2>
+          <h2>Pasos del procedimiento</h2>
 
           {steps.length ? (
-            steps.map(
-              (s: any) => (
-                <div
-                  className="step"
-                  key={s.id}
-                >
-                  <b>
-                    {s.stepOrder}.{' '}
-                    {s.title}
-                  </b>
+            steps.map((s: any) => (
+              <div className="step" key={s.id}>
+                <b>
+                  {s.stepOrder}. {s.title}
+                </b>
 
-                  <p>
-                    {s.description}
-                  </p>
-                </div>
-              ),
-            )
+                <p>{s.description}</p>
+              </div>
+            ))
           ) : (
-            <p>
-              No hay pasos registrados.
-            </p>
+            <p>No hay pasos registrados.</p>
           )}
         </Card>
       </div>
 
       <div className="grid2">
         <Card>
-          <h2>
-            Documentos relacionados
-          </h2>
+          <h2>Documentos relacionados</h2>
 
           {relatedDocuments.length ? (
             <div className="procedure-related-list">
-              {relatedDocuments.map(
-                (document: any, index: number) => (
-                  <div
-                    className="procedure-related-resource"
-                    key={
-                      document.id ||
-                      `${document.name}-${index}`
-                    }
-                  >
-                    <div>
-                      <strong>
-                        {document.name ||
-                          document.relationLabel}
-                      </strong>
+              {relatedDocuments.map((document: any, index: number) => (
+                <div
+                  className="procedure-related-resource"
+                  key={document.id || `${document.name}-${index}`}
+                >
+                  <div>
+                    <strong>{document.name || document.relationLabel}</strong>
 
-                      <small>
-                        {document.originalName ||
-                          'Referencia registrada'}
-                      </small>
-                    </div>
-
-                    {document.id &&
-                      document.storedName && (
-                      <button
-                        type="button"
-                        className="btn secondary"
-                        onClick={() =>
-                          downloadRelatedResource(
-                            `/repository/${document.id}/download`,
-                            document.originalName ||
-                              document.name,
-                          )
-                        }
-                      >
-                        Descargar
-                      </button>
-                    )}
+                    <small>
+                      {document.originalName || 'Referencia registrada'}
+                    </small>
                   </div>
-                ),
-              )}
+
+                  {document.id && document.storedName && (
+                    <button
+                      type="button"
+                      className="btn secondary"
+                      onClick={() =>
+                        downloadRelatedResource(
+                          `/repository/${document.id}/download`,
+                          document.originalName || document.name,
+                        )
+                      }
+                    >
+                      Descargar
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           ) : (
-            <p>
-              No hay documentos relacionados.
-            </p>
+            <p>No hay documentos relacionados.</p>
           )}
 
           <h2 className="procedure-related-subtitle">
@@ -6584,85 +4117,66 @@ export function ProcedureDetail() {
 
           {relatedForms.length ? (
             <div className="procedure-related-list">
-              {relatedForms.map(
-                (form: any, index: number) => (
-                  <div
-                    className="procedure-related-resource"
-                    key={
-                      form.id ||
-                      `${form.name}-${index}`
-                    }
-                  >
-                    <div>
-                      <strong>
-                        {form.name ||
-                          form.relationLabel}
-                      </strong>
+              {relatedForms.map((form: any, index: number) => (
+                <div
+                  className="procedure-related-resource"
+                  key={form.id || `${form.name}-${index}`}
+                >
+                  <div>
+                    <strong>{form.name || form.relationLabel}</strong>
 
-                      <small>
-                        {form.originalName ||
-                          form.format ||
-                          'Referencia registrada'}
-                      </small>
-                    </div>
-
-                    {form.id &&
-                      form.storedName && (
-                      <button
-                        type="button"
-                        className="btn secondary"
-                        onClick={() =>
-                          downloadRelatedResource(
-                            `/forms/${form.id}/download`,
-                            form.originalName ||
-                              form.name,
-                          )
-                        }
-                      >
-                        Descargar
-                      </button>
-                    )}
+                    <small>
+                      {form.originalName ||
+                        form.format ||
+                        'Referencia registrada'}
+                    </small>
                   </div>
-                ),
-              )}
+
+                  {form.id && form.storedName && (
+                    <button
+                      type="button"
+                      className="btn secondary"
+                      onClick={() =>
+                        downloadRelatedResource(
+                          `/forms/${form.id}/download`,
+                          form.originalName || form.name,
+                        )
+                      }
+                    >
+                      Descargar
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           ) : (
-            <p>
-              No hay formularios relacionados.
-            </p>
+            <p>No hay formularios relacionados.</p>
           )}
         </Card>
 
         <Card>
-          <h2>
-            Enlaces útiles
-          </h2>
+          <h2>Enlaces útiles</h2>
 
           {x.links?.length ? (
-            x.links.map(
-              (l: any) => (
-                <a
-                  className="row"
-                  href={l.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  key={l.url}
-                >
-                  {l.label}
-                </a>
-              ),
-            )
+            x.links.map((l: any) => (
+              <a
+                className="row"
+                href={l.url}
+                target="_blank"
+                rel="noreferrer"
+                key={l.url}
+              >
+                {l.label}
+              </a>
+            ))
           ) : (
-            <p>
-              No hay enlaces registrados.
-            </p>
+            <p>No hay enlaces registrados.</p>
           )}
         </Card>
       </div>
     </>
   );
 }
-
 
 /* =========================================================
    FORMULARIOS
@@ -6675,17 +4189,45 @@ export function Forms() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [file, setFile] = useState<File | null>(null);
-  const [f, setF] = useState({ name: '', description: '', category: 'Otros', format: '' });
+  const [f, setF] = useState({
+    name: '',
+    description: '',
+    category: 'Otros',
+    format: '',
+  });
   const roles = user?.roles || [];
   const canManage = roles.includes('ADMIN') || roles.includes('EDITOR');
 
-  const load = () => api.get('/forms').then((r) => setData(r.data)).catch((error) => console.error('Error cargando formularios:', error));
-  useEffect(() => { void load(); }, []);
+  const load = () =>
+    api
+      .get('/forms')
+      .then((r) => setData(r.data))
+      .catch((error) => console.error('Error cargando formularios:', error));
+
+  useEffect(() => {
+    void load();
+  }, []);
 
   const filtered = data.filter((x) => {
     const q = search.trim().toLowerCase();
-    if (!q) return true;
-    return [x.name,x.description,x.category,x.format,x.originalName,x.createdBy?.name,x.updatedBy?.name].some((value) => String(value ?? '').toLowerCase().includes(q));
+
+    if (!q) {
+      return true;
+    }
+
+    return [
+      x.name,
+      x.description,
+      x.category,
+      x.format,
+      x.originalName,
+      x.createdBy?.name,
+      x.updatedBy?.name,
+    ].some((value) =>
+      String(value ?? '')
+        .toLowerCase()
+        .includes(q),
+    );
   });
 
   const resetForm = () => {
@@ -6696,38 +4238,68 @@ export function Forms() {
 
   const upload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file) { alert('Seleccione un archivo.'); return; }
+
+    if (!file) {
+      alert('Seleccione un archivo.');
+      return;
+    }
+
     try {
       setSaving(true);
+
       const form = new FormData();
+
       form.append('file', file);
       form.append('name', f.name.trim());
       form.append('description', f.description.trim());
       form.append('category', f.category.trim());
-      if (f.format.trim()) form.append('format', f.format.trim());
-      await api.post('/forms/upload', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+
+      if (f.format.trim()) {
+        form.append('format', f.format.trim());
+      }
+
+      await api.post('/forms/upload', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
       await load();
+
       resetForm();
     } catch (error) {
       console.error('Error subiendo formulario:', error);
+
       alert('No se pudo subir el formulario.');
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const download = async (item: any) => {
     try {
-      const response = await api.get(`/forms/${item.id}/download`, { responseType: 'blob' });
+      const response = await api.get(`/forms/${item.id}/download`, {
+        responseType: 'blob',
+      });
+
       const url = URL.createObjectURL(response.data);
+
       const anchor = document.createElement('a');
+
       anchor.href = url;
+
       anchor.download = item.originalName || item.name;
+
       document.body.appendChild(anchor);
+
       anchor.click();
+
       anchor.remove();
+
       URL.revokeObjectURL(url);
+
       await load();
     } catch (error) {
       console.error('Error descargando formulario:', error);
+
       alert('No se pudo descargar el formulario.');
     }
   };
@@ -6737,10 +4309,18 @@ export function Forms() {
       <div className="titlebar">
         <div>
           <h1>Formularios institucionales</h1>
-          <p>Consulta y descarga formularios del Campus Tecnológico de San José.</p>
+
+          <p>
+            Consulta y descarga formularios del Campus Tecnológico de San José.
+          </p>
         </div>
+
         {canManage && (
-          <button type="button" className="btn" onClick={() => setShowForm((value) => !value)}>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => setShowForm((value) => !value)}
+          >
             {showForm ? 'Cerrar formulario' : '+ Nuevo formulario'}
           </button>
         )}
@@ -6749,16 +4329,76 @@ export function Forms() {
       {canManage && showForm && (
         <Card>
           <h2>Subir formulario</h2>
+
           <form className="form" onSubmit={upload}>
-            <label>Nombre<input required value={f.name} onChange={(e) => setF({...f,name:e.target.value})} /></label>
-            <label>Categoría<input required value={f.category} onChange={(e) => setF({...f,category:e.target.value})} /></label>
-            <label>Formato<input value={f.format} onChange={(e) => setF({...f,format:e.target.value})} placeholder="Opcional; se detecta del archivo" /></label>
-            <label>Archivo<input required type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} /><small>Se permite cualquier tipo de archivo.</small></label>
-            <label className="full">Descripción<textarea value={f.description} onChange={(e) => setF({...f,description:e.target.value})} /></label>
-            {file && <div className="repository-selected-file full"><b>Archivo seleccionado:</b><span>{file.name}</span><small>{formatFileSize(file.size)}</small></div>}
+            <label>
+              Nombre
+              <input
+                required
+                value={f.name}
+                onChange={(e) => setF({ ...f, name: e.target.value })}
+              />
+            </label>
+
+            <label>
+              Categoría
+              <input
+                required
+                value={f.category}
+                onChange={(e) => setF({ ...f, category: e.target.value })}
+              />
+            </label>
+
+            <label>
+              Formato
+              <input
+                value={f.format}
+                onChange={(e) => setF({ ...f, format: e.target.value })}
+                placeholder="Opcional; se detecta del archivo"
+              />
+            </label>
+
+            <label>
+              Archivo
+              <input
+                required
+                type="file"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+              />
+
+              <small>Se permite cualquier tipo de archivo.</small>
+            </label>
+
+            <label className="full">
+              Descripción
+              <textarea
+                value={f.description}
+                onChange={(e) => setF({ ...f, description: e.target.value })}
+              />
+            </label>
+
+            {file && (
+              <div className="repository-selected-file full">
+                <b>Archivo seleccionado:</b>
+
+                <span>{file.name}</span>
+
+                <small>{formatFileSize(file.size)}</small>
+              </div>
+            )}
+
             <div className="full repository-form-actions">
-              <button type="button" className="btn secondary" onClick={resetForm}>Cancelar</button>
-              <button type="submit" className="btn" disabled={saving}>{saving ? 'Subiendo...' : 'Subir formulario'}</button>
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={resetForm}
+              >
+                Cancelar
+              </button>
+
+              <button type="submit" className="btn" disabled={saving}>
+                {saving ? 'Subiendo...' : 'Subir formulario'}
+              </button>
             </div>
           </form>
         </Card>
@@ -6766,7 +4406,13 @@ export function Forms() {
 
       <Card>
         <div className="repository-toolbar">
-          <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar formulario..." />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar formulario..."
+          />
+
           <span>{filtered.length} formulario(s)</span>
         </div>
       </Card>
@@ -6774,153 +4420,124 @@ export function Forms() {
       <Card>
         {filtered.length ? (
           <table className="repository-table">
-            <thead><tr><th>Formulario</th><th>Categoría</th><th>Formato</th><th>Archivo</th><th>Tamaño</th><th>Agregado por</th><th>Actualizado por</th><th>Descargas</th><th>Actualización</th><th>Acciones</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Formulario</th>
+                <th>Categoría</th>
+                <th>Formato</th>
+                <th>Archivo</th>
+                <th>Tamaño</th>
+                <th>Agregado por</th>
+                <th>Actualizado por</th>
+                <th>Descargas</th>
+                <th>Actualización</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+
             <tbody>
               {filtered.map((x) => (
                 <tr key={x.id}>
-                  <td><strong>{x.name}</strong><small>{x.description || 'Sin descripción'}</small></td>
-                  <td>{x.category}</td><td>{x.format}</td><td>{x.originalName || 'Sin archivo'}</td><td>{formatFileSize(x.size)}</td>
-                  <td>{x.createdBy?.name || '-'}</td><td>{x.updatedBy?.name || '-'}</td><td>{x.downloads ?? 0}</td>
-                  <td>{x.updatedAt ? new Date(x.updatedAt).toLocaleDateString() : '-'}</td>
-                  <td>{x.storedName ? <button type="button" className="btn secondary" onClick={() => download(x)}>Descargar</button> : <span>No disponible</span>}</td>
+                  <td>
+                    <strong>{x.name}</strong>
+
+                    <small>{x.description || 'Sin descripción'}</small>
+                  </td>
+
+                  <td>{x.category}</td>
+
+                  <td>{x.format}</td>
+
+                  <td>{x.originalName || 'Sin archivo'}</td>
+
+                  <td>{formatFileSize(x.size)}</td>
+
+                  <td>{x.createdBy?.name || '-'}</td>
+
+                  <td>{x.updatedBy?.name || '-'}</td>
+
+                  <td>{x.downloads ?? 0}</td>
+
+                  <td>
+                    {x.updatedAt
+                      ? new Date(x.updatedAt).toLocaleDateString()
+                      : '-'}
+                  </td>
+
+                  <td>
+                    {x.storedName ? (
+                      <button
+                        type="button"
+                        className="btn secondary"
+                        onClick={() => download(x)}
+                      >
+                        Descargar
+                      </button>
+                    ) : (
+                      <span>No disponible</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        ) : <Empty text="No se encontraron formularios." />}
+        ) : (
+          <Empty text="No se encontraron formularios." />
+        )}
       </Card>
     </>
   );
 }
 
-
 /* =========================================================
-
    ENLACES
-
-\========================================================= */
-
-
+========================================================= */
 
 export function Links() {
-
   const [d, setD] = useState<any[]>([]);
 
-
-
   useEffect(() => {
-
     api
-
       .get('/links')
-
       .then((r) => setD(r.data))
-
       .catch((error) => {
-
-        console.error(
-
-          'Error cargando enlaces:',
-
-          error
-
-        );
-
+        console.error('Error cargando enlaces:', error);
       });
-
   }, []);
 
-
-
   return (
-
     <>
-
       <h1>Enlaces a sistemas</h1>
 
-
-
-      <p>
-
-        Accede de manera rápida a los principales sistemas
-
-        institucionales.
-
-      </p>
-
-
+      <p>Accede de manera rápida a los principales sistemas institucionales.</p>
 
       <div className="cards">
-
         {d.map((x) => (
-
           <Card key={x.id}>
-
             <h3>{x.name}</h3>
-
-
 
             <p>{x.description}</p>
 
-
-
-            <a
-
-              className="btn"
-
-              href={x.url}
-
-              target="_blank"
-
-              rel="noreferrer"
-
-            >
-
+            <a className="btn" href={x.url} target="_blank" rel="noreferrer">
               Ir al sistema
-
             </a>
-
           </Card>
-
         ))}
-
       </div>
-
     </>
-
   );
-
 }
 
-
-
-
-
 /* =========================================================
-
    NOTICIAS
+========================================================= */
 
-\========================================================= */
+const NEWS_CATEGORIES = ['Eventos', 'Comunicados', 'Avisos'];
 
-const NEWS_CATEGORIES = [
-  'Eventos',
-  'Comunicados',
-  'Avisos',
-];
+const NEWS_PRIORITIES = ['BAJA', 'MEDIA', 'ALTA'];
 
-const NEWS_PRIORITIES = [
-  'BAJA',
-  'MEDIA',
-  'ALTA',
-];
-
-function newsPriorityLabel(
-  value?: string,
-) {
-  const priority =
-    String(
-      value || 'MEDIA',
-    ).toUpperCase();
+function newsPriorityLabel(value?: string) {
+  const priority = String(value || 'MEDIA').toUpperCase();
 
   if (priority === 'ALTA') {
     return 'Alta';
@@ -6936,10 +4553,7 @@ function newsPriorityLabel(
 function newsPriorityTone(
   value?: string,
 ): 'red' | 'green' | 'blue' | undefined {
-  const priority =
-    String(
-      value || 'MEDIA',
-    ).toUpperCase();
+  const priority = String(value || 'MEDIA').toUpperCase();
 
   if (priority === 'ALTA') {
     return 'red';
@@ -6953,208 +4567,111 @@ function newsPriorityTone(
 }
 
 export function News() {
-  const { user } =
-    useAuth() as any;
+  const { user } = useAuth() as any;
 
-  const roles: string[] =
-    user?.roles ?? [];
+  const roles: string[] = user?.roles ?? [];
 
-  const canCreate =
-    roles.some((role) =>
-      [
-        'ADMIN',
-        'EDITOR',
-      ].includes(
-        String(
-          role,
-        ).toUpperCase(),
-      ),
-    );
+  const canCreate = roles.some((role) =>
+    ['ADMIN', 'EDITOR'].includes(String(role).toUpperCase()),
+  );
 
-  const [data, setData] =
-    useState<any[]>([]);
+  const [data, setData] = useState<any[]>([]);
 
-  const [open, setOpen] =
-    useState(false);
+  const [open, setOpen] = useState(false);
 
-  const [title, setTitle] =
-    useState('');
+  const [title, setTitle] = useState('');
 
-  const [category, setCategory] =
-    useState(
-      NEWS_CATEGORIES[0],
-    );
+  const [category, setCategory] = useState(NEWS_CATEGORIES[0]);
 
-  const [priority, setPriority] =
-    useState('MEDIA');
+  const [priority, setPriority] = useState('MEDIA');
 
-  const [targetArea, setTargetArea] =
-    useState('GENERAL');
+  const [targetArea, setTargetArea] = useState('GENERAL');
 
-  const [summary, setSummary] =
-    useState('');
+  const [summary, setSummary] = useState('');
 
-  const [image, setImage] =
-    useState<string | null>(
-      null,
-    );
+  const [image, setImage] = useState<string | null>(null);
 
-  const [saving, setSaving] =
-    useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const [
-    searchFilter,
-    setSearchFilter,
-  ] = useState('');
+  const [searchFilter, setSearchFilter] = useState('');
 
-  const [
-    categoryFilter,
-    setCategoryFilter,
-  ] = useState('TODAS');
+  const [categoryFilter, setCategoryFilter] = useState('TODAS');
 
-  const [
-    priorityFilter,
-    setPriorityFilter,
-  ] = useState('TODAS');
+  const [priorityFilter, setPriorityFilter] = useState('TODAS');
 
-  const [
-    areaFilter,
-    setAreaFilter,
-  ] = useState('TODAS');
+  const [areaFilter, setAreaFilter] = useState('TODAS');
 
   const load = () =>
     api
       .get('/news')
-      .then((response) =>
-        setData(
-          response.data,
-        ),
-      )
-      .catch((error) =>
-        console.error(
-          'Error cargando noticias:',
-          error,
-        ),
-      );
+      .then((response) => setData(response.data))
+      .catch((error) => console.error('Error cargando noticias:', error));
 
   useEffect(() => {
     void load();
   }, []);
 
-  const areas =
-    Array.from(
-      new Set(
-        data
-          .map(
-            (item) =>
-              String(
-                item.targetArea ||
-                  'GENERAL',
-              ).trim(),
-          )
-          .filter(Boolean),
-      ),
-    ).sort();
+  const areas = Array.from(
+    new Set(
+      data
+        .map((item) => String(item.targetArea || 'GENERAL').trim())
+        .filter(Boolean),
+    ),
+  ).sort();
 
-  const filtered =
-    data.filter((item) => {
-      const query =
-        searchFilter
-          .trim()
-          .toLowerCase();
+  const filtered = data.filter((item) => {
+    const query = searchFilter.trim().toLowerCase();
 
-      const matchesSearch =
-        !query ||
-        [
-          item.title,
-          item.summary,
-          item.category,
-          item.priority,
-          item.targetArea,
-          item.author?.name,
-        ].some((value) =>
-          String(value ?? '')
-            .toLowerCase()
-            .includes(query),
-        );
-
-      const matchesCategory =
-        categoryFilter ===
-          'TODAS' ||
-        item.category ===
-          categoryFilter;
-
-      const normalizedPriority =
-        String(
-          item.priority ||
-            'MEDIA',
-        ).toUpperCase();
-
-      const matchesPriority =
-        priorityFilter ===
-          'TODAS' ||
-        normalizedPriority ===
-          priorityFilter;
-
-      const normalizedArea =
-        String(
-          item.targetArea ||
-            'GENERAL',
-        );
-
-      const matchesArea =
-        areaFilter ===
-          'TODAS' ||
-        normalizedArea ===
-          areaFilter;
-
-      return (
-        matchesSearch &&
-        matchesCategory &&
-        matchesPriority &&
-        matchesArea
+    const matchesSearch =
+      !query ||
+      [
+        item.title,
+        item.summary,
+        item.category,
+        item.priority,
+        item.targetArea,
+        item.author?.name,
+      ].some((value) =>
+        String(value ?? '')
+          .toLowerCase()
+          .includes(query),
       );
-    });
 
-  const onFile = (
-    file?: File,
-  ) => {
+    const matchesCategory =
+      categoryFilter === 'TODAS' || item.category === categoryFilter;
+
+    const normalizedPriority = String(item.priority || 'MEDIA').toUpperCase();
+
+    const matchesPriority =
+      priorityFilter === 'TODAS' || normalizedPriority === priorityFilter;
+
+    const normalizedArea = String(item.targetArea || 'GENERAL');
+
+    const matchesArea = areaFilter === 'TODAS' || normalizedArea === areaFilter;
+
+    return matchesSearch && matchesCategory && matchesPriority && matchesArea;
+  });
+
+  const onFile = (file?: File) => {
     if (!file) {
       return;
     }
 
-    if (
-      !file.type.startsWith(
-        'image/',
-      )
-    ) {
-      alert(
-        'Selecciona una imagen.',
-      );
+    if (!file.type.startsWith('image/')) {
+      alert('Selecciona una imagen.');
       return;
     }
 
-    if (
-      file.size >
-      2 * 1024 * 1024
-    ) {
-      alert(
-        'La imagen debe pesar menos de 2 MB.',
-      );
+    if (file.size > 2 * 1024 * 1024) {
+      alert('La imagen debe pesar menos de 2 MB.');
       return;
     }
 
-    const reader =
-      new FileReader();
+    const reader = new FileReader();
 
-    reader.onload = () =>
-      setImage(
-        reader.result as string,
-      );
+    reader.onload = () => setImage(reader.result as string);
 
-    reader.readAsDataURL(
-      file,
-    );
+    reader.readAsDataURL(file);
   };
 
   const close = () => {
@@ -7162,67 +4679,41 @@ export function News() {
     setTitle('');
     setSummary('');
     setImage(null);
-
-    setCategory(
-      NEWS_CATEGORIES[0],
-    );
-
+    setCategory(NEWS_CATEGORIES[0]);
     setPriority('MEDIA');
     setTargetArea('GENERAL');
   };
 
   const save = async () => {
-    if (
-      !title.trim() ||
-      !summary.trim()
-    ) {
-      alert(
-        'Completa el título y la descripción.',
-      );
+    if (!title.trim() || !summary.trim()) {
+      alert('Completa el título y la descripción.');
       return;
     }
 
-    if (
-      !targetArea.trim()
-    ) {
-      alert(
-        'Indique el área o público objetivo.',
-      );
+    if (!targetArea.trim()) {
+      alert('Indique el área o público objetivo.');
       return;
     }
 
     setSaving(true);
 
     try {
-      await api.post(
-        '/news',
-        {
-          title:
-            title.trim(),
-          category,
-          priority,
-          targetArea:
-            targetArea.trim(),
-          summary:
-            summary.trim(),
-          imageUrl: image,
-        },
-      );
+      await api.post('/news', {
+        title: title.trim(),
+        category,
+        priority,
+        targetArea: targetArea.trim(),
+        summary: summary.trim(),
+        imageUrl: image,
+      });
 
       close();
 
       await load();
     } catch (error: any) {
-      console.error(
-        'Error creando noticia:',
-        error,
-      );
+      console.error('Error creando noticia:', error);
 
-      alert(
-        error?.response?.data
-          ?.message ||
-          'No se pudo crear la noticia.',
-      );
+      alert(error?.response?.data?.message || 'No se pudo crear la noticia.');
     } finally {
       setSaving(false);
     }
@@ -7232,22 +4723,16 @@ export function News() {
     <>
       <div className="news-head">
         <div>
-          <h1>
-            Noticias
-          </h1>
+          <h1>Noticias</h1>
 
           <p>
-            Mantente informado sobre actividades y comunicados del Campus Tecnológico de San José.
+            Mantente informado sobre actividades y comunicados del Campus
+            Tecnológico de San José.
           </p>
         </div>
 
         {canCreate && (
-          <button
-            className="news-add"
-            onClick={() =>
-              setOpen(true)
-            }
-          >
+          <button className="news-add" onClick={() => setOpen(true)}>
             + Nueva noticia
           </button>
         )}
@@ -7257,183 +4742,101 @@ export function News() {
         <div className="repository-toolbar">
           <input
             type="search"
-            value={
-              searchFilter
-            }
-            onChange={(event) =>
-              setSearchFilter(
-                event.target
-                  .value,
-              )
-            }
+            value={searchFilter}
+            onChange={(event) => setSearchFilter(event.target.value)}
             placeholder="Buscar noticia..."
           />
 
           <select
-            value={
-              categoryFilter
-            }
-            onChange={(event) =>
-              setCategoryFilter(
-                event.target
-                  .value,
-              )
-            }
+            value={categoryFilter}
+            onChange={(event) => setCategoryFilter(event.target.value)}
           >
-            <option value="TODAS">
-              Todas las categorías
-            </option>
+            <option value="TODAS">Todas las categorías</option>
 
-            {NEWS_CATEGORIES.map(
-              (item) => (
-                <option
-                  key={item}
-                  value={item}
-                >
-                  {item}
-                </option>
-              ),
-            )}
+            {NEWS_CATEGORIES.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
           </select>
 
           <select
-            value={
-              priorityFilter
-            }
-            onChange={(event) =>
-              setPriorityFilter(
-                event.target
-                  .value,
-              )
-            }
+            value={priorityFilter}
+            onChange={(event) => setPriorityFilter(event.target.value)}
           >
-            <option value="TODAS">
-              Todas las prioridades
-            </option>
+            <option value="TODAS">Todas las prioridades</option>
 
-            {NEWS_PRIORITIES.map(
-              (item) => (
-                <option
-                  key={item}
-                  value={item}
-                >
-                  {newsPriorityLabel(
-                    item,
-                  )}
-                </option>
-              ),
-            )}
+            {NEWS_PRIORITIES.map((item) => (
+              <option key={item} value={item}>
+                {newsPriorityLabel(item)}
+              </option>
+            ))}
           </select>
 
           <select
-            value={
-              areaFilter
-            }
-            onChange={(event) =>
-              setAreaFilter(
-                event.target
-                  .value,
-              )
-            }
+            value={areaFilter}
+            onChange={(event) => setAreaFilter(event.target.value)}
           >
-            <option value="TODAS">
-              Todas las áreas
-            </option>
+            <option value="TODAS">Todas las áreas</option>
 
-            {areas.map(
-              (item) => (
-                <option
-                  key={item}
-                  value={item}
-                >
-                  {item}
-                </option>
-              ),
-            )}
+            {areas.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
           </select>
 
-          <span>
-            {filtered.length}{' '}
-            noticia(s)
-          </span>
+          <span>{filtered.length} noticia(s)</span>
         </div>
       </Card>
 
       {filtered.length ? (
         <div className="news-grid">
-          {filtered.map(
-            (item) => (
-              <article
-                className="news-card"
-                key={item.id}
-              >
+          {filtered.map((item) => (
+            <article className="news-card" key={item.id}>
+              <div
+                className="news-photo"
+                style={
+                  item.imageUrl
+                    ? {
+                        backgroundImage: `url(${item.imageUrl})`,
+                      }
+                    : undefined
+                }
+              />
+
+              <div className="news-body">
                 <div
-                  className="news-photo"
-                  style={
-                    item.imageUrl
-                      ? {
-                          backgroundImage:
-                            `url(${item.imageUrl})`,
-                        }
-                      : undefined
-                  }
-                />
+                  style={{
+                    display: 'flex',
+                    gap: '8px',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                  }}
+                >
+                  <span className="news-tag">{item.category}</span>
 
-                <div className="news-body">
-                  <div
-                    style={{
-                      display:
-                        'flex',
-                      gap: '8px',
-                      flexWrap:
-                        'wrap',
-                      alignItems:
-                        'center',
-                    }}
-                  >
-                    <span className="news-tag">
-                      {item.category}
-                    </span>
-
-                    <Badge
-                      tone={newsPriorityTone(
-                        item.priority,
-                      )}
-                    >
-                      Prioridad{' '}
-                      {newsPriorityLabel(
-                        item.priority,
-                      )}
-                    </Badge>
-                  </div>
-
-                  <h3>
-                    {item.title}
-                  </h3>
-
-                  <p>
-                    {item.summary}
-                  </p>
-
-                  <p>
-                    <b>
-                      Área / público:
-                    </b>{' '}
-                    {item.targetArea ||
-                      'GENERAL'}
-                  </p>
-
-                  <small>
-                    {item.createdAt
-                      ? new Date(
-                          item.createdAt,
-                        ).toLocaleDateString()
-                      : ''}
-                  </small>
+                  <Badge tone={newsPriorityTone(item.priority)}>
+                    Prioridad {newsPriorityLabel(item.priority)}
+                  </Badge>
                 </div>
-              </article>
-            ),
-          )}
+
+                <h3>{item.title}</h3>
+
+                <p>{item.summary}</p>
+
+                <p>
+                  <b>Área / público:</b> {item.targetArea || 'GENERAL'}
+                </p>
+
+                <small>
+                  {item.createdAt
+                    ? new Date(item.createdAt).toLocaleDateString()
+                    : ''}
+                </small>
+              </div>
+            </article>
+          ))}
         </div>
       ) : (
         <Card>
@@ -7442,144 +4845,75 @@ export function News() {
       )}
 
       {open && (
-        <div
-          className="news-overlay"
-          onClick={close}
-        >
-          <div
-            className="news-modal"
-            onClick={(event) =>
-              event.stopPropagation()
-            }
-          >
-            <h2>
-              Nueva noticia
-            </h2>
+        <div className="news-overlay" onClick={close}>
+          <div className="news-modal" onClick={(event) => event.stopPropagation()}>
+            <h2>Nueva noticia</h2>
 
-            <label>
-              Foto de portada
-            </label>
+            <label>Foto de portada</label>
 
             <label className="news-drop">
               {image ? (
-                <img
-                  src={image}
-                  alt="Vista previa"
-                />
+                <img src={image} alt="Vista previa" />
               ) : (
-                <span>
-                  Haz clic para subir una imagen (máx. 2 MB)
-                </span>
+                <span>Haz clic para subir una imagen (máx. 2 MB)</span>
               )}
 
               <input
                 type="file"
                 accept="image/*"
                 hidden
-                onChange={(event) =>
-                  onFile(
-                    event.target
-                      .files?.[0],
-                  )
-                }
+                onChange={(event) => onFile(event.target.files?.[0])}
               />
             </label>
 
-            <label>
-              Título
-            </label>
+            <label>Título</label>
 
             <input
               value={title}
-              onChange={(event) =>
-                setTitle(
-                  event.target
-                    .value,
-                )
-              }
+              onChange={(event) => setTitle(event.target.value)}
               placeholder="Ej. Actividad cultural en el campus"
             />
 
-            <label>
-              Categoría
-            </label>
+            <label>Categoría</label>
 
             <select
               value={category}
-              onChange={(event) =>
-                setCategory(
-                  event.target
-                    .value,
-                )
-              }
+              onChange={(event) => setCategory(event.target.value)}
             >
-              {NEWS_CATEGORIES.map(
-                (item) => (
-                  <option
-                    key={item}
-                    value={item}
-                  >
-                    {item}
-                  </option>
-                ),
-              )}
+              {NEWS_CATEGORIES.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
             </select>
 
-            <label>
-              Prioridad
-            </label>
+            <label>Prioridad</label>
 
             <select
               value={priority}
-              onChange={(event) =>
-                setPriority(
-                  event.target
-                    .value,
-                )
-              }
+              onChange={(event) => setPriority(event.target.value)}
             >
-              {NEWS_PRIORITIES.map(
-                (item) => (
-                  <option
-                    key={item}
-                    value={item}
-                  >
-                    {newsPriorityLabel(
-                      item,
-                    )}
-                  </option>
-                ),
-              )}
+              {NEWS_PRIORITIES.map((item) => (
+                <option key={item} value={item}>
+                  {newsPriorityLabel(item)}
+                </option>
+              ))}
             </select>
 
-            <label>
-              Área / público objetivo
-            </label>
+            <label>Área / público objetivo</label>
 
             <input
               value={targetArea}
-              onChange={(event) =>
-                setTargetArea(
-                  event.target
-                    .value,
-                )
-              }
+              onChange={(event) => setTargetArea(event.target.value)}
               placeholder="GENERAL, Administración, Estudiantes..."
             />
 
-            <label>
-              Descripción
-            </label>
+            <label>Descripción</label>
 
             <textarea
               rows={3}
               value={summary}
-              onChange={(event) =>
-                setSummary(
-                  event.target
-                    .value,
-                )
-              }
+              onChange={(event) => setSummary(event.target.value)}
             />
 
             <div className="news-actions">
@@ -7593,14 +4927,10 @@ export function News() {
 
               <button
                 className="news-add"
-                onClick={() =>
-                  void save()
-                }
+                onClick={() => void save()}
                 disabled={saving}
               >
-                {saving
-                  ? 'Guardando…'
-                  : 'Publicar noticia'}
+                {saving ? 'Guardando…' : 'Publicar noticia'}
               </button>
             </div>
           </div>
@@ -7610,151 +4940,90 @@ export function News() {
   );
 }
 
-
-
-
-
 /* =========================================================
-
    USUARIOS
-
-\========================================================= */
-
-
+========================================================= */
 
 export function Users() {
-  const { user } =
-    useAuth();
+  const { user } = useAuth();
 
-  const [data, setData] =
-    useState<any[]>([]);
+  const [data, setData] = useState<any[]>([]);
 
-  const [savingId, setSavingId] =
-    useState<string | null>(
-      null,
-    );
+  const [savingId, setSavingId] = useState<string | null>(null);
 
-  const [editing, setEditing] =
-    useState<any | null>(
-      null,
-    );
+  const [editing, setEditing] = useState<any | null>(null);
 
-  const [deleteTarget, setDeleteTarget] =
-    useState<any | null>(
-      null,
-    );
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
 
-  const [deleteReason, setDeleteReason] =
-    useState('');
+  const [deleteReason, setDeleteReason] = useState('');
 
-  const [message, setMessage] =
-    useState('');
+  const [message, setMessage] = useState('');
 
-  const [showCreate, setShowCreate] =
-    useState(false);
+  const [showCreate, setShowCreate] = useState(false);
 
-  const [creating, setCreating] =
-    useState(false);
+  const [creating, setCreating] = useState(false);
 
-  const [createPasswordMode, setCreatePasswordMode] =
-    useState<
-      'AUTO' | 'MANUAL'
-    >('AUTO');
+  const [createPasswordMode, setCreatePasswordMode] = useState<
+    'AUTO' | 'MANUAL'
+  >('AUTO');
 
-  const [createForm, setCreateForm] =
-    useState({
-      name: '',
-      email: '',
-      position: '',
-      roleName:
-        'CONSULTOR',
-      password: '',
-    });
+  const [createForm, setCreateForm] = useState({
+    name: '',
+    email: '',
+    position: '',
+    roleName: 'CONSULTOR',
+    password: '',
+  });
 
-  const [temporaryCredential, setTemporaryCredential] =
-    useState<{
-      name: string;
-      email: string;
-      password: string;
-      origin:
-        | 'CREATE'
-        | 'RESET';
-    } | null>(
-      null,
-    );
+  const [temporaryCredential, setTemporaryCredential] = useState<{
+    name: string;
+    email: string;
+    password: string;
+    origin: 'CREATE' | 'RESET';
+  } | null>(null);
 
-  const currentUserId =
-    (user as any)?.id ||
-    (user as any)?.sub;
+  const currentUserId = (user as any)?.id || (user as any)?.sub;
 
   const loadUsers = () =>
     api
       .get('/users')
       .then((response) => {
-        setData(
-          response.data,
-        );
+        setData(response.data);
       })
       .catch((error) => {
-        console.error(
-          'Error cargando usuarios:',
-          error,
-        );
+        console.error('Error cargando usuarios:', error);
       });
 
   useEffect(() => {
     void loadUsers();
   }, []);
 
-  const currentRole = (
-    item: any,
-  ) =>
-    item.roles?.[0]?.name ||
-    'CONSULTOR';
+  const currentRole = (item: any) => item.roles?.[0]?.name || 'CONSULTOR';
 
-  const resetCreateForm =
-    () => {
-      setCreateForm({
-        name: '',
-        email: '',
-        position: '',
-        roleName:
-          'CONSULTOR',
-        password: '',
-      });
+  const resetCreateForm = () => {
+    setCreateForm({
+      name: '',
+      email: '',
+      position: '',
+      roleName: 'CONSULTOR',
+      password: '',
+    });
 
-      setCreatePasswordMode(
-        'AUTO',
-      );
+    setCreatePasswordMode('AUTO');
 
-      setShowCreate(false);
-    };
+    setShowCreate(false);
+  };
 
-  const createUser = async (
-    event:
-      React.FormEvent<HTMLFormElement>,
-  ) => {
+  const createUser = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (
-      !createForm.name.trim() ||
-      !createForm.email.trim()
-    ) {
-      alert(
-        'Nombre y correo son obligatorios.',
-      );
+    if (!createForm.name.trim() || !createForm.email.trim()) {
+      alert('Nombre y correo son obligatorios.');
       return;
     }
 
-    if (
-      createPasswordMode ===
-        'MANUAL' &&
-      createForm.password.length <
-        8
-    ) {
-      alert(
-        'La contraseña temporal debe tener al menos 8 caracteres.',
-      );
+    if (createPasswordMode === 'MANUAL' && createForm.password.length < 8) {
+      alert('La contraseña temporal debe tener al menos 8 caracteres.');
       return;
     }
 
@@ -7762,41 +5031,24 @@ export function Users() {
       setCreating(true);
       setMessage('');
 
-      const response =
-        await api.post(
-          '/users',
-          {
-            name:
-              createForm.name.trim(),
-            email:
-              createForm.email.trim(),
-            position:
-              createForm.position.trim(),
-            roleNames: [
-              createForm.roleName,
-            ],
-            ...(createPasswordMode ===
-            'MANUAL'
-              ? {
-                  password:
-                    createForm.password,
-                }
-              : {}),
-          },
-        );
+      const response = await api.post('/users', {
+        name: createForm.name.trim(),
+        email: createForm.email.trim(),
+        position: createForm.position.trim(),
+        roleNames: [createForm.roleName],
+        ...(createPasswordMode === 'MANUAL'
+          ? {
+              password: createForm.password,
+            }
+          : {}),
+      });
 
-      const result =
-        response.data;
+      const result = response.data;
 
       setTemporaryCredential({
-        name:
-          result.user?.name ||
-          createForm.name,
-        email:
-          result.user?.email ||
-          createForm.email,
-        password:
-          result.temporaryPassword,
+        name: result.user?.name || createForm.name,
+        email: result.user?.email || createForm.email,
+        password: result.temporaryPassword,
         origin: 'CREATE',
       });
 
@@ -7808,131 +5060,41 @@ export function Users() {
 
       resetCreateForm();
     } catch (error: any) {
-      console.error(
-        'Error creando usuario:',
-        error,
-      );
+      console.error('Error creando usuario:', error);
 
-      alert(
-        error?.response?.data
-          ?.message ||
-          'No se pudo crear el usuario.',
-      );
+      alert(error?.response?.data?.message || 'No se pudo crear el usuario.');
     } finally {
       setCreating(false);
     }
   };
 
-  const copyTemporaryPassword =
-    async () => {
-      if (
-        !temporaryCredential
-      ) {
-        return;
-      }
+  const copyTemporaryPassword = async () => {
+    if (!temporaryCredential) {
+      return;
+    }
 
-      try {
-        await navigator.clipboard
-          .writeText(
-            temporaryCredential.password,
-          );
+    try {
+      await navigator.clipboard.writeText(temporaryCredential.password);
 
-        setMessage(
-          'Contraseña temporal copiada al portapapeles.',
-        );
-      } catch {
-        alert(
-          'No se pudo copiar automáticamente. Seleccione la contraseña y cópiela manualmente.',
-        );
-      }
-    };
-
-  const resetPassword =
-    async (item: any) => {
-      if (
-        item.id ===
-        currentUserId
-      ) {
-        alert(
-          'Para su propia cuenta utilice el cambio normal de contraseña.',
-        );
-        return;
-      }
-
-      const confirmed =
-        window.confirm(
-          `¿Generar una nueva contraseña temporal para ${item.name}? La contraseña anterior dejará de funcionar.`,
-        );
-
-      if (!confirmed) {
-        return;
-      }
-
-      try {
-        setSavingId(item.id);
-        setMessage('');
-
-        const response =
-          await api.patch(
-            `/users/${item.id}/reset-password`,
-            {},
-          );
-
-        setTemporaryCredential({
-          name: item.name,
-          email:
-            response.data
-              .email ||
-            item.email,
-          password:
-            response.data
-              .temporaryPassword,
-          origin: 'RESET',
-        });
-
-        setMessage(
-          `Contraseña de ${item.name} restablecida. El usuario deberá cambiarla en su próximo ingreso.`,
-        );
-      } catch (error: any) {
-        console.error(
-          'Error restableciendo contraseña:',
-          error,
-        );
-
-        alert(
-          error?.response?.data
-            ?.message ||
-            'No se pudo restablecer la contraseña.',
-        );
-      } finally {
-        setSavingId(null);
-      }
-    };
-
-  const updateRole = async (
-    item: any,
-    roleName: string,
-  ) => {
-    if (
-      item.id === currentUserId
-    ) {
+      setMessage('Contraseña temporal copiada al portapapeles.');
+    } catch {
       alert(
-        'Por seguridad no puede modificar su propio rol administrativo.',
+        'No se pudo copiar automáticamente. Seleccione la contraseña y cópiela manualmente.',
+      );
+    }
+  };
+
+  const resetPassword = async (item: any) => {
+    if (item.id === currentUserId) {
+      alert(
+        'Para su propia cuenta utilice el cambio normal de contraseña.',
       );
       return;
     }
 
-    if (item.deletedAt) {
-      return;
-    }
-
-    const previousRole =
-      currentRole(item);
-
-    const confirmed =
-      window.confirm(
-        `¿Cambiar el rol de ${item.name} de ${previousRole} a ${roleName}?`,
-      );
+    const confirmed = window.confirm(
+      `¿Generar una nueva contraseña temporal para ${item.name}? La contraseña anterior dejará de funcionar.`,
+    );
 
     if (!confirmed) {
       return;
@@ -7942,14 +5104,57 @@ export function Users() {
       setSavingId(item.id);
       setMessage('');
 
-      await api.patch(
-        `/users/${item.id}`,
-        {
-          roleNames: [
-            roleName,
-          ],
-        },
+      const response = await api.patch(`/users/${item.id}/reset-password`, {});
+
+      setTemporaryCredential({
+        name: item.name,
+        email: response.data.email || item.email,
+        password: response.data.temporaryPassword,
+        origin: 'RESET',
+      });
+
+      setMessage(
+        `Contraseña de ${item.name} restablecida. El usuario deberá cambiarla en su próximo ingreso.`,
       );
+    } catch (error: any) {
+      console.error('Error restableciendo contraseña:', error);
+
+      alert(
+        error?.response?.data?.message ||
+          'No se pudo restablecer la contraseña.',
+      );
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const updateRole = async (item: any, roleName: string) => {
+    if (item.id === currentUserId) {
+      alert('Por seguridad no puede modificar su propio rol administrativo.');
+      return;
+    }
+
+    if (item.deletedAt) {
+      return;
+    }
+
+    const previousRole = currentRole(item);
+
+    const confirmed = window.confirm(
+      `¿Cambiar el rol de ${item.name} de ${previousRole} a ${roleName}?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setSavingId(item.id);
+      setMessage('');
+
+      await api.patch(`/users/${item.id}`, {
+        roleNames: [roleName],
+      });
 
       await loadUsers();
 
@@ -7957,14 +5162,10 @@ export function Users() {
         `Rol de ${item.name} actualizado a ${roleName}. El usuario deberá iniciar sesión nuevamente para recibir los nuevos permisos.`,
       );
     } catch (error: any) {
-      console.error(
-        'Error cambiando rol:',
-        error,
-      );
+      console.error('Error cambiando rol:', error);
 
       alert(
-        error?.response?.data
-          ?.message ||
+        error?.response?.data?.message ||
           'No se pudo cambiar el rol del usuario.',
       );
     } finally {
@@ -7972,240 +5173,163 @@ export function Users() {
     }
   };
 
-  const toggleActive =
-    async (item: any) => {
-      if (
-        item.id ===
-        currentUserId
-      ) {
-        alert(
-          'Por seguridad no puede desactivar su propia cuenta.',
-        );
-        return;
-      }
+  const toggleActive = async (item: any) => {
+    if (item.id === currentUserId) {
+      alert('Por seguridad no puede desactivar su propia cuenta.');
+      return;
+    }
 
-      if (item.deletedAt) {
-        return;
-      }
+    if (item.deletedAt) {
+      return;
+    }
 
-      const nextActive =
-        !item.active;
+    const nextActive = !item.active;
 
-      const confirmed =
-        window.confirm(
-          `¿${nextActive ? 'Activar' : 'Desactivar'} la cuenta de ${item.name}?`,
-        );
+    const confirmed = window.confirm(
+      `¿${nextActive ? 'Activar' : 'Desactivar'} la cuenta de ${item.name}?`,
+    );
 
-      if (!confirmed) {
-        return;
-      }
+    if (!confirmed) {
+      return;
+    }
 
-      try {
-        setSavingId(item.id);
-        setMessage('');
+    try {
+      setSavingId(item.id);
+      setMessage('');
 
-        await api.patch(
-          `/users/${item.id}`,
-          {
-            active:
-              nextActive,
-          },
-        );
+      await api.patch(`/users/${item.id}`, {
+        active: nextActive,
+      });
 
-        await loadUsers();
+      await loadUsers();
 
-        setMessage(
-          `Cuenta de ${item.name} ${nextActive ? 'activada' : 'desactivada'}.`,
-        );
-      } catch (error: any) {
-        console.error(
-          'Error actualizando usuario:',
-          error,
-        );
+      setMessage(
+        `Cuenta de ${item.name} ${nextActive ? 'activada' : 'desactivada'}.`,
+      );
+    } catch (error: any) {
+      console.error('Error actualizando usuario:', error);
 
-        alert(
-          error?.response?.data
-            ?.message ||
-            'No se pudo actualizar el usuario.',
-        );
-      } finally {
-        setSavingId(null);
-      }
-    };
+      alert(
+        error?.response?.data?.message || 'No se pudo actualizar el usuario.',
+      );
+    } finally {
+      setSavingId(null);
+    }
+  };
 
-  const startEdit = (
-    item: any,
-  ) => {
+  const startEdit = (item: any) => {
     if (item.deletedAt) {
       return;
     }
 
     setEditing({
       id: item.id,
-      name:
-        item.name || '',
-      email:
-        item.email || '',
-      position:
-        item.position || '',
-      active:
-        Boolean(item.active),
+      name: item.name || '',
+      email: item.email || '',
+      position: item.position || '',
+      active: Boolean(item.active),
     });
   };
 
-  const saveProfile =
-    async () => {
-      if (!editing) {
-        return;
-      }
+  const saveProfile = async () => {
+    if (!editing) {
+      return;
+    }
 
-      if (
-        !editing.name.trim() ||
-        !editing.email.trim()
-      ) {
-        alert(
-          'Nombre y correo son obligatorios.',
-        );
-        return;
-      }
+    if (!editing.name.trim() || !editing.email.trim()) {
+      alert('Nombre y correo son obligatorios.');
+      return;
+    }
 
-      try {
-        setSavingId(
-          editing.id,
-        );
+    try {
+      setSavingId(editing.id);
 
-        await api.patch(
-          `/users/${editing.id}`,
-          {
-            name:
-              editing.name.trim(),
-            email:
-              editing.email.trim(),
-            position:
-              editing.position.trim(),
-            active:
-              editing.active,
-          },
-        );
+      await api.patch(`/users/${editing.id}`, {
+        name: editing.name.trim(),
+        email: editing.email.trim(),
+        position: editing.position.trim(),
+        active: editing.active,
+      });
 
-        await loadUsers();
+      await loadUsers();
 
-        setMessage(
-          `Perfil de ${editing.name} actualizado correctamente.`,
-        );
+      setMessage(`Perfil de ${editing.name} actualizado correctamente.`);
 
-        setEditing(null);
-      } catch (error: any) {
-        console.error(
-          'Error editando perfil:',
-          error,
-        );
+      setEditing(null);
+    } catch (error: any) {
+      console.error('Error editando perfil:', error);
 
-        alert(
-          error?.response?.data
-            ?.message ||
-            'No se pudo actualizar el perfil.',
-        );
-      } finally {
-        setSavingId(null);
-      }
-    };
+      alert(
+        error?.response?.data?.message || 'No se pudo actualizar el perfil.',
+      );
+    } finally {
+      setSavingId(null);
+    }
+  };
 
-  const confirmDelete =
-    async () => {
-      if (!deleteTarget) {
-        return;
-      }
+  const confirmDelete = async () => {
+    if (!deleteTarget) {
+      return;
+    }
 
-      if (
-        deleteReason.trim()
-          .length < 5
-      ) {
-        alert(
-          'Indique un motivo de eliminación de al menos 5 caracteres.',
-        );
-        return;
-      }
+    if (deleteReason.trim().length < 5) {
+      alert('Indique un motivo de eliminación de al menos 5 caracteres.');
+      return;
+    }
 
-      try {
-        setSavingId(
-          deleteTarget.id,
-        );
+    try {
+      setSavingId(deleteTarget.id);
 
-        await api.patch(
-          `/users/${deleteTarget.id}/delete`,
-          {
-            reason:
-              deleteReason.trim(),
-          },
-        );
+      await api.patch(`/users/${deleteTarget.id}/delete`, {
+        reason: deleteReason.trim(),
+      });
 
-        await loadUsers();
+      await loadUsers();
 
-        setMessage(
-          `Usuario ${deleteTarget.name} eliminado del sistema. El registro histórico se conserva.`,
-        );
+      setMessage(
+        `Usuario ${deleteTarget.name} eliminado del sistema. El registro histórico se conserva.`,
+      );
 
-        setDeleteTarget(null);
-        setDeleteReason('');
-      } catch (error: any) {
-        console.error(
-          'Error eliminando usuario:',
-          error,
-        );
+      setDeleteTarget(null);
+      setDeleteReason('');
+    } catch (error: any) {
+      console.error('Error eliminando usuario:', error);
 
-        alert(
-          error?.response?.data
-            ?.message ||
-            'No se pudo eliminar el usuario.',
-        );
-      } finally {
-        setSavingId(null);
-      }
-    };
+      alert(
+        error?.response?.data?.message || 'No se pudo eliminar el usuario.',
+      );
+    } finally {
+      setSavingId(null);
+    }
+  };
 
-  const restoreUser =
-    async (item: any) => {
-      const confirmed =
-        window.confirm(
-          `¿Restaurar la cuenta de ${item.name}?`,
-        );
+  const restoreUser = async (item: any) => {
+    const confirmed = window.confirm(`¿Restaurar la cuenta de ${item.name}?`);
 
-      if (!confirmed) {
-        return;
-      }
+    if (!confirmed) {
+      return;
+    }
 
-      try {
-        setSavingId(item.id);
+    try {
+      setSavingId(item.id);
 
-        await api.patch(
-          `/users/${item.id}/restore`,
-        );
+      await api.patch(`/users/${item.id}/restore`);
 
-        await loadUsers();
+      await loadUsers();
 
-        setMessage(
-          `Usuario ${item.name} restaurado correctamente.`,
-        );
-      } catch (error: any) {
-        console.error(
-          'Error restaurando usuario:',
-          error,
-        );
+      setMessage(`Usuario ${item.name} restaurado correctamente.`);
+    } catch (error: any) {
+      console.error('Error restaurando usuario:', error);
 
-        alert(
-          error?.response?.data
-            ?.message ||
-            'No se pudo restaurar el usuario.',
-        );
-      } finally {
-        setSavingId(null);
-      }
-    };
+      alert(
+        error?.response?.data?.message || 'No se pudo restaurar el usuario.',
+      );
+    } finally {
+      setSavingId(null);
+    }
+  };
 
-  const roleDescription = (
-    role: string,
-  ) => {
+  const roleDescription = (role: string) => {
     if (role === 'ADMIN') {
       return 'Control total, usuarios, auditoría y gestión de contenido.';
     }
@@ -8221,59 +5345,42 @@ export function Users() {
     <>
       <div className="titlebar">
         <div>
-          <h1>
-            Gestión de usuarios
-          </h1>
+          <h1>Gestión de usuarios</h1>
 
           <p>
-            Administración de perfiles, roles, accesos y trazabilidad de usuarios.
+            Administración de perfiles, roles, accesos y trazabilidad de
+            usuarios.
           </p>
         </div>
 
         <button
           type="button"
           className="btn"
-          onClick={() =>
-            setShowCreate(
-              (value) =>
-                !value,
-            )
-          }
+          onClick={() => setShowCreate((value) => !value)}
         >
-          {showCreate
-            ? 'Cerrar formulario'
-            : '+ Nuevo usuario'}
+          {showCreate ? 'Cerrar formulario' : '+ Nuevo usuario'}
         </button>
       </div>
 
       <div className="user-role-summary">
         <Card>
           <b>Administrador</b>
-          <p>
-            Acceso completo al sistema y gestión de usuarios.
-          </p>
+          <p>Acceso completo al sistema y gestión de usuarios.</p>
         </Card>
 
         <Card>
           <b>Editor</b>
-          <p>
-            Puede crear y actualizar contenido institucional.
-          </p>
+          <p>Puede crear y actualizar contenido institucional.</p>
         </Card>
 
         <Card>
           <b>Consultor</b>
-          <p>
-            Acceso de consulta a la información autorizada.
-          </p>
+          <p>Acceso de consulta a la información autorizada.</p>
         </Card>
       </div>
 
       {message && (
-        <div
-          className="user-management-message"
-          role="status"
-        >
+        <div className="user-management-message" role="status">
           {message}
         </div>
       )}
@@ -8284,29 +5391,23 @@ export function Users() {
             <div className="temporary-credential-header">
               <div>
                 <Badge tone="green">
-                  {temporaryCredential.origin ===
-                  'CREATE'
+                  {temporaryCredential.origin === 'CREATE'
                     ? 'Usuario creado'
                     : 'Contraseña restablecida'}
                 </Badge>
 
-                <h2>
-                  Credenciales temporales
-                </h2>
+                <h2>Credenciales temporales</h2>
 
                 <p>
-                  Copie esta contraseña ahora. No podrá consultarse nuevamente desde el sistema.
+                  Copie esta contraseña ahora. No podrá consultarse nuevamente
+                  desde el sistema.
                 </p>
               </div>
 
               <button
                 type="button"
                 className="btn secondary"
-                onClick={() =>
-                  setTemporaryCredential(
-                    null,
-                  )
-                }
+                onClick={() => setTemporaryCredential(null)}
               >
                 Cerrar
               </button>
@@ -8314,31 +5415,19 @@ export function Users() {
 
             <div className="temporary-credential-grid">
               <div>
-                <span>
-                  Usuario
-                </span>
-                <strong>
-                  {temporaryCredential.name}
-                </strong>
+                <span>Usuario</span>
+                <strong>{temporaryCredential.name}</strong>
               </div>
 
               <div>
-                <span>
-                  Correo
-                </span>
-                <strong>
-                  {temporaryCredential.email}
-                </strong>
+                <span>Correo</span>
+                <strong>{temporaryCredential.email}</strong>
               </div>
 
               <div className="temporary-password-value">
-                <span>
-                  Contraseña temporal
-                </span>
+                <span>Contraseña temporal</span>
 
-                <code>
-                  {temporaryCredential.password}
-                </code>
+                <code>{temporaryCredential.password}</code>
               </div>
             </div>
 
@@ -8346,16 +5435,16 @@ export function Users() {
               <button
                 type="button"
                 className="btn"
-                onClick={() =>
-                  void copyTemporaryPassword()
-                }
+                onClick={() => void copyTemporaryPassword()}
               >
                 Copiar contraseña
               </button>
             </div>
 
             <small>
-              El usuario deberá cambiar esta contraseña al iniciar sesión. El envío automático por correo quedará disponible cuando se configure el SMTP institucional.
+              El usuario deberá cambiar esta contraseña al iniciar sesión. El
+              envío automático por correo quedará disponible cuando se
+              configure el SMTP institucional.
             </small>
           </div>
         </Card>
@@ -8365,44 +5454,30 @@ export function Users() {
         <Card>
           <div className="user-edit-header">
             <div>
-              <h2>
-                Nuevo usuario
-              </h2>
+              <h2>Nuevo usuario</h2>
 
-              <p>
-                Cree una cuenta y asigne su rol inicial.
-              </p>
+              <p>Cree una cuenta y asigne su rol inicial.</p>
             </div>
 
             <button
               type="button"
               className="btn secondary"
-              onClick={
-                resetCreateForm
-              }
+              onClick={resetCreateForm}
             >
               Cancelar
             </button>
           </div>
 
-          <form
-            className="form"
-            onSubmit={
-              createUser
-            }
-          >
+          <form className="form" onSubmit={createUser}>
             <label>
               Nombre completo
               <input
                 required
-                value={
-                  createForm.name
-                }
+                value={createForm.name}
                 onChange={(e) =>
                   setCreateForm({
                     ...createForm,
-                    name:
-                      e.target.value,
+                    name: e.target.value,
                   })
                 }
               />
@@ -8413,14 +5488,11 @@ export function Users() {
               <input
                 required
                 type="email"
-                value={
-                  createForm.email
-                }
+                value={createForm.email}
                 onChange={(e) =>
                   setCreateForm({
                     ...createForm,
-                    email:
-                      e.target.value,
+                    email: e.target.value,
                   })
                 }
                 placeholder="usuario@itcr.ac.cr"
@@ -8430,14 +5502,11 @@ export function Users() {
             <label>
               Puesto
               <input
-                value={
-                  createForm.position
-                }
+                value={createForm.position}
                 onChange={(e) =>
                   setCreateForm({
                     ...createForm,
-                    position:
-                      e.target.value,
+                    position: e.target.value,
                   })
                 }
               />
@@ -8446,47 +5515,29 @@ export function Users() {
             <label>
               Rol inicial
               <select
-                value={
-                  createForm.roleName
-                }
+                value={createForm.roleName}
                 onChange={(e) =>
                   setCreateForm({
                     ...createForm,
-                    roleName:
-                      e.target.value,
+                    roleName: e.target.value,
                   })
                 }
               >
-                <option value="CONSULTOR">
-                  Consultor
-                </option>
-                <option value="EDITOR">
-                  Editor
-                </option>
-                <option value="ADMIN">
-                  Administrador
-                </option>
+                <option value="CONSULTOR">Consultor</option>
+                <option value="EDITOR">Editor</option>
+                <option value="ADMIN">Administrador</option>
               </select>
             </label>
 
             <div className="full user-password-mode">
-              <strong>
-                Contraseña temporal
-              </strong>
+              <strong>Contraseña temporal</strong>
 
               <label>
                 <input
                   type="radio"
                   name="passwordMode"
-                  checked={
-                    createPasswordMode ===
-                    'AUTO'
-                  }
-                  onChange={() =>
-                    setCreatePasswordMode(
-                      'AUTO',
-                    )
-                  }
+                  checked={createPasswordMode === 'AUTO'}
+                  onChange={() => setCreatePasswordMode('AUTO')}
                 />
                 Generar automáticamente
               </label>
@@ -8495,36 +5546,25 @@ export function Users() {
                 <input
                   type="radio"
                   name="passwordMode"
-                  checked={
-                    createPasswordMode ===
-                    'MANUAL'
-                  }
-                  onChange={() =>
-                    setCreatePasswordMode(
-                      'MANUAL',
-                    )
-                  }
+                  checked={createPasswordMode === 'MANUAL'}
+                  onChange={() => setCreatePasswordMode('MANUAL')}
                 />
                 Escribir manualmente
               </label>
             </div>
 
-            {createPasswordMode ===
-              'MANUAL' && (
+            {createPasswordMode === 'MANUAL' && (
               <label className="full">
                 Contraseña temporal
                 <input
                   type="password"
                   minLength={8}
                   required
-                  value={
-                    createForm.password
-                  }
+                  value={createForm.password}
                   onChange={(e) =>
                     setCreateForm({
                       ...createForm,
-                      password:
-                        e.target.value,
+                      password: e.target.value,
                     })
                   }
                   placeholder="Mínimo 8 caracteres"
@@ -8533,16 +5573,8 @@ export function Users() {
             )}
 
             <div className="full user-edit-actions">
-              <button
-                type="submit"
-                className="btn"
-                disabled={
-                  creating
-                }
-              >
-                {creating
-                  ? 'Creando...'
-                  : 'Crear usuario'}
+              <button type="submit" className="btn" disabled={creating}>
+                {creating ? 'Creando...' : 'Crear usuario'}
               </button>
             </div>
           </form>
@@ -8553,20 +5585,15 @@ export function Users() {
         <Card>
           <div className="user-edit-header">
             <div>
-              <h2>
-                Editar perfil
-              </h2>
-              <p>
-                Corrija los datos institucionales del usuario.
-              </p>
+              <h2>Editar perfil</h2>
+
+              <p>Corrija los datos institucionales del usuario.</p>
             </div>
 
             <button
               type="button"
               className="btn secondary"
-              onClick={() =>
-                setEditing(null)
-              }
+              onClick={() => setEditing(null)}
             >
               Cancelar
             </button>
@@ -8576,14 +5603,11 @@ export function Users() {
             <label>
               Nombre
               <input
-                value={
-                  editing.name
-                }
+                value={editing.name}
                 onChange={(e) =>
                   setEditing({
                     ...editing,
-                    name:
-                      e.target.value,
+                    name: e.target.value,
                   })
                 }
               />
@@ -8593,14 +5617,11 @@ export function Users() {
               Correo institucional
               <input
                 type="email"
-                value={
-                  editing.email
-                }
+                value={editing.email}
                 onChange={(e) =>
                   setEditing({
                     ...editing,
-                    email:
-                      e.target.value,
+                    email: e.target.value,
                   })
                 }
               />
@@ -8609,14 +5630,11 @@ export function Users() {
             <label>
               Puesto
               <input
-                value={
-                  editing.position
-                }
+                value={editing.position}
                 onChange={(e) =>
                   setEditing({
                     ...editing,
-                    position:
-                      e.target.value,
+                    position: e.target.value,
                   })
                 }
               />
@@ -8625,27 +5643,16 @@ export function Users() {
             <label>
               Estado
               <select
-                value={
-                  editing.active
-                    ? 'ACTIVO'
-                    : 'INACTIVO'
-                }
+                value={editing.active ? 'ACTIVO' : 'INACTIVO'}
                 onChange={(e) =>
                   setEditing({
                     ...editing,
-                    active:
-                      e.target
-                        .value ===
-                      'ACTIVO',
+                    active: e.target.value === 'ACTIVO',
                   })
                 }
               >
-                <option value="ACTIVO">
-                  Activo
-                </option>
-                <option value="INACTIVO">
-                  Inactivo
-                </option>
+                <option value="ACTIVO">Activo</option>
+                <option value="INACTIVO">Inactivo</option>
               </select>
             </label>
 
@@ -8653,18 +5660,10 @@ export function Users() {
               <button
                 type="button"
                 className="btn"
-                disabled={
-                  savingId ===
-                  editing.id
-                }
-                onClick={() =>
-                  void saveProfile()
-                }
+                disabled={savingId === editing.id}
+                onClick={() => void saveProfile()}
               >
-                {savingId ===
-                editing.id
-                  ? 'Guardando...'
-                  : 'Guardar cambios'}
+                {savingId === editing.id ? 'Guardando...' : 'Guardar cambios'}
               </button>
             </div>
           </div>
@@ -8674,25 +5673,18 @@ export function Users() {
       {deleteTarget && (
         <Card>
           <div className="user-delete-box">
-            <h2>
-              Eliminar usuario
-            </h2>
+            <h2>Eliminar usuario</h2>
 
             <p>
-              Se retirará el acceso de <b>{deleteTarget.name}</b>, pero el registro se conservará para mantener la trazabilidad.
+              Se retirará el acceso de <b>{deleteTarget.name}</b>, pero el
+              registro se conservará para mantener la trazabilidad.
             </p>
 
             <label>
               Motivo de eliminación
               <textarea
-                value={
-                  deleteReason
-                }
-                onChange={(e) =>
-                  setDeleteReason(
-                    e.target.value,
-                  )
-                }
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
                 placeholder="Ejemplo: usuario ya no pertenece al campus, cuenta duplicada, correo creado por error..."
               />
             </label>
@@ -8702,12 +5694,8 @@ export function Users() {
                 type="button"
                 className="btn secondary"
                 onClick={() => {
-                  setDeleteTarget(
-                    null,
-                  );
-                  setDeleteReason(
-                    '',
-                  );
+                  setDeleteTarget(null);
+                  setDeleteReason('');
                 }}
               >
                 Cancelar
@@ -8716,16 +5704,10 @@ export function Users() {
               <button
                 type="button"
                 className="btn danger"
-                disabled={
-                  savingId ===
-                  deleteTarget.id
-                }
-                onClick={() =>
-                  void confirmDelete()
-                }
+                disabled={savingId === deleteTarget.id}
+                onClick={() => void confirmDelete()}
               >
-                {savingId ===
-                deleteTarget.id
+                {savingId === deleteTarget.id
                   ? 'Eliminando...'
                   : 'Confirmar eliminación'}
               </button>
@@ -8749,251 +5731,156 @@ export function Users() {
             </thead>
 
             <tbody>
-              {data.map(
-                (item: any) => {
-                  const role =
-                    currentRole(
-                      item,
-                    );
+              {data.map((item: any) => {
+                const role = currentRole(item);
 
-                  const isCurrentUser =
-                    item.id ===
-                    currentUserId;
+                const isCurrentUser = item.id === currentUserId;
 
-                  const saving =
-                    savingId ===
-                    item.id;
+                const saving = savingId === item.id;
 
-                  const deleted =
-                    Boolean(
-                      item.deletedAt,
-                    );
+                const deleted = Boolean(item.deletedAt);
 
-                  return (
-                    <tr
-                      key={
-                        item.id
-                      }
-                      className={
-                        deleted
-                          ? 'user-row-deleted'
-                          : ''
-                      }
-                    >
-                      <td>
-                        <strong>
-                          {item.name}
-                        </strong>
+                return (
+                  <tr
+                    key={item.id}
+                    className={deleted ? 'user-row-deleted' : ''}
+                  >
+                    <td>
+                      <strong>{item.name}</strong>
 
-                        <small>
-                          {item.email}
+                      <small>{item.email}</small>
+
+                      {isCurrentUser && (
+                        <span className="user-current-account">Tu cuenta</span>
+                      )}
+
+                      {item.mustChangePassword && !deleted && (
+                        <span className="user-temp-password-label">
+                          Contraseña temporal
+                        </span>
+                      )}
+
+                      {deleted && (
+                        <span className="user-deleted-label">Eliminado</span>
+                      )}
+
+                      {deleted && item.deletionReason && (
+                        <small className="user-deletion-reason">
+                          Motivo: {item.deletionReason}
                         </small>
+                      )}
+                    </td>
 
-                        {isCurrentUser && (
-                          <span className="user-current-account">
-                            Tu cuenta
-                          </span>
-                        )}
+                    <td>{item.position || '-'}</td>
 
-                        {item.mustChangePassword &&
-                          !deleted && (
-                          <span className="user-temp-password-label">
-                            Contraseña temporal
-                          </span>
-                        )}
+                    <td>
+                      <Badge
+                        tone={
+                          role === 'ADMIN'
+                            ? 'blue'
+                            : role === 'EDITOR'
+                            ? 'green'
+                            : undefined
+                        }
+                      >
+                        {role}
+                      </Badge>
+                    </td>
 
-                        {deleted && (
-                          <span className="user-deleted-label">
-                            Eliminado
-                          </span>
-                        )}
+                    <td>
+                      <small className="user-role-description">
+                        {roleDescription(role)}
+                      </small>
+                    </td>
 
-                        {deleted &&
-                          item.deletionReason && (
-                          <small className="user-deletion-reason">
-                            Motivo: {item.deletionReason}
-                          </small>
-                        )}
-                      </td>
+                    <td>
+                      <Badge
+                        tone={
+                          deleted ? 'red' : item.active ? 'green' : 'red'
+                        }
+                      >
+                        {deleted
+                          ? 'Eliminado'
+                          : item.active
+                          ? 'Activo'
+                          : 'Inactivo'}
+                      </Badge>
+                    </td>
 
-                      <td>
-                        {item.position ||
-                          '-'}
-                      </td>
-
-                      <td>
-                        <Badge
-                          tone={
-                            role ===
-                            'ADMIN'
-                              ? 'blue'
-                              : role ===
-                                'EDITOR'
-                              ? 'green'
-                              : undefined
-                          }
+                    <td>
+                      {deleted ? (
+                        <button
+                          type="button"
+                          className="btn secondary"
+                          disabled={saving}
+                          onClick={() => void restoreUser(item)}
                         >
-                          {role}
-                        </Badge>
-                      </td>
+                          {saving ? 'Restaurando...' : 'Restaurar'}
+                        </button>
+                      ) : (
+                        <div className="user-admin-actions">
+                          <label>
+                            <span>Cambiar rol</span>
 
-                      <td>
-                        <small className="user-role-description">
-                          {roleDescription(
-                            role,
-                          )}
-                        </small>
-                      </td>
+                            <select
+                              value={role}
+                              disabled={saving || isCurrentUser}
+                              onChange={(e) =>
+                                void updateRole(item, e.target.value)
+                              }
+                            >
+                              <option value="CONSULTOR">Consultor</option>
 
-                      <td>
-                        <Badge
-                          tone={
-                            deleted
-                              ? 'red'
-                              : item.active
-                              ? 'green'
-                              : 'red'
-                          }
-                        >
-                          {deleted
-                            ? 'Eliminado'
-                            : item.active
-                            ? 'Activo'
-                            : 'Inactivo'}
-                        </Badge>
-                      </td>
+                              <option value="EDITOR">Editor</option>
 
-                      <td>
-                        {deleted ? (
+                              <option value="ADMIN">Administrador</option>
+                            </select>
+                          </label>
+
                           <button
                             type="button"
                             className="btn secondary"
-                            disabled={
-                              saving
-                            }
-                            onClick={() =>
-                              void restoreUser(
-                                item,
-                              )
-                            }
+                            disabled={saving}
+                            onClick={() => startEdit(item)}
                           >
-                            {saving
-                              ? 'Restaurando...'
-                              : 'Restaurar'}
+                            Editar
                           </button>
-                        ) : (
-                          <div className="user-admin-actions">
-                            <label>
-                              <span>
-                                Cambiar rol
-                              </span>
 
-                              <select
-                                value={
-                                  role
-                                }
-                                disabled={
-                                  saving ||
-                                  isCurrentUser
-                                }
-                                onChange={(
-                                  e,
-                                ) =>
-                                  void updateRole(
-                                    item,
-                                    e.target
-                                      .value,
-                                  )
-                                }
-                              >
-                                <option value="CONSULTOR">
-                                  Consultor
-                                </option>
+                          <button
+                            type="button"
+                            className="btn secondary"
+                            disabled={saving || isCurrentUser}
+                            onClick={() => void resetPassword(item)}
+                          >
+                            Restablecer contraseña
+                          </button>
 
-                                <option value="EDITOR">
-                                  Editor
-                                </option>
+                          <button
+                            type="button"
+                            className="btn secondary"
+                            disabled={saving || isCurrentUser}
+                            onClick={() => void toggleActive(item)}
+                          >
+                            {item.active ? 'Desactivar' : 'Activar'}
+                          </button>
 
-                                <option value="ADMIN">
-                                  Administrador
-                                </option>
-                              </select>
-                            </label>
-
-                            <button
-                              type="button"
-                              className="btn secondary"
-                              disabled={
-                                saving
-                              }
-                              onClick={() =>
-                                startEdit(
-                                  item,
-                                )
-                              }
-                            >
-                              Editar
-                            </button>
-
-                            <button
-                              type="button"
-                              className="btn secondary"
-                              disabled={
-                                saving ||
-                                isCurrentUser
-                              }
-                              onClick={() =>
-                                void resetPassword(
-                                  item,
-                                )
-                              }
-                            >
-                              Restablecer contraseña
-                            </button>
-
-                            <button
-                              type="button"
-                              className="btn secondary"
-                              disabled={
-                                saving ||
-                                isCurrentUser
-                              }
-                              onClick={() =>
-                                void toggleActive(
-                                  item,
-                                )
-                              }
-                            >
-                              {item.active
-                                ? 'Desactivar'
-                                : 'Activar'}
-                            </button>
-
-                            <button
-                              type="button"
-                              className="btn danger"
-                              disabled={
-                                saving ||
-                                isCurrentUser
-                              }
-                              onClick={() => {
-                                setDeleteTarget(
-                                  item,
-                                );
-                                setDeleteReason(
-                                  '',
-                                );
-                              }}
-                            >
-                              Eliminar
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                },
-              )}
+                          <button
+                            type="button"
+                            className="btn danger"
+                            disabled={saving || isCurrentUser}
+                            onClick={() => {
+                              setDeleteTarget(item);
+                              setDeleteReason('');
+                            }}
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         ) : (
@@ -9002,193 +5889,85 @@ export function Users() {
       </Card>
 
       <p className="user-role-note">
-        Las contraseñas existentes nunca son visibles. Al crear o restablecer una cuenta, la contraseña temporal se muestra una sola vez y el usuario debe cambiarla al iniciar sesión. Todas las acciones administrativas quedan registradas en el historial.
+        Las contraseñas existentes nunca son visibles. Al crear o restablecer
+        una cuenta, la contraseña temporal se muestra una sola vez y el usuario
+        debe cambiarla al iniciar sesión. Todas las acciones administrativas
+        quedan registradas en el historial.
       </p>
     </>
   );
 }
 
-
 /* =========================================================
-
    HISTORIAL / TRAZABILIDAD
-
-\========================================================= */
-
-
+========================================================= */
 
 export function Audit() {
-
   const { user } = useAuth();
 
+  const isAdmin = user?.roles?.includes('ADMIN') ?? false;
 
-
-  const isAdmin =
-
-    user?.roles?.includes('ADMIN') ?? false;
-
-
-
-  const [mode, setMode] = useState(
-
-    isAdmin ? 'all' : 'mine'
-
-  );
-
-
+  const [mode, setMode] = useState(isAdmin ? 'all' : 'mine');
 
   const [d, setD] = useState<any[]>([]);
 
-
-
   useEffect(() => {
-
     api
-
       .get('/audit/' + mode)
-
       .then((r) => setD(r.data))
-
       .catch((error) => {
-
-        console.error(
-
-          'Error cargando historial:',
-
-          error
-
-        );
-
+        console.error('Error cargando historial:', error);
       });
-
   }, [mode]);
 
-
-
   return (
-
     <>
-
       <div className="titlebar">
-
         <div>
-
           <h1>Historial / Trazabilidad</h1>
 
-
-
-          <p>
-
-            Consulta las acciones realizadas en el sistema.
-
-          </p>
-
+          <p>Consulta las acciones realizadas en el sistema.</p>
         </div>
 
-
-
         {isAdmin && (
-
           <div>
-
-            <Btn onClick={() => setMode('mine')}>
-
-              Mi historial
-
-            </Btn>
-
-
-
-            {' '}
-
-
-
-            <Btn onClick={() => setMode('all')}>
-
-              Historial general
-
-            </Btn>
-
+            <Btn onClick={() => setMode('mine')}>Mi historial</Btn>{' '}
+            <Btn onClick={() => setMode('all')}>Historial general</Btn>
           </div>
-
         )}
-
       </div>
 
-
-
       <Card>
-
         <table>
-
           <thead>
-
             <tr>
-
               <th>Fecha</th>
-
               <th>Usuario</th>
-
               <th>Acción</th>
-
               <th>Entidad</th>
-
               <th>Detalle</th>
-
             </tr>
-
           </thead>
 
-
-
           <tbody>
-
             {d.map((x) => (
-
               <tr key={x.id}>
-
                 <td>
-
-                  {x.createdAt
-
-                    ? new Date(
-
-                        x.createdAt
-
-                      ).toLocaleString()
-
-                    : '-'}
-
+                  {x.createdAt ? new Date(x.createdAt).toLocaleString() : '-'}
                 </td>
-
-
 
                 <td>{x.user?.name ?? '-'}</td>
 
-
-
                 <td>{x.action}</td>
-
-
 
                 <td>{x.entity}</td>
 
-
-
                 <td>{x.detail}</td>
-
               </tr>
-
             ))}
-
           </tbody>
-
         </table>
-
       </Card>
-
     </>
-
   );
-
 }

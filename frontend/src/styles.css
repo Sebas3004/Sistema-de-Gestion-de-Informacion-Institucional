@@ -3987,6 +3987,7 @@ td small {
 .news-cancel{background:#fff;border:1px solid #b9d0e8;border-radius:10px;padding:12px 20px;font-weight:700;cursor:pointer}
 
 /* AYUDA */
+/* AYUDA */
 .help-nav-active{background:rgba(255,255,255,.1)!important;border-radius:8px}
 .help-card{min-height:640px}
 .help-faq{display:flex;flex-direction:column;gap:12px}
@@ -3994,13 +3995,15 @@ td small {
 .help-item.open{border-color:#1670de;background:#f3f8ff}
 .help-item button{width:100%;display:flex;justify-content:space-between;gap:12px;align-items:center;padding:16px 18px;border:0;background:transparent;color:#0b3473;font-size:16px;font-weight:600;text-align:left}
 .help-item p{margin:0;padding:0 18px 16px;color:#435f88;font-size:15px;line-height:1.5}
-.help-contact{display:flex;flex-direction:column;padding:56px 44px;color:#fff;background:linear-gradient(160deg,#0a3a7a,#04193a)}
+
+/* Panel "¿Necesitas más ayuda?" */
+.help-contact{display:flex;flex-direction:column;padding:56px 44px;color:#fff;background:linear-gradient(160deg,#10b9ad,#0a7f87)}
 .help-contact h2{margin:0;font-family:Georgia,"Times New Roman",serif;font-size:34px;font-weight:400;line-height:1.15;color:#fff}
-.help-contact .login-image-line{margin:18px 0 22px}
-.help-contact p{color:#cfe0f5;font-size:16px;line-height:1.5}
-.help-contact-box{margin-top:16px;padding:16px 18px;border-radius:10px;background:rgba(255,255,255,.1)}
-.help-contact-box span{display:block;margin-bottom:5px;color:#9fc3ee;font-size:12px}
-.help-back{margin-top:auto;min-height:50px;border:0;border-radius:9px;background:#fff;color:#0b3473;font-size:16px;font-weight:700}
+.help-contact .login-image-line{margin:18px 0 22px;background:#fff}
+.help-contact p{color:#ffffff;font-size:16px;line-height:1.5}
+.help-contact-box{margin-top:16px;padding:16px 18px;border-radius:10px;background:rgba(255,255,255,.2)}
+.help-contact-box span{display:block;margin-bottom:5px;color:#e6fffb;font-size:12px}
+.help-back{margin-top:auto;min-height:50px;border:0;border-radius:9px;background:#fff;color:#0a7f87;font-size:16px;font-weight:700}
 @media (max-width:850px){.help-contact{padding:36px 28px}}
 
 /* ACERCA DEL SISTEMA */
@@ -4009,3 +4012,26 @@ td small {
 .about-row{display:flex;justify-content:space-between;gap:16px;padding:14px 18px;margin-bottom:12px;border:1.5px solid #bfdcf5;border-radius:10px;font-size:15px}
 .about-row span{color:#4d668c}
 .about-row strong{color:#0b3473;text-align:right}
+
+
+/* =========================================================
+   CARPETAS INSTITUCIONALES
+========================================================= */
+
+.folder-bar { display: flex; flex-direction: column; gap: 16px; }
+.folder-bar-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.folder-breadcrumb { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 14px; }
+.folder-breadcrumb button { border: 0; background: transparent; padding: 4px 8px; border-radius: 6px; color: #1263af; font-weight: 600; }
+.folder-breadcrumb button:hover { background: #eaf3fd; }
+.folder-breadcrumb button.current { color: #153d6b; cursor: default; background: transparent; }
+.folder-breadcrumb > span { color: #8a9aae; }
+.folder-admin-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.folder-admin-actions .btn { min-height: 36px; padding: 0 13px; }
+.folder-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+.folder-card { display: flex; align-items: center; gap: 14px; padding: 16px; text-align: left; border: 1px solid #dbe6ef; border-radius: 12px; background: #f8fbfe; color: #17365f; transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease; }
+.folder-card:hover { border-color: #1670de; background: #f3f8ff; transform: translateY(-1px); }
+.folder-card-icon { width: 46px; height: 46px; display: grid; place-items: center; flex-shrink: 0; border-radius: 10px; background: #e3effd; color: #0b57d0; }
+.folder-card-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.folder-card-body strong { color: #173f6d; font-size: 14px; overflow-wrap: anywhere; }
+.folder-card-body small { color: #7a8b9e; font-size: 12px; }
+.folder-hint { margin: 0; color: #718399; font-size: 13px; }
