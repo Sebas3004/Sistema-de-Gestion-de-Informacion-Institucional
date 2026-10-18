@@ -3987,7 +3987,6 @@ td small {
 .news-cancel{background:#fff;border:1px solid #b9d0e8;border-radius:10px;padding:12px 20px;font-weight:700;cursor:pointer}
 
 /* AYUDA */
-/* AYUDA */
 .help-nav-active{background:rgba(255,255,255,.1)!important;border-radius:8px}
 .help-card{min-height:640px}
 .help-faq{display:flex;flex-direction:column;gap:12px}
