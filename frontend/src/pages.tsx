@@ -4490,45 +4490,6 @@ export function Forms() {
 }
 
 /* =========================================================
-   ENLACES
-========================================================= */
-
-export function Links() {
-  const [d, setD] = useState<any[]>([]);
-
-  useEffect(() => {
-    api
-      .get('/links')
-      .then((r) => setD(r.data))
-      .catch((error) => {
-        console.error('Error cargando enlaces:', error);
-      });
-  }, []);
-
-  return (
-    <>
-      <h1>Enlaces a sistemas</h1>
-
-      <p>Accede de manera rápida a los principales sistemas institucionales.</p>
-
-      <div className="cards">
-        {d.map((x) => (
-          <Card key={x.id}>
-            <h3>{x.name}</h3>
-
-            <p>{x.description}</p>
-
-            <a className="btn" href={x.url} target="_blank" rel="noreferrer">
-              Ir al sistema
-            </a>
-          </Card>
-        ))}
-      </div>
-    </>
-  );
-}
-
-/* =========================================================
    NOTICIAS
 ========================================================= */
 

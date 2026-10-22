@@ -256,7 +256,7 @@ export default function Layout() {
 
       to: '/enlaces',
 
-      label: 'Enlaces a sistemas',
+      label: 'Accesos rápidos',
 
       icon: Link2,
 

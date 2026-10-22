@@ -4034,3 +4034,27 @@ td small {
 .folder-card-body strong { color: #173f6d; font-size: 14px; overflow-wrap: anywhere; }
 .folder-card-body small { color: #7a8b9e; font-size: 12px; }
 .folder-hint { margin: 0; color: #718399; font-size: 13px; }
+/* =========================================================
+   ACCESOS RÁPIDOS 
+========================================================= */
+.links-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 16px; border-bottom: 1px solid var(--border); }
+.links-tab { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px; background: none; color: var(--text-muted); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.links-tab span { min-width: 22px; padding: 2px 7px; border-radius: 999px; background: #eaf3fd; color: #1961a4; font-size: 11px; text-align: center; }
+.links-tab.active { color: var(--tec-navy); border-bottom-color: var(--tec-blue); }
+.links-group { margin-top: 24px; }
+.links-group h2 { margin: 0 0 12px; color: #173f6d; font-size: 16px; }
+.links-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+.links-card { display: flex; flex-direction: column; gap: 6px; padding: 16px 18px; background: #fff; border: 1px solid #dde6f2; border-radius: 14px; box-shadow: 0 8px 24px rgba(6,42,87,.08); }
+.links-card-content { display: flex; flex-direction: column; gap: 6px; }
+.links-card.inactive .links-card-content { opacity: .55; }
+.links-card h3 { margin: 0; color: #214970; font-size: 16px; line-height: 1.3; }
+.links-card p { margin: 0; color: #5a7396; font-size: 13px; }
+.links-card-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.links-card-tags:empty { display: none; }
+.links-card-footer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: auto; padding-top: 10px; }
+.links-card-footer .btn { min-height: 36px; padding: 0 11px; }
+.links-invalid { color: var(--danger); font-size: 13px; font-weight: 600; }
+.links-error { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 0; padding: 12px 14px; border: 1px solid #f3c4c8; border-radius: 10px; background: #fdebec; color: #b83c47; font-size: 14px; font-weight: 600; }
+.links-checkbox, .form label.links-checkbox { display: inline-flex; flex-direction: row; align-items: center; gap: 8px; color: #43617e; font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.links-checkbox input[type="checkbox"], .repository-toolbar .links-checkbox input[type="checkbox"], .form .links-checkbox input[type="checkbox"] { width: 16px; height: 16px; min-height: 0; margin: 0; padding: 0; flex: none; accent-color: var(--tec-blue); }
+.badge.amber { background: #fff4dc; color: #8a5a00; cursor: help; }

@@ -868,6 +868,15 @@ export class InstitutionalForm {
    ENLACES
 ========================================================= */
 
+/*
+ * INTERNO: sistemas institucionales propios.
+ * EXTERNO: recursos de consulta legal/bibliográfica.
+ */
+export enum LinkType {
+  INTERNO = 'INTERNO',
+  EXTERNO = 'EXTERNO',
+}
+
 @Entity('external_links')
 export class ExternalLink {
   @PrimaryGeneratedColumn('uuid')
@@ -890,9 +899,61 @@ export class ExternalLink {
   category: string;
 
   @Column({
+    type: 'enum',
+    enum: LinkType,
+    default: LinkType.EXTERNO,
+  })
+  type: LinkType;
+
+  /*
+   * El enlace solo funciona desde la red TEC o por VPN.
+   * Hoy solo se informa en la interfaz; no se detecta
+   * la IP del cliente.
+   */
+  @Column({
+    name: 'requires_institutional_network',
+    default: false,
+  })
+  requiresInstitutionalNetwork: boolean;
+
+  @Column({
+    name: 'sort_order',
+    default: 0,
+  })
+  sortOrder: number;
+
+  @Column({
     default: true,
   })
   active: boolean;
+
+  @ManyToOne(() => User, {
+    eager: true,
+    nullable: true,
+  })
+  @JoinColumn({
+    name: 'created_by_id',
+  })
+  createdBy: User;
+
+  @ManyToOne(() => User, {
+    eager: true,
+    nullable: true,
+  })
+  @JoinColumn({
+    name: 'updated_by_id',
+  })
+  updatedBy: User;
+
+  @CreateDateColumn({
+    name: 'created_at',
+  })
+  createdAt: Date;
+
+  @UpdateDateColumn({
+    name: 'updated_at',
+  })
+  updatedAt: Date;
 }
 
 /* =========================================================

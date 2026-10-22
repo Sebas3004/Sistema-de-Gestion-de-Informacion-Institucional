@@ -104,13 +104,25 @@ CREATE TABLE IF NOT EXISTS forms (
   updated_at timestamp NOT NULL DEFAULT now()
 );
 
+DO $$ BEGIN
+  CREATE TYPE external_links_type_enum AS ENUM ('INTERNO', 'EXTERNO');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 CREATE TABLE IF NOT EXISTS external_links (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name varchar(180) NOT NULL,
-  url text NOT NULL,
+  url varchar NOT NULL,
   description text,
   category varchar(80) NOT NULL DEFAULT 'Institucional',
-  active boolean NOT NULL DEFAULT true
+  type external_links_type_enum NOT NULL DEFAULT 'EXTERNO',
+  requires_institutional_network boolean NOT NULL DEFAULT false,
+  sort_order int NOT NULL DEFAULT 0,
+  active boolean NOT NULL DEFAULT true,
+  created_by_id uuid REFERENCES users(id),
+  updated_by_id uuid REFERENCES users(id),
+  created_at timestamp NOT NULL DEFAULT now(),
+  updated_at timestamp NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS news (

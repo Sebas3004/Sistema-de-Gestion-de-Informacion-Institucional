@@ -20,7 +20,6 @@ import {
   InstitutionalCorrespondenceAttachment,
   InstitutionalCorrespondenceDirection,
   InstitutionalCorrespondenceStatus,
-  ExternalLink,
   Folder,
   InstitutionalForm,
   News,
@@ -2097,44 +2096,6 @@ export class FormsService {
     await this.repo.save(form);
     await this.audit.log(current.sub, 'DESCARGA', 'Formulario', id, `Se descargó ${form.originalName}`);
     return form;
-  }
-}
-
-
-/* =========================================================
-   ENLACES
-========================================================= */
-
-@Injectable()
-export class LinksService {
-  constructor(
-    @InjectRepository(
-      ExternalLink,
-    )
-    private repo:
-      Repository<ExternalLink>,
-  ) {}
-
-  list() {
-    return this.repo.find({
-      where: {
-        active: true,
-      },
-      order: {
-        name: 'ASC',
-      },
-    });
-  }
-
-  create(dto: any) {
-    const entity =
-      this.repo.create(
-        dto as Partial<ExternalLink>,
-      );
-
-    return this.repo.save(
-      entity,
-    );
   }
 }
 

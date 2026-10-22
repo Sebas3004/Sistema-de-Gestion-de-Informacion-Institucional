@@ -394,6 +394,10 @@ export function canManageForms(
 
 /* =========================================================
    ENLACES
+   Coincide con @Roles de backend/src/links/links.controller.ts:
+   GET /links                     ADMIN / EDITOR / CONSULTOR
+   GET /links/manage, POST, PATCH ADMIN / EDITOR
+   PATCH :id/deactivate|restore   ADMIN
 ========================================================= */
 
 export function canViewLinks(
@@ -413,6 +417,14 @@ export function canManageLinks(
   user: UserLike,
 ): boolean {
   return canManageContent(
+    user,
+  );
+}
+
+export function canDeactivateLinks(
+  user: UserLike,
+): boolean {
+  return isAdmin(
     user,
   );
 }

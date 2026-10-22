@@ -63,7 +63,6 @@ import {
   CorrespondenceService,
   FormsService,
   InstitutionalCorrespondenceService,
-  LinksService,
   NewsService,
   ProcedureService,
   RepositoryService,
@@ -80,6 +79,13 @@ import {
 } from './folders';
 
 /* =========================================================
+   ENLACES (ACCESOS RÁPIDOS)
+========================================================= */
+
+import { LinksController } from './links/links.controller';
+import { LinksService } from './links/links.service';
+
+/* =========================================================
    CONTROLADORES
 ========================================================= */
 
@@ -89,7 +95,6 @@ import {
   CorrespondenceController,
   FormsController,
   InstitutionalCorrespondenceController,
-  LinksController,
   NewsController,
   ProcedureController,
   RepositoryController,

@@ -15,7 +15,11 @@ import {
   CorrespondenceAttachment,
   CorrespondenceComment,
   ExternalLink,
+  Folder,
+  InstitutionalCorrespondence,
+  InstitutionalCorrespondenceAttachment,
   InstitutionalForm,
+  LinkType,
   News,
   Procedure,
   ProcedureStep,
@@ -62,6 +66,11 @@ const dataSource =
       Correspondence,
       CorrespondenceAttachment,
       CorrespondenceComment,
+
+      InstitutionalCorrespondence,
+      InstitutionalCorrespondenceAttachment,
+
+      Folder,
 
       RepositoryDocument,
 
@@ -365,102 +374,183 @@ async function seed() {
      ENLACES
   ======================================================= */
 
+  /*
+   * Upsert por nombre: inserta los que faltan y
+   * reclasifica los que ya existen en una BD con datos.
+   * (name no es único, por eso findOne + save.)
+   */
+
   const linkRepository =
     dataSource.getRepository(
       ExternalLink,
     );
 
-  if (
-    (await linkRepository.count()) ===
-    0
-  ) {
-    await linkRepository.save(
-      [
-        {
-          name:
-            'Sistema de solicitudes',
+  /*
+   * Nombres anteriores que se renombran.
+   */
+  const renamedLinks: Record<string, string> = {
+    Biblioteca:
+      'Sistema de Bibliotecas del TEC',
 
-          url:
-            'https://www.tec.ac.cr/',
+    'Sistema interno (requiere VPN)':
+      'Sistema administrativo',
+  };
 
-          description:
-            'Solicitudes institucionales',
+  /*
+   * Enlaces anteriores que apuntaban a páginas
+   * genéricas; se desactivan (borrado lógico).
+   */
+  const retiredLinks = [
+    'Sistema de solicitudes',
+    'SharePoint',
+  ];
 
-          category:
-            'Administrativo',
-        },
+  const links: Partial<ExternalLink>[] = [
+    /* ---------- SISTEMAS INSTITUCIONALES ---------- */
 
-        {
-          name:
-            'SICOP',
+    {
+      name: 'TEC Digital',
+      url: 'https://tecdigital.tec.ac.cr/',
+      description:
+        'Cursos y notas.',
+      category: 'Académico',
+      type: LinkType.INTERNO,
+      requiresInstitutionalNetwork: false,
+    },
 
-          url:
-            'https://www.sicop.go.cr/',
+    {
+      name: 'Correo institucional',
+      url: 'https://outlook.office.com/',
+      description:
+        'Correo y calendario.',
+      category: 'Comunicación',
+      type: LinkType.INTERNO,
+      requiresInstitutionalNetwork: false,
+    },
 
-          description:
-            'Compras públicas',
+    {
+      name: 'Sistema administrativo',
+      // TODO: reemplazar por el sistema real.
+      url: 'https://www.tec.ac.cr/',
+      description:
+        'Trámites administrativos internos.',
+      category: 'Administrativo',
+      type: LinkType.INTERNO,
+      requiresInstitutionalNetwork: true,
+    },
 
-          category:
-            'Compras',
-        },
+    /* ---------- RECURSOS EXTERNOS ---------- */
 
-        {
-          name:
-            'Correo institucional',
+    {
+      name: 'SCIJ',
+      url: 'https://www.pgrweb.go.cr/scij/',
+      description:
+        'Leyes y jurisprudencia.',
+      category: 'Consulta legal',
+      type: LinkType.EXTERNO,
+    },
 
-          url:
-            'https://outlook.office.com/',
+    {
+      name: 'La Gaceta',
+      url: 'https://www.imprentanacional.go.cr/gaceta/',
+      description:
+        'Diario oficial.',
+      category: 'Consulta legal',
+      type: LinkType.EXTERNO,
+    },
 
-          description:
-            'Correo TEC',
+    {
+      name: 'Normativa institucional del TEC',
+      url: 'https://www.tec.ac.cr/reglamentos',
+      description:
+        'Reglamentos vigentes.',
+      category: 'Consulta legal',
+      type: LinkType.EXTERNO,
+    },
 
-          category:
-            'Comunicación',
-        },
+    {
+      name: 'Sistema de Bibliotecas del TEC',
+      url: 'https://www.tec.ac.cr/sistema-bibliotecas-tec',
+      description:
+        'Catálogo y recursos electrónicos.',
+      category: 'Consulta bibliográfica',
+      type: LinkType.EXTERNO,
+    },
 
-        {
-          name:
-            'SharePoint',
+    {
+      name: 'SICOP',
+      // TODO: confirmar URL (el sitio no respondió a la verificación automática).
+      url: 'https://www.sicop.go.cr/',
+      description:
+        'Compras públicas.',
+      category: 'Contratación pública',
+      type: LinkType.EXTERNO,
+    },
+  ];
 
-          url:
-            'https://www.microsoft.com/microsoft-365/sharepoint/collaboration',
+  for (const [oldName, newName] of Object.entries(
+    renamedLinks,
+  )) {
+    const old =
+      await linkRepository.findOne({
+        where: { name: oldName },
+      });
 
-          description:
-            'Documentos y colaboración',
+    const alreadyRenamed =
+      await linkRepository.findOne({
+        where: { name: newName },
+      });
 
-          category:
-            'Comunicación',
-        },
+    if (old && !alreadyRenamed) {
+      old.name = newName;
 
-        {
-          name:
-            'TEC Digital',
+      await linkRepository.save(old);
+    } else if (old?.active) {
+      /* Ya existe el nuevo: el viejo queda duplicado. */
+      old.active = false;
+      old.updatedBy = admin;
 
-          url:
-            'https://tecdigital.tec.ac.cr/',
+      await linkRepository.save(old);
+    }
+  }
 
-          description:
-            'Servicios académicos',
+  for (const data of links) {
+    const existing =
+      await linkRepository.findOne({
+        where: { name: data.name },
+      });
 
-          category:
-            'Académico',
-        },
+    if (existing) {
+      Object.assign(existing, data, {
+        sortOrder: 0,
+        updatedBy: admin,
+      });
 
-        {
-          name:
-            'Biblioteca',
+      await linkRepository.save(existing);
+    } else {
+      await linkRepository.save(
+        linkRepository.create({
+          ...data,
+          active: true,
+          createdBy: admin,
+          updatedBy: admin,
+        }),
+      );
+    }
+  }
 
-          url:
-            'https://www.tec.ac.cr/biblioteca',
+  for (const name of retiredLinks) {
+    const retired =
+      await linkRepository.findOne({
+        where: { name },
+      });
 
-          description:
-            'Recursos de biblioteca',
+    if (retired?.active) {
+      retired.active = false;
+      retired.updatedBy = admin;
 
-          category:
-            'Académico',
-        },
-      ] as any,
-    );
+      await linkRepository.save(retired);
+    }
   }
 
   /* =======================================================

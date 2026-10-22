@@ -41,7 +41,6 @@ import {
   InstitutionalCorrespondenceList,
   Dashboard,
   Forms,
-  Links,
   Login,
   NewCorrespondence,
   NewInstitutionalCorrespondence,
@@ -53,6 +52,8 @@ import {
   Repository,
   Users,
 } from './pages';
+
+import { LinksPage } from './links/LinksPage';
 
 /* =========================================================
    GUARD DE AUTENTICACIÓN
@@ -371,7 +372,7 @@ function App() {
                 ROLES.CONSULTOR,
               ]}
             >
-              <Links />
+              <LinksPage />
             </RoleGuard>
           }
         />

@@ -67,7 +67,6 @@ import {
   CorrespondenceService,
   InstitutionalCorrespondenceService,
   FormsService,
-  LinksService,
   NewsService,
   ProcedureService,
   RepositoryService,
@@ -1555,46 +1554,6 @@ export class FormsController {
   @Roles(Role.ADMIN, Role.EDITOR)
   create(@Body() body: any, @Req() request: any) {
     return this.service.create(body, request.user);
-  }
-}
-
-/* =========================================================
-   ENLACES A SISTEMAS
-========================================================= */
-
-@Controller('links')
-@UseGuards(
-  JwtAuthGuard,
-  RolesGuard,
-)
-export class LinksController {
-  constructor(
-    private readonly service:
-      LinksService,
-  ) {}
-
-  @Get()
-  @Roles(
-    Role.ADMIN,
-    Role.EDITOR,
-    Role.CONSULTOR,
-  )
-  list() {
-    return this.service.list();
-  }
-
-  @Post()
-  @Roles(
-    Role.ADMIN,
-    Role.EDITOR,
-  )
-  create(
-    @Body()
-    body: any,
-  ) {
-    return this.service.create(
-      body,
-    );
   }
 }
 
