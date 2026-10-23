@@ -2444,7 +2444,16 @@ function SimpleTable({
   useEffect(() => {
     api
       .get(endpoint)
-      .then((r) => setD(r.data))
+      .then((r) => {
+  const data = r.data;
+  setD(
+    Array.isArray(data)
+      ? data
+      : Array.isArray(data?.items)
+        ? data.items
+        : []
+  );
+})
       .catch((error) => {
         console.error(`Error cargando ${endpoint}:`, error);
       });
@@ -5865,69 +5874,271 @@ export function Users() {
 
 export function Audit() {
   const { user } = useAuth();
-
   const isAdmin = user?.roles?.includes('ADMIN') ?? false;
 
-  const [mode, setMode] = useState(isAdmin ? 'all' : 'mine');
+  const [mode, setMode] = useState('mine');
+  const [rows, setRows] = useState<any[]>([]);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [refresh, setRefresh] = useState(0);
 
-  const [d, setD] = useState<any[]>([]);
+  const empty = {
+    search: '',
+    action: '',
+    entity: '',
+    from: '',
+    to: '',
+  };
+
+  const [draft, setDraft] = useState(empty);
+  const [filters, setFilters] = useState(empty);
+
+  const effectiveMode = isAdmin ? mode : 'mine';
 
   useEffect(() => {
+    let active = true;
+
+    setLoading(true);
+    setError('');
+    setRows([]);
+
     api
-      .get('/audit/' + mode)
-      .then((r) => setD(r.data))
-      .catch((error) => {
-        console.error('Error cargando historial:', error);
+      .get('/audit/' + effectiveMode, {
+        params: { ...filters, page },
+      })
+      .then(({ data }) => {
+        if (!active) return;
+        setRows(data.items);
+        setTotal(data.total);
+        setPages(data.pages);
+        setPage(data.page);
+      })
+      .catch(() => {
+        if (!active) return;
+        setError('No se pudo cargar el historial.');
+        setTotal(0);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
       });
-  }, [mode]);
+
+    return () => {
+      active = false;
+    };
+  }, [effectiveMode, filters, page, refresh, user]);
+
+  const changeMode = (next: string) => {
+    setRows([]);
+    setPage(1);
+    setMode(next);
+  };
 
   return (
     <>
       <div className="titlebar">
         <div>
           <h1>Historial / Trazabilidad</h1>
-
           <p>Consulta las acciones realizadas en el sistema.</p>
         </div>
 
-        {isAdmin && (
-          <div>
-            <Btn onClick={() => setMode('mine')}>Mi historial</Btn>{' '}
-            <Btn onClick={() => setMode('all')}>Historial general</Btn>
-          </div>
-        )}
+        <div>
+          {isAdmin && (
+            <>
+              <Btn onClick={() => changeMode('mine')}>
+                Mi historial
+              </Btn>{' '}
+              <Btn onClick={() => changeMode('all')}>
+                Historial general
+              </Btn>{' '}
+            </>
+          )}
+
+          <Btn onClick={() => setRefresh((value) => value + 1)}>
+            Actualizar
+          </Btn>
+        </div>
       </div>
 
       <Card>
-        <table>
-          <thead>
-            <tr>
-              <th>Fecha</th>
-              <th>Usuario</th>
-              <th>Acción</th>
-              <th>Entidad</th>
-              <th>Detalle</th>
-            </tr>
-          </thead>
+        <form
+          className="form"
+          onSubmit={(event) => {
+            event.preventDefault();
 
-          <tbody>
-            {d.map((x) => (
-              <tr key={x.id}>
-                <td>
-                  {x.createdAt ? new Date(x.createdAt).toLocaleString() : '-'}
-                </td>
+            if (draft.from && draft.to && draft.from > draft.to) {
+              setError('La fecha inicial debe ser anterior a la final.');
+              return;
+            }
 
-                <td>{x.user?.name ?? '-'}</td>
+            setPage(1);
+            setFilters({ ...draft });
+          }}
+        >
+          <label className="full">
+            Buscar
+            <input
+              placeholder="Usuario, código, identificador o detalle"
+              value={draft.search}
+              onChange={(event) =>
+                setDraft({ ...draft, search: event.target.value })
+              }
+            />
+          </label>
 
-                <td>{x.action}</td>
+          <label>
+            Acción
+            <input
+              placeholder="Ej.: ACTUALIZACION, CARGA, DESCARGA"
+              value={draft.action}
+              onChange={(event) =>
+                setDraft({
+                  ...draft,
+                  action: event.target.value.toUpperCase(),
+                })
+              }
+            />
+          </label>
 
-                <td>{x.entity}</td>
+          <label>
+            Módulo
+            <select
+              value={draft.entity}
+              onChange={(event) =>
+                setDraft({ ...draft, entity: event.target.value })
+              }
+            >
+              <option value="">Todos</option>
+              {[
+                'Carpeta',
+                'Repositorio',
+                'Procedimiento',
+                'Formulario',
+                'Correspondencia',
+                'CorrespondenciaInstitucional',
+                'Usuario',
+                'Noticia',
+              ].map((entity) => (
+                <option key={entity} value={entity}>
+                  {entity}
+                </option>
+              ))}
+            </select>
+          </label>
 
-                <td>{x.detail}</td>
+          <label>
+            Desde
+            <input
+              type="date"
+              value={draft.from}
+              onChange={(event) =>
+                setDraft({ ...draft, from: event.target.value })
+              }
+            />
+          </label>
+
+          <label>
+            Hasta
+            <input
+              type="date"
+              min={draft.from || undefined}
+              value={draft.to}
+              onChange={(event) =>
+                setDraft({ ...draft, to: event.target.value })
+              }
+            />
+          </label>
+
+          <div className="full">
+            <button className="btn" type="submit">
+              Aplicar filtros
+            </button>{' '}
+            <button
+              className="btn secondary"
+              type="button"
+              onClick={() => {
+                setDraft({ ...empty });
+                setFilters({ ...empty });
+                setPage(1);
+                setError('');
+              }}
+            >
+              Limpiar
+            </button>
+          </div>
+        </form>
+      </Card>
+
+      <Card>
+        {error && <p role="alert">{error}</p>}
+
+        <p aria-live="polite">
+          {loading ? 'Cargando historial…' : `${total} registro(s)`}
+        </p>
+
+        <div style={{ overflowX: 'auto' }}>
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Usuario</th>
+                <th>Acción</th>
+                <th>Entidad</th>
+                <th>Identificador</th>
+                <th>Detalle</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+
+            <tbody>
+              {!loading && !error && rows.length === 0 && (
+                <tr>
+                  <td colSpan={6}>No se encontraron registros.</td>
+                </tr>
+              )}
+
+              {rows.map((row) => (
+                <tr key={row.id}>
+                  <td>
+                    {row.createdAt
+                      ? new Date(row.createdAt).toLocaleString('es-CR', {
+                          timeZone: 'America/Costa_Rica',
+                        })
+                      : '-'}
+                  </td>
+                  <td>{row.user?.name ?? 'Usuario no disponible'}</td>
+                  <td>{row.action}</td>
+                  <td>{row.entity}</td>
+                  <td style={{ overflowWrap: 'anywhere' }}>
+                    {row.entityId || '-'}
+                  </td>
+                  <td>{row.detail || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+          <button
+            className="btn secondary"
+            disabled={loading || page <= 1}
+            onClick={() => setPage((value) => value - 1)}
+          >
+            Anterior
+          </button>
+
+          <span>Página {page} de {pages}</span>
+
+          <button
+            className="btn secondary"
+            disabled={loading || page >= pages}
+            onClick={() => setPage((value) => value + 1)}
+          >
+            Siguiente
+          </button>
+        </div>
       </Card>
     </>
   );

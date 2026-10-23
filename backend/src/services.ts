@@ -74,27 +74,112 @@ export class AuditService {
   }
 
   async list(
-    current: any,
-    all = false,
-  ) {
-    const where =
-      all &&
-      current.roles.includes(RoleName.ADMIN)
-        ? {}
-        : ({
-            user: {
-              id: current.sub,
-            },
-          } as any);
+  current: any,
+  all = false,
+  filters: {
+    search?: string;
+    action?: string;
+    entity?: string;
+    from?: string;
+    to?: string;
+    page?: string;
+  } = {},
+) {
+  const page = Math.max(
+    1,
+    Math.floor(Number(filters.page) || 1),
+  );
+  const pageSize = 25;
 
-    return this.repo.find({
-      where,
-      order: {
-        createdAt: 'DESC',
-      },
-      take: 200,
+  const query = this.repo
+    .createQueryBuilder('audit')
+    .leftJoinAndSelect('audit.user', 'user');
+
+  // Esta restricción siempre se aplica antes de los filtros.
+  if (!(all && current.roles?.includes(RoleName.ADMIN))) {
+    query.andWhere('user.id = :userId', {
+      userId: current.sub,
     });
   }
+
+  const search = String(filters.search || '').trim();
+
+  if (search) {
+    query.andWhere(
+      `(
+        COALESCE(user.name, '') ILIKE :search
+        OR audit.action ILIKE :search
+        OR audit.entity ILIKE :search
+        OR COALESCE(audit.detail, '') ILIKE :search
+        OR COALESCE(CAST(audit.entityId AS text), '') ILIKE :search
+      )`,
+      { search: `%${search}%` },
+    );
+  }
+
+  if (filters.action?.trim()) {
+    query.andWhere('audit.action = :action', {
+      action: filters.action.trim(),
+    });
+  }
+
+  if (filters.entity?.trim()) {
+    query.andWhere('audit.entity = :entity', {
+      entity: filters.entity.trim(),
+    });
+  }
+
+  // Convierte el día local de Costa Rica a un instante.
+  const parseDay = (value?: string): Date | null => {
+    if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return null;
+    }
+
+    const date = new Date(`${value}T00:00:00-06:00`);
+
+    if (
+      Number.isNaN(date.getTime()) ||
+      new Date(date.getTime() - 6 * 60 * 60 * 1000)
+        .toISOString()
+        .slice(0, 10) !== value
+    ) {
+      return null;
+    }
+
+    return date;
+  };
+
+  const from = parseDay(filters.from);
+  const to = parseDay(filters.to);
+
+  if (from) {
+    query.andWhere('audit.createdAt >= :from', { from });
+  }
+
+  if (to) {
+    const nextDay = new Date(to.getTime() + 24 * 60 * 60 * 1000);
+    query.andWhere('audit.createdAt < :nextDay', { nextDay });
+  }
+
+  const total = await query.getCount();
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(page, pages);
+
+  const items = await query
+    .orderBy('audit.createdAt', 'DESC')
+    .addOrderBy('audit.id', 'DESC')
+    .skip((currentPage - 1) * pageSize)
+    .take(pageSize)
+    .getMany();
+
+  return {
+    items,
+    total,
+    page: currentPage,
+    pages,
+    pageSize,
+  };
+}
 }
 
 

@@ -5,6 +5,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   Res,
   UploadedFile,
@@ -1598,35 +1599,16 @@ export class AuditController {
    * Cualquier usuario autenticado
    * puede consultar SU historial.
    */
-  @Get('mine')
-  @Roles(
-    Role.ADMIN,
-    Role.EDITOR,
-    Role.CONSULTOR,
-  )
-  mine(
-    @Req()
-    request: any,
-  ) {
-    return this.service.list(
-      request.user,
-      false,
-    );
-  }
+@Get('mine')
+@Roles(Role.ADMIN, Role.EDITOR, Role.CONSULTOR)
+mine(@Req() request: any, @Query() filters: any) {
+  return this.service.list(request.user, false, filters);
+}
 
-  /*
-   * Solamente ADMIN puede consultar
-   * el historial completo.
-   */
-  @Get('all')
-  @Roles(Role.ADMIN)
-  all(
-    @Req()
-    request: any,
-  ) {
-    return this.service.list(
-      request.user,
-      true,
-    );
-  }
+@Get('all')
+@Roles(Role.ADMIN)
+all(@Req() request: any, @Query() filters: any) {
+  return this.service.list(request.user, true, filters);
+}
+
 }
