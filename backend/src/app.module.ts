@@ -89,6 +89,8 @@ import {
 import { LinksController } from './links/links.controller';
 import { LinksService } from './links/links.service';
 
+import { MailService } from './mail.service';
+
 /* =========================================================
    CONTROLADORES
 ========================================================= */
@@ -283,6 +285,7 @@ const entities = [
     ProcedureService,
     FormsService,
     LinksService,
+    MailService,
     NewsService,
   ],
 })

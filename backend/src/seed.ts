@@ -21,6 +21,8 @@ import {
   InstitutionalForm,
   LinkType,
   News,
+  NewsAudience,
+  NewsPriority,
   Procedure,
   ProcedureStep,
   RepositoryDocument,
@@ -142,6 +144,9 @@ async function ensureUser(
     password: string;
     position: string;
     roleName: RoleName;
+    audienceType: NewsAudience;
+    receiveNewsEmails?: boolean;
+    minimumNewsPriority?: NewsPriority;
   },
 ) {
   const email =
@@ -210,6 +215,17 @@ async function ensureUser(
     user.active =
       true;
 
+    user.audienceType =
+      data.audienceType;
+
+    user.receiveNewsEmails =
+      data.receiveNewsEmails ??
+      true;
+
+    user.minimumNewsPriority =
+      data.minimumNewsPriority ??
+      NewsPriority.MEDIA;
+
     user.roles = [
       role,
     ];
@@ -231,6 +247,17 @@ async function ensureUser(
         data.position,
 
       active: true,
+
+      audienceType:
+        data.audienceType,
+
+      receiveNewsEmails:
+        data.receiveNewsEmails ??
+        true,
+
+      minimumNewsPriority:
+        data.minimumNewsPriority ??
+        NewsPriority.MEDIA,
 
       roles: [
         role,
@@ -307,6 +334,15 @@ async function seed() {
 
         roleName:
           RoleName.ADMIN,
+
+        audienceType:
+          NewsAudience.FUNCIONARIOS,
+
+        receiveNewsEmails:
+          true,
+
+        minimumNewsPriority:
+          NewsPriority.MEDIA,
       },
     );
 
@@ -329,6 +365,15 @@ async function seed() {
 
         roleName:
           RoleName.EDITOR,
+
+        audienceType:
+          NewsAudience.FUNCIONARIOS,
+
+        receiveNewsEmails:
+          true,
+
+        minimumNewsPriority:
+          NewsPriority.MEDIA,
       },
     );
 
@@ -351,6 +396,15 @@ async function seed() {
 
         roleName:
           RoleName.CONSULTOR,
+
+        audienceType:
+          NewsAudience.ESTUDIANTES,
+
+        receiveNewsEmails:
+          true,
+
+        minimumNewsPriority:
+          NewsPriority.ALTA,
       },
     );
 
@@ -814,6 +868,12 @@ async function seed() {
 
           category:
             'Eventos',
+
+          priority:
+            NewsPriority.BAJA,
+
+          targetArea:
+            NewsAudience.GENERAL,
 
           author:
             editor,

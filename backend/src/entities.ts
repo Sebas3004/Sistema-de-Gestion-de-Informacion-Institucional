@@ -46,6 +46,13 @@ export enum NewsPriority {
   ALTA = 'ALTA',
 }
 
+export enum NewsAudience {
+  GENERAL = 'GENERAL',
+  ESTUDIANTES = 'ESTUDIANTES',
+  PROFESORES = 'PROFESORES',
+  FUNCIONARIOS = 'FUNCIONARIOS',
+}
+
 /*
  * Correspondencia institucional real.
  */
@@ -114,6 +121,37 @@ export class User {
     default: true,
   })
   active: boolean;
+
+  /*
+   * Público institucional al que pertenece el usuario.
+   * Se utiliza para focalizar noticias y alertas.
+   */
+  @Column({
+    type: 'enum',
+    enum: NewsAudience,
+    default: NewsAudience.GENERAL,
+  })
+  audienceType: NewsAudience;
+
+  /*
+   * Permite al usuario decidir si desea recibir
+   * notificaciones de noticias por correo electrónico.
+   */
+  @Column({
+    default: true,
+  })
+  receiveNewsEmails: boolean;
+
+  /*
+   * Prioridad mínima que debe tener una noticia
+   * para generar una alerta por correo a este usuario.
+   */
+  @Column({
+    type: 'enum',
+    enum: NewsPriority,
+    default: NewsPriority.MEDIA,
+  })
+  minimumNewsPriority: NewsPriority;
 
   @Column({
     default: false,
@@ -918,6 +956,37 @@ export class ExternalLink {
   })
   active: boolean;
 
+  /*
+   * Público institucional al que pertenece el usuario.
+   * Se utiliza para focalizar noticias y alertas.
+   */
+  @Column({
+    type: 'enum',
+    enum: NewsAudience,
+    default: NewsAudience.GENERAL,
+  })
+  audienceType: NewsAudience;
+
+  /*
+   * Permite al usuario decidir si desea recibir
+   * notificaciones de noticias por correo electrónico.
+   */
+  @Column({
+    default: true,
+  })
+  receiveNewsEmails: boolean;
+
+  /*
+   * Prioridad mínima que debe tener una noticia
+   * para generar una alerta por correo a este usuario.
+   */
+  @Column({
+    type: 'enum',
+    enum: NewsPriority,
+    default: NewsPriority.MEDIA,
+  })
+  minimumNewsPriority: NewsPriority;
+
   @ManyToOne(() => User, {
     eager: true,
     nullable: true,
@@ -980,9 +1049,11 @@ export class News {
   priority: NewsPriority;
 
   @Column({
-    default: 'GENERAL',
+    type: 'enum',
+    enum: NewsAudience,
+    default: NewsAudience.GENERAL,
   })
-  targetArea: string;
+  targetArea: NewsAudience;
 
   @Column({
     type: 'text',

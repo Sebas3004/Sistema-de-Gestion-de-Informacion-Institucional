@@ -23,6 +23,7 @@ import {
   Folder,
   InstitutionalForm,
   News,
+  NewsAudience,
   NewsPriority,
   Procedure,
   RepositoryDocument,
@@ -33,6 +34,8 @@ import {
 
 import { compare, hash } from 'bcrypt';
 import { randomInt } from 'crypto';
+
+import { MailService } from './mail.service';
 
 
 /* =========================================================
@@ -2204,6 +2207,9 @@ export class NewsService {
 
     private audit:
       AuditService,
+
+    private mail:
+      MailService,
   ) {}
 
   list() {
@@ -2242,6 +2248,99 @@ export class NewsService {
     }
 
     return priority as NewsPriority;
+  }
+
+  private normalizeAudience(
+    value: any,
+  ) {
+    const audience =
+      String(
+        value ||
+          NewsAudience.GENERAL,
+      )
+        .trim()
+        .toUpperCase();
+
+    if (
+      !Object.values(
+        NewsAudience,
+      ).includes(
+        audience as NewsAudience,
+      )
+    ) {
+      throw new BadRequestException(
+        'El público debe ser GENERAL, ESTUDIANTES, PROFESORES o FUNCIONARIOS',
+      );
+    }
+
+    return audience as NewsAudience;
+  }
+
+  private priorityValue(
+    priority:
+      NewsPriority,
+  ) {
+    const values:
+      Record<
+        NewsPriority,
+        number
+      > = {
+      [NewsPriority.BAJA]: 1,
+      [NewsPriority.MEDIA]: 2,
+      [NewsPriority.ALTA]: 3,
+    };
+
+    return values[priority];
+  }
+
+  private async getRecipients(
+    news:
+      News,
+  ) {
+    const activeUsers =
+      await this.users.find({
+        where: {
+          active: true,
+        },
+      });
+
+    return activeUsers.filter(
+      (user) => {
+        if (
+          user.deletedAt ||
+          !user.receiveNewsEmails
+        ) {
+          return false;
+        }
+
+        const userAudience =
+          user.audienceType ||
+          NewsAudience.GENERAL;
+
+        const audienceMatches =
+          news.targetArea ===
+            NewsAudience.GENERAL ||
+          userAudience ===
+            news.targetArea;
+
+        if (!audienceMatches) {
+          return false;
+        }
+
+        const minimum =
+          user.minimumNewsPriority ||
+          NewsPriority.MEDIA;
+
+        return (
+          this.priorityValue(
+            news.priority,
+          ) >=
+          this.priorityValue(
+            minimum,
+          )
+        );
+      },
+    );
   }
 
   async create(
@@ -2286,11 +2385,9 @@ export class NewsService {
       'Eventos';
 
     const targetArea =
-      String(
-        dto.targetArea ||
-          'GENERAL',
-      ).trim() ||
-      'GENERAL';
+      this.normalizeAudience(
+        dto.targetArea,
+      );
 
     const priority =
       this.normalizePriority(
@@ -2329,8 +2426,38 @@ export class NewsService {
       'PUBLICACION',
       'Noticia',
       saved.id,
-      `Se publicó ${saved.title} | Categoría: ${saved.category} | Prioridad: ${saved.priority} | Área: ${saved.targetArea}`,
+      `Se publicó ${saved.title} | Categoría: ${saved.category} | Prioridad: ${saved.priority} | Público: ${saved.targetArea}`,
     );
+
+    if (saved.published) {
+      const recipients =
+        await this.getRecipients(
+          saved,
+        );
+
+      const result =
+        await this.mail
+          .sendNewsAlert(
+            saved,
+            recipients,
+          );
+
+      await this.audit.log(
+        current.sub,
+        result.sent
+          ? 'ALERTA_CORREO_ENVIADA'
+          : result.skipped
+          ? 'ALERTA_CORREO_OMITIDA'
+          : 'ALERTA_CORREO_ERROR',
+        'Noticia',
+        saved.id,
+        result.sent
+          ? `Se envió la alerta por correo a ${result.recipients} destinatario(s)`
+          : result.skipped
+          ? `No se envió correo: ${result.reason}. Destinatarios elegibles: ${result.recipients}`
+          : `Falló el envío de correo a ${result.recipients} destinatario(s): ${result.error}`,
+      );
+    }
 
     return saved;
   }
