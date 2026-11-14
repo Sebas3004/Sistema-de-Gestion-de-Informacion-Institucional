@@ -40,6 +40,11 @@ import { randomInt } from 'crypto';
 
 import { MailService } from './mail.service';
 
+import {
+  HASH_ALGORITHM,
+  sha256File,
+} from './file-hash';
+
 
 /* =========================================================
    AUDITORÍA
@@ -1722,6 +1727,17 @@ export class RepositoryService {
         dto.folderId,
       );
 
+    /*
+     * Huella SHA-256 del archivo recién guardado por multer
+     * (REQ-EXP-002.3), leído en streaming desde UPLOAD_DIR.
+     */
+    const hash =
+      file?.filename
+        ? await sha256File(
+            file.filename,
+          )
+        : null;
+
     const entity:
       RepositoryDocument =
       this.repo.create({
@@ -1745,6 +1761,11 @@ export class RepositoryService {
           file?.mimetype || null,
         size:
           file?.size || null,
+        hash,
+        hashAlgorithm:
+          hash
+            ? HASH_ALGORITHM
+            : null,
         responsible,
         folder,
       } as Partial<RepositoryDocument>);
@@ -1762,7 +1783,7 @@ export class RepositoryService {
       'Repositorio',
       saved.id,
       file
-        ? `Se cargó ${file.originalname} como ${saved.name}`
+        ? `Se cargó ${file.originalname} como ${saved.name} | SHA-256: ${hash}`
         : `Se creó ${saved.name}`,
     );
 

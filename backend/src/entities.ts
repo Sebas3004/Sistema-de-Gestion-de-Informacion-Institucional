@@ -681,6 +681,20 @@ export class Expediente {
   @Column({ name: 'next_folio', type: 'int', default: 1 })
   nextFolio: number;
 
+  /*
+   * Sello de integridad (REQ-EXP-002.3): SHA-256 del
+   * manifiesto canónico construido al cerrar. Ver
+   * expedientes/expediente-seal.ts.
+   */
+  @Column({ name: 'seal_hash', type: 'varchar', length: 64, nullable: true })
+  sealHash: string | null;
+
+  @Column({ name: 'sealed_at', type: 'timestamp', nullable: true })
+  sealedAt: Date | null;
+
+  @Column({ name: 'seal_version', type: 'int', nullable: true })
+  sealVersion: number | null;
+
   @OneToMany(
     () => RepositoryDocument,
     (document) => document.expediente,
@@ -798,6 +812,28 @@ export class RepositoryDocument {
     nullable: true,
   })
   folio: number | null;
+
+  /*
+   * Huella del archivo físico (REQ-EXP-002.3). Se calcula
+   * al subirlo; para documentos viejos, al foliarlos o al
+   * cerrar su expediente.
+   */
+  @Column({
+    name: 'hash',
+    type: 'varchar',
+    length: 64,
+    nullable: true,
+  })
+  hash: string | null;
+
+  @Column({
+    name: 'hash_algorithm',
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+    default: 'SHA-256',
+  })
+  hashAlgorithm: string | null;
 
   @CreateDateColumn()
   createdAt: Date;

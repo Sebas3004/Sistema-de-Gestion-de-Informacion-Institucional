@@ -21,6 +21,9 @@ export type Expediente = {
   closedBy?: UserRef;
   closedAt?: string | null;
   closeReason?: string | null;
+  sealHash?: string | null;
+  sealedAt?: string | null;
+  sealVersion?: number | null;
   nextFolio: number;
   documentCount?: number;
   createdAt?: string;
@@ -36,6 +39,8 @@ export type ExpedienteDocument = {
   status?: string;
   originalName?: string | null;
   folio: number | null;
+  hash?: string | null;
+  hashAlgorithm?: string | null;
   folder?: FolderRef;
   responsible?: UserRef;
   expediente?: { id: string; code: string; status: ExpedienteStatus } | null;
@@ -55,6 +60,26 @@ export type ExpedienteInput = {
   name: string;
   description?: string;
   folderId?: string | null;
+};
+
+/* Respuesta de GET /expedientes/:id/verify */
+export type VerifyDocument = {
+  folio: number | null;
+  nombre: string;
+  hashEsperado: string | null;
+  hashActual: string | null;
+  ok: boolean;
+  motivo?: string;
+};
+
+export type VerifyResult = {
+  integro: boolean;
+  sealValido: boolean | null;
+  sealHash?: string | null;
+  sealVersion?: number | null;
+  verificadoEn: string;
+  motivo?: string;
+  documentos: VerifyDocument[];
 };
 
 export type ExpedienteFilters = {
@@ -108,6 +133,32 @@ export const expedientesApi = {
       .patch<ExpedienteDetail>(`/expedientes/${id}/close`, { reason })
       .then((r) => r.data),
 
+  /* Todos los roles: recalcula hashes y sello (se audita) */
+  verify: (id: string) =>
+    api.get<VerifyResult>(`/expedientes/${id}/verify`).then((r) => r.data),
+
+  /*
+   * Todos los roles: descarga los bytes exactos del
+   * manifiesto (su SHA-256 es el sello). Va por axios
+   * porque el JWT viaja en un header, no en la URL.
+   */
+  downloadManifest: async (id: string, fileName: string) => {
+    const response = await api.get(`/expedientes/${id}/manifest`, {
+      responseType: 'blob',
+    });
+
+    const url = URL.createObjectURL(response.data);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    URL.revokeObjectURL(url);
+  },
+
   /* Documentos del repositorio (para elegir cuál foliar) */
   repositoryDocuments: () =>
     api.get<ExpedienteDocument[]>('/repository').then((r) => r.data),
@@ -132,6 +183,40 @@ export function expedienteErrorMessage(
   }
 
   return message || fallback;
+}
+
+/*
+ * Igual que expedienteErrorMessage, pero para respuestas
+ * pedidas como blob (el cuerpo del error llega como Blob).
+ */
+export async function blobErrorMessage(
+  error: any,
+  fallback: string,
+): Promise<string> {
+  const data = error?.response?.data;
+
+  if (data instanceof Blob) {
+    try {
+      const parsed = JSON.parse(await data.text());
+
+      return expedienteErrorMessage({ response: { data: parsed } }, fallback);
+    } catch {
+      return fallback;
+    }
+  }
+
+  return expedienteErrorMessage(error, fallback);
+}
+
+/* a1b2c3d4…e5f6a7b8 */
+export function shortHash(value?: string | null): string {
+  if (!value) {
+    return '-';
+  }
+
+  return value.length > 16
+    ? `${value.slice(0, 8)}…${value.slice(-8)}`
+    : value;
 }
 
 /*

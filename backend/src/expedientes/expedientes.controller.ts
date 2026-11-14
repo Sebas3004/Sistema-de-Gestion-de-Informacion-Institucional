@@ -8,10 +8,13 @@ import {
   Post,
   Query,
   Req,
+  Res,
   UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
+
+import { Response } from 'express';
 
 import { JwtAuthGuard } from '../auth';
 import { Role } from '../roles';
@@ -61,6 +64,38 @@ export class ExpedientesController {
   @Roles(Role.ADMIN, Role.EDITOR, Role.CONSULTOR)
   get(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.get(id);
+  }
+
+  /*
+   * Recalcula hashes de archivos y el sello; audita
+   * VERIFICACION (REQ-EXP-002.3).
+   */
+  @Get(':id/verify')
+  @Roles(Role.ADMIN, Role.EDITOR, Role.CONSULTOR)
+  verify(@Param('id', ParseUUIDPipe) id: string, @Req() request: any) {
+    return this.service.verify(id, request.user);
+  }
+
+  /*
+   * Se envían los bytes exactos del JSON canónico: su
+   * SHA-256 debe coincidir con sealHash.
+   */
+  @Get(':id/manifest')
+  @Roles(Role.ADMIN, Role.EDITOR, Role.CONSULTOR)
+  async manifest(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() request: any,
+    @Res() response: Response,
+  ) {
+    const { fileName, json } = await this.service.manifest(id, request.user);
+
+    response.setHeader('Content-Type', 'application/json; charset=utf-8');
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${fileName}"`,
+    );
+
+    response.send(json);
   }
 
   @Post()

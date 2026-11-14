@@ -11,6 +11,7 @@ import { FolderSelect, useFolderTree } from '../folders';
 import { canCloseExpediente, canManageExpedientes } from '../permissions';
 
 import {
+  blobErrorMessage,
   Expediente,
   ExpedienteDetail,
   ExpedienteDocument,
@@ -19,6 +20,8 @@ import {
   expedienteErrorMessage,
   expedientesApi,
   formatDateTime,
+  shortHash,
+  VerifyResult,
 } from './expedientesApi';
 
 /* =========================================================
@@ -393,6 +396,11 @@ function ExpedienteDetailView({ id }: { id: string }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmError, setConfirmError] = useState('');
 
+  /* Integridad (REQ-EXP-002.3) */
+  const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
+  const [verifying, setVerifying] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
   const closed = item?.status === 'CERRADO';
 
   /* Si está CERRADO no se muestra ninguna acción de edición */
@@ -420,6 +428,7 @@ function ExpedienteDetailView({ id }: { id: string }) {
     setPanel('none');
     setConfirmOpen(false);
     setNotice('');
+    setVerifyResult(null);
     void load();
   }, [id]);
 
@@ -434,10 +443,14 @@ function ExpedienteDetailView({ id }: { id: string }) {
       try {
         const docs = await expedientesApi.repositoryDocuments();
 
-        /* Un documento solo puede estar en un expediente */
+        /*
+         * Un documento solo puede estar en un expediente, y
+         * solo se folian documentos con archivo (el backend
+         * también lo valida y comprueba que exista en disco).
+         */
         setAvailable(
           docs
-            .filter((d) => !d.expediente)
+            .filter((d) => !d.expediente && d.originalName)
             .sort((a, b) =>
               a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }),
             ),
@@ -513,7 +526,10 @@ function ExpedienteDetailView({ id }: { id: string }) {
       setConfirmOpen(false);
       setPanel('none');
       setActionError('');
-      setNotice(`El expediente ${saved.code} se cerró correctamente.`);
+      setVerifyResult(null);
+      setNotice(
+        `El expediente ${saved.code} se cerró y selló correctamente.`,
+      );
     } catch (error) {
       console.error('Error cerrando expediente:', error);
 
@@ -523,6 +539,76 @@ function ExpedienteDetailView({ id }: { id: string }) {
       );
     } finally {
       setBusy(false);
+    }
+  };
+
+  /* =======================================================
+     INTEGRIDAD (REQ-EXP-002.3)
+  ======================================================= */
+
+  const runVerify = async () => {
+    try {
+      setVerifying(true);
+      setActionError('');
+      setNotice('');
+
+      setVerifyResult(await expedientesApi.verify(id));
+    } catch (error) {
+      console.error('Error verificando expediente:', error);
+
+      setVerifyResult(null);
+      setActionError(
+        expedienteErrorMessage(error, 'No se pudo verificar la integridad.'),
+      );
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const copySeal = async () => {
+    if (!item?.sealHash) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(item.sealHash);
+
+      setActionError('');
+      setNotice('Sello copiado al portapapeles.');
+    } catch {
+      setNotice('');
+      setActionError(
+        'No se pudo copiar el sello. Selecciónelo y cópielo manualmente.',
+      );
+    }
+  };
+
+  const downloadManifest = async () => {
+    if (!item) {
+      return;
+    }
+
+    try {
+      setDownloading(true);
+      setActionError('');
+
+      await expedientesApi.downloadManifest(
+        id,
+        `${item.code}-manifiesto.json`,
+      );
+
+      setNotice(
+        `Manifiesto descargado. Su SHA-256 debe coincidir con el sello del expediente.`,
+      );
+    } catch (error) {
+      console.error('Error descargando manifiesto:', error);
+
+      setNotice('');
+      setActionError(
+        await blobErrorMessage(error, 'No se pudo descargar el manifiesto.'),
+      );
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -690,7 +776,7 @@ function ExpedienteDetailView({ id }: { id: string }) {
 
           <p>
             Se le asignará el folio {item.nextFolio}. Solo se listan documentos
-            que no pertenecen a ningún expediente.
+            con archivo adjunto que no pertenecen a ningún expediente.
           </p>
 
           <form className="form" onSubmit={addDocument}>
@@ -854,6 +940,130 @@ function ExpedienteDetailView({ id }: { id: string }) {
         </div>
       )}
 
+      {/* =================================================
+          INTEGRIDAD (solo expedientes cerrados)
+      ================================================= */}
+      {closed && (
+        <Card>
+          <h2>Integridad</h2>
+
+          {item.sealHash ? (
+            <>
+              <p>
+                <strong>Sello SHA-256 (v{item.sealVersion ?? 1}):</strong>{' '}
+                <code title={item.sealHash}>{shortHash(item.sealHash)}</code>{' '}
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={() => void copySeal()}
+                >
+                  Copiar
+                </button>
+              </p>
+
+              <p>
+                <strong>Sellado:</strong> {formatDateTime(item.sealedAt)}
+              </p>
+            </>
+          ) : (
+            <p>
+              Este expediente se cerró antes del sellado de integridad y no
+              tiene sello.
+            </p>
+          )}
+
+          <div className="repository-form-actions">
+            <button
+              type="button"
+              className="btn"
+              onClick={() => void runVerify()}
+              disabled={verifying}
+            >
+              {verifying ? 'Verificando...' : 'Verificar integridad'}
+            </button>
+
+            {item.sealHash && (
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={() => void downloadManifest()}
+                disabled={downloading}
+              >
+                {downloading ? 'Descargando...' : 'Descargar manifiesto'}
+              </button>
+            )}
+          </div>
+
+          {verifyResult && (
+            <>
+              {verifyResult.integro ? (
+                <div className="user-management-message" role="status">
+                  Expediente íntegro: el sello es válido y los{' '}
+                  {verifyResult.documentos.length} archivos coinciden con sus
+                  hashes. Verificado el{' '}
+                  {formatDateTime(verifyResult.verificadoEn)}.
+                </div>
+              ) : (
+                <div className="links-error" role="alert">
+                  <span>
+                    Expediente NO íntegro.{' '}
+                    {verifyResult.sealValido === false &&
+                      'El sello no es válido. '}
+                    {verifyResult.motivo}{' '}
+                    {verifyResult.documentos.some((d) => !d.ok) &&
+                      `Documentos con fallas: ${
+                        verifyResult.documentos.filter((d) => !d.ok).length
+                      } de ${verifyResult.documentos.length}.`}
+                  </span>
+                </div>
+              )}
+
+              <table>
+                <thead>
+                  <tr>
+                    <th>Folio</th>
+                    <th>Documento</th>
+                    <th>Hash esperado</th>
+                    <th>Hash actual</th>
+                    <th>Resultado</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {verifyResult.documentos.map((d) => (
+                    <tr key={`${d.folio}-${d.nombre}`}>
+                      <td>
+                        <strong>{d.folio}</strong>
+                      </td>
+                      <td>{d.nombre}</td>
+                      <td>
+                        <code title={d.hashEsperado || ''}>
+                          {shortHash(d.hashEsperado)}
+                        </code>
+                      </td>
+                      <td>
+                        <code title={d.hashActual || ''}>
+                          {shortHash(d.hashActual)}
+                        </code>
+                      </td>
+                      <td>
+                        {d.ok ? (
+                          <Badge tone="green">Correcto</Badge>
+                        ) : (
+                          <>
+                            <Badge tone="red">Falla</Badge> {d.motivo}
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+        </Card>
+      )}
+
       <Card>
         <h2>Documentos</h2>
 
@@ -869,6 +1079,7 @@ function ExpedienteDetailView({ id }: { id: string }) {
                 <th>Versión</th>
                 <th>Carpeta</th>
                 <th>Responsable</th>
+                <th>Hash SHA-256</th>
               </tr>
             </thead>
 
@@ -883,6 +1094,11 @@ function ExpedienteDetailView({ id }: { id: string }) {
                   <td>{d.version || '-'}</td>
                   <td>{d.folder?.name || '-'}</td>
                   <td>{d.responsible?.name || '-'}</td>
+                  <td>
+                    <code title={d.hash || 'Sin hash registrado'}>
+                      {shortHash(d.hash)}
+                    </code>
+                  </td>
                 </tr>
               ))}
             </tbody>

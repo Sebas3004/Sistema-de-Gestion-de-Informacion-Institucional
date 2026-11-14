@@ -22,11 +22,35 @@ import {
 
 import { AuditService } from '../services';
 
+import { existsSync } from 'fs';
+
+import { resolveUploadPath } from '../upload-path';
+
+import {
+  HASH_ALGORITHM,
+  MissingFileError,
+  sha256File,
+} from '../file-hash';
+
+import {
+  buildManifest,
+  SEAL_VERSION,
+} from './expediente-seal';
+
 import {
   CreateExpedienteDto,
   ListExpedientesQueryDto,
   UpdateExpedienteDto,
 } from './expedientes.dto';
+
+export type VerifyDocumentResult = {
+  folio: number | null;
+  nombre: string;
+  hashEsperado: string | null;
+  hashActual: string | null;
+  ok: boolean;
+  motivo?: string;
+};
 
 const CLOSED_MESSAGE =
   'El expediente está cerrado y no admite modificaciones';
@@ -276,6 +300,28 @@ export class ExpedientesService {
     documentId: string,
     current: any,
   ) {
+    /*
+     * Integridad (REQ-EXP-002.3): solo se folian documentos
+     * con archivo en disco. El hash de documentos viejos se
+     * calcula aquí, ANTES de la transacción, para no tener
+     * bloqueado el expediente mientras se lee el archivo.
+     */
+    const candidate = await this.documents.findOne({
+      where: { id: documentId },
+      loadEagerRelations: false,
+    });
+
+    if (!candidate) {
+      throw new NotFoundException(
+        'Documento no encontrado',
+      );
+    }
+
+    const fileHash = await this.ensureFileHash(candidate, {
+      noFile: `No se puede foliar: el documento "${candidate.name}" no tiene un archivo asociado.`,
+      missing: `No se puede foliar: el archivo del documento "${candidate.name}" no existe en el servidor.`,
+    });
+
     await this.repo.manager.transaction(async (manager) => {
       const expediente = await this.lockOrFail(manager, id);
 
@@ -288,7 +334,7 @@ export class ExpedientesService {
        * eager y FOR UPDATE no admite LEFT JOIN.)
        */
       const [document] = await manager.query(
-        `SELECT id, name, expediente_id AS "expedienteId"
+        `SELECT id, name, hash, expediente_id AS "expedienteId"
          FROM repository_documents
          WHERE id = $1
          FOR UPDATE`,
@@ -318,10 +364,15 @@ export class ExpedientesService {
       }
 
       const folio = expediente.nextFolio;
+      const hash = document.hash || fileHash;
 
       await manager.update(RepositoryDocument, documentId, {
         expediente: { id } as Expediente,
         folio,
+        /* Solo se completa el hash si aún no tenía */
+        ...(document.hash
+          ? {}
+          : { hash, hashAlgorithm: HASH_ALGORITHM }),
       });
 
       await manager.update(Expediente, id, {
@@ -333,7 +384,8 @@ export class ExpedientesService {
         'FOLIADO',
         AUDIT_ENTITY,
         id,
-        `Se agregó el documento "${document.name}" al expediente ${expediente.code} con el folio ${folio}`,
+        `Se agregó el documento "${document.name}" al expediente ${expediente.code} con el folio ${folio}` +
+          ` | SHA-256: ${hash}`,
         manager,
       );
     });
@@ -355,9 +407,13 @@ export class ExpedientesService {
 
       this.assertOpen(expediente);
 
-      const total = await manager.count(RepositoryDocument, {
+      const documents = await manager.find(RepositoryDocument, {
         where: { expediente: { id } },
+        order: { folio: 'ASC' },
+        loadEagerRelations: false,
       });
+
+      const total = documents.length;
 
       if (!total) {
         throw new BadRequestException(
@@ -365,15 +421,51 @@ export class ExpedientesService {
         );
       }
 
+      /*
+       * Antes de sellar: todos los archivos deben existir y
+       * los documentos viejos sin hash lo reciben ahora. Se
+       * hace con el expediente bloqueado (operación poco
+       * frecuente y solo de ADMIN).
+       */
+      for (const document of documents) {
+        const label = `folio ${document.folio} ("${document.name}")`;
+
+        const hash = await this.ensureFileHash(document, {
+          noFile: `No se puede cerrar el expediente: el ${label} no tiene un archivo asociado.`,
+          missing: `No se puede cerrar el expediente: el archivo del ${label} no existe en el servidor.`,
+        });
+
+        if (!document.hash) {
+          await manager.update(RepositoryDocument, document.id, {
+            hash,
+            hashAlgorithm: HASH_ALGORITHM,
+          });
+        }
+      }
+
       const user = await manager.findOne(User, {
         where: { id: current.sub },
       });
 
+      const closedAt = new Date();
+
       await manager.update(Expediente, id, {
         status: ExpedienteStatus.CERRADO,
-        closedAt: new Date(),
+        closedAt,
         closedBy: user,
         closeReason: reason,
+        sealedAt: closedAt,
+      });
+
+      /*
+       * El manifiesto se arma leyendo de la BD lo que se
+       * acaba de guardar (mismo constructor que verify).
+       */
+      const { sealHash } = await buildManifest(manager, id);
+
+      await manager.update(Expediente, id, {
+        sealHash,
+        sealVersion: SEAL_VERSION,
       });
 
       await this.audit.log(
@@ -383,12 +475,146 @@ export class ExpedientesService {
         id,
         `Se cerró el expediente ${expediente.code} con ${total} ` +
           `${total === 1 ? 'documento' : 'documentos'} (folios 1 a ${expediente.nextFolio - 1})` +
-          ` | Motivo: ${reason}`,
+          ` | Motivo: ${reason}` +
+          ` | Sello SHA-256 (v${SEAL_VERSION}): ${sealHash}`,
         manager,
       );
     });
 
     return this.get(id);
+  }
+
+  /* =======================================================
+     VERIFICACIÓN DE INTEGRIDAD (todos los roles)
+
+     Recalcula el hash de cada archivo en disco y el sello
+     desde la BD. No modifica nada salvo la auditoría.
+  ======================================================= */
+
+  async verify(id: string, current: any) {
+    const expediente = await this.repo.findOne({
+      where: { id },
+    });
+
+    if (!expediente) {
+      throw new NotFoundException(
+        'Expediente no encontrado',
+      );
+    }
+
+    const documents = await this.documents.find({
+      where: { expediente: { id } },
+      order: { folio: 'ASC' },
+      loadEagerRelations: false,
+    });
+
+    const documentos: VerifyDocumentResult[] = [];
+
+    for (const document of documents) {
+      documentos.push(await this.verifyDocument(document));
+    }
+
+    let sealValido: boolean | null = null;
+    let motivo: string | undefined;
+
+    if (expediente.status !== ExpedienteStatus.CERRADO) {
+      motivo = 'El expediente está abierto y aún no tiene sello.';
+    } else if (!expediente.sealHash) {
+      motivo =
+        'El expediente se cerró antes del sellado; no hay sello que verificar.';
+    } else {
+      const { sealHash } = await buildManifest(this.repo.manager, id);
+
+      sealValido = sealHash === expediente.sealHash;
+
+      if (!sealValido) {
+        motivo =
+          'El sello no coincide: los datos del expediente o de sus documentos cambiaron en la base de datos después del cierre.';
+      }
+    }
+
+    const documentosOk = documentos.every((d) => d.ok);
+
+    /*
+     * Cerrado: exige sello válido. Abierto: solo archivos.
+     * Cerrado sin sello (anterior al sellado): no íntegro.
+     */
+    const integro =
+      expediente.status === ExpedienteStatus.CERRADO
+        ? documentosOk && sealValido === true
+        : documentosOk;
+
+    const failed = documentos.filter((d) => !d.ok);
+
+    await this.audit.log(
+      current.sub,
+      'VERIFICACION',
+      AUDIT_ENTITY,
+      id,
+      `Verificación de integridad del expediente ${expediente.code}: ` +
+        `${integro ? 'ÍNTEGRO' : 'NO ÍNTEGRO'}` +
+        ` | Sello: ${sealValido === null ? 'sin sello' : sealValido ? 'válido' : 'NO válido'}` +
+        ` | Documentos correctos: ${documentos.length - failed.length}/${documentos.length}` +
+        (failed.length
+          ? ` | Fallan: ${failed.map((d) => `folio ${d.folio} (${d.motivo})`).join('; ')}`
+          : ''),
+    );
+
+    return {
+      integro,
+      sealValido,
+      sealHash: expediente.sealHash,
+      sealVersion: expediente.sealVersion,
+      verificadoEn: new Date().toISOString(),
+      ...(motivo ? { motivo } : {}),
+      documentos,
+    };
+  }
+
+  /* =======================================================
+     MANIFIESTO (evidencia descargable)
+
+     Devuelve exactamente el JSON canónico cuyo SHA-256 es
+     el sello, para que pueda comprobarse fuera del sistema.
+  ======================================================= */
+
+  async manifest(id: string, current: any) {
+    const expediente = await this.repo.findOne({
+      where: { id },
+    });
+
+    if (!expediente) {
+      throw new NotFoundException(
+        'Expediente no encontrado',
+      );
+    }
+
+    if (expediente.status !== ExpedienteStatus.CERRADO) {
+      throw new BadRequestException(
+        'El expediente aún no está sellado',
+      );
+    }
+
+    if (!expediente.sealHash) {
+      throw new BadRequestException(
+        'El expediente se cerró antes del sellado y no tiene manifiesto',
+      );
+    }
+
+    const { json } = await buildManifest(this.repo.manager, id);
+
+    await this.audit.log(
+      current.sub,
+      'DESCARGA',
+      AUDIT_ENTITY,
+      id,
+      `Se descargó el manifiesto del expediente ${expediente.code}`,
+    );
+
+    return {
+      fileName: `${expediente.code}-manifiesto.json`,
+      json,
+    };
   }
 
   /* =======================================================
@@ -415,6 +641,80 @@ export class ExpedientesService {
     }
 
     return expediente;
+  }
+
+  /*
+   * Devuelve el hash del archivo del documento: el guardado
+   * si ya tiene uno (comprobando que el archivo siga en
+   * disco) o uno recién calculado. Lanza 400 con el mensaje
+   * indicado si no hay archivo o si no existe en disco.
+   */
+  private async ensureFileHash(
+    document: RepositoryDocument,
+    messages: { noFile: string; missing: string },
+  ): Promise<string> {
+    if (!document.storedName) {
+      throw new BadRequestException(messages.noFile);
+    }
+
+    if (document.hash) {
+      if (!existsSync(resolveUploadPath(document.storedName))) {
+        throw new BadRequestException(messages.missing);
+      }
+
+      return document.hash;
+    }
+
+    try {
+      return await sha256File(document.storedName);
+    } catch (error) {
+      if (error instanceof MissingFileError) {
+        throw new BadRequestException(messages.missing);
+      }
+
+      throw error;
+    }
+  }
+
+  private async verifyDocument(
+    document: RepositoryDocument,
+  ): Promise<VerifyDocumentResult> {
+    const result: VerifyDocumentResult = {
+      folio: document.folio,
+      nombre: document.name,
+      hashEsperado: document.hash ?? null,
+      hashActual: null,
+      ok: false,
+    };
+
+    if (!document.storedName) {
+      return { ...result, motivo: 'El documento no tiene un archivo asociado' };
+    }
+
+    try {
+      result.hashActual = await sha256File(document.storedName);
+    } catch (error) {
+      return {
+        ...result,
+        motivo:
+          error instanceof MissingFileError
+            ? 'Archivo no encontrado en el servidor'
+            : 'No se pudo leer el archivo',
+      };
+    }
+
+    if (!document.hash) {
+      return { ...result, motivo: 'Sin hash registrado' };
+    }
+
+    if (result.hashActual !== document.hash) {
+      return {
+        ...result,
+        motivo: 'El hash no coincide: el archivo fue modificado',
+      };
+    }
+
+    return { ...result, ok: true };
   }
 
   private assertOpen(expediente: Expediente) {
