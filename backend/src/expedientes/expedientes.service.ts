@@ -34,6 +34,7 @@ import {
 
 import {
   buildManifest,
+  sealFromData,
   SEAL_VERSION,
 } from './expediente-seal';
 
@@ -440,6 +441,8 @@ export class ExpedientesService {
             hash,
             hashAlgorithm: HASH_ALGORITHM,
           });
+
+          document.hash = hash;
         }
       }
 
@@ -447,7 +450,30 @@ export class ExpedientesService {
         where: { id: current.sub },
       });
 
+      if (!user) {
+        throw new NotFoundException('Usuario no encontrado');
+      }
+
       const closedAt = new Date();
+
+      /*
+       * REQ-EXP-002.2: el trigger rechaza cualquier cambio a
+       * un expediente CERRADO, así que el cierre y el sello
+       * van en un solo UPDATE. El sello se calcula con los
+       * mismos valores que se escriben y con el constructor
+       * que usa verify (sealFromData).
+       */
+      const { sealHash } = sealFromData(
+        {
+          id: expediente.id,
+          code: expediente.code,
+          name: expediente.name,
+          closeReason: reason,
+          closedAt,
+          closedById: user.id,
+        },
+        documents,
+      );
 
       await manager.update(Expediente, id, {
         status: ExpedienteStatus.CERRADO,
@@ -455,15 +481,6 @@ export class ExpedientesService {
         closedBy: user,
         closeReason: reason,
         sealedAt: closedAt,
-      });
-
-      /*
-       * El manifiesto se arma leyendo de la BD lo que se
-       * acaba de guardar (mismo constructor que verify).
-       */
-      const { sealHash } = await buildManifest(manager, id);
-
-      await manager.update(Expediente, id, {
         sealHash,
         sealVersion: SEAL_VERSION,
       });

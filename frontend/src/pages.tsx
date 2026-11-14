@@ -2539,6 +2539,10 @@ export function Repository() {
 
   const canManage = roles.includes('ADMIN') || roles.includes('EDITOR');
 
+  /* Expediente CERRADO al que pertenece el documento (REQ-EXP-002.2) */
+  const closedExpediente = (item: any) =>
+    item.expediente?.status === 'CERRADO' ? item.expediente : null;
+
   const load = () => {
     return api
       .get('/repository')
@@ -2865,6 +2869,25 @@ export function Repository() {
                   </td>
 
                   <td>
+                    {/*
+                      REQ-EXP-002.2: los documentos de un expediente
+                      CERRADO son inmutables (la BD lo impone con
+                      triggers). Solo se permite descargarlos; cualquier
+                      acción de modificación que se agregue aquí debe
+                      ocultarse cuando closedExpediente(x) no sea null.
+                    */}
+                    {closedExpediente(x) && (
+                      <Link
+                        className="repository-locked"
+                        to={`/expedientes/${closedExpediente(x).id}`}
+                        title="Documento inmutable: pertenece a un expediente cerrado"
+                      >
+                        <Badge tone="red">
+                          En expediente cerrado {closedExpediente(x).code}
+                        </Badge>
+                      </Link>
+                    )}
+
                     {x.storedName ? (
                       <button
                         type="button"

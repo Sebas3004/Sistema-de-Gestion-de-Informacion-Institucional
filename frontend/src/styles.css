@@ -4062,3 +4062,6 @@ td small {
 .links-checkbox, .form label.links-checkbox { display: inline-flex; flex-direction: row; align-items: center; gap: 8px; color: #43617e; font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer; }
 .links-checkbox input[type="checkbox"], .repository-toolbar .links-checkbox input[type="checkbox"], .form .links-checkbox input[type="checkbox"] { width: 16px; height: 16px; min-height: 0; margin: 0; padding: 0; flex: none; accent-color: var(--tec-blue); }
 .badge.amber { background: #fff4dc; color: #8a5a00; cursor: help; }
+
+/* REQ-EXP-002.2: documento de un expediente cerrado (Repositorio) */
+.repository-locked { display: inline-block; margin-bottom: 6px; text-decoration: none; }

@@ -99,6 +99,14 @@ import { LinksService } from './links/links.service';
 import { ExpedientesController } from './expedientes/expedientes.controller';
 import { ExpedientesService } from './expedientes/expedientes.service';
 
+/* =========================================================
+   INMUTABILIDAD EN BD (REQ-EXP-002.2)
+========================================================= */
+
+import { APP_FILTER } from '@nestjs/core';
+import { DbIntegrityService } from './db-integrity';
+import { DbIntegrityExceptionFilter } from './db-integrity.filter';
+
 import { MailService } from './mail.service';
 
 /* =========================================================
@@ -282,6 +290,10 @@ const entities = [
   ],
 
   providers: [
+    /* INMUTABILIDAD (triggers SG403 y su traducción a 403) */
+    DbIntegrityService,
+    { provide: APP_FILTER, useClass: DbIntegrityExceptionFilter },
+
     /* AUTH */
     AuthService,
     JwtAuthGuard,
