@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import './pg-utc'; // fechas timestamp en UTC; antes de cualquier conexión
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { json } from 'express';

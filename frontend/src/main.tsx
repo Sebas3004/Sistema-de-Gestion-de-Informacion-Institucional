@@ -55,6 +55,8 @@ import {
 
 import { LinksPage } from './links/LinksPage';
 
+import { ExpedientesPage } from './expedientes/ExpedientesPage';
+
 /* =========================================================
    GUARD DE AUTENTICACIÓN
 ========================================================= */
@@ -270,6 +272,41 @@ function App() {
               ]}
             >
               <Repository />
+            </RoleGuard>
+          }
+        />
+
+        {/* =================================================
+            EXPEDIENTES
+            TODOS (acciones según permissions.ts)
+        ================================================= */}
+
+        <Route
+          path="expedientes"
+          element={
+            <RoleGuard
+              roles={[
+                ROLES.ADMIN,
+                ROLES.EDITOR,
+                ROLES.CONSULTOR,
+              ]}
+            >
+              <ExpedientesPage />
+            </RoleGuard>
+          }
+        />
+
+        <Route
+          path="expedientes/:id"
+          element={
+            <RoleGuard
+              roles={[
+                ROLES.ADMIN,
+                ROLES.EDITOR,
+                ROLES.CONSULTOR,
+              ]}
+            >
+              <ExpedientesPage />
             </RoleGuard>
           }
         />

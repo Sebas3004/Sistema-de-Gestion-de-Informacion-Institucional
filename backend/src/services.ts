@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -7,6 +8,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 
 import {
+  EntityManager,
   Repository,
 } from 'typeorm';
 
@@ -16,6 +18,7 @@ import {
   CorrespondenceAttachment,
   CorrespondenceComment,
   CorrespondenceStatus,
+  ExpedienteStatus,
   InstitutionalCorrespondence,
   InstitutionalCorrespondenceAttachment,
   InstitutionalCorrespondenceDirection,
@@ -52,20 +55,34 @@ export class AuditService {
     private users: Repository<User>,
   ) {}
 
+  /*
+   * manager (opcional): permite registrar la auditoría
+   * dentro de una transacción en curso, de modo que se
+   * confirme o se revierta junto con el cambio auditado.
+   */
   async log(
     userId: string | undefined,
     action: string,
     entity: string,
     entityId?: string,
     detail?: string,
+    manager?: EntityManager,
   ) {
+    const repo = manager
+      ? manager.getRepository(AuditLog)
+      : this.repo;
+
+    const users = manager
+      ? manager.getRepository(User)
+      : this.users;
+
     const user = userId
-      ? await this.users.findOne({
+      ? await users.findOne({
           where: { id: userId },
         })
       : null;
 
-    const audit = this.repo.create({
+    const audit = repo.create({
       user,
       action,
       entity,
@@ -73,7 +90,7 @@ export class AuditService {
       detail,
     });
 
-    return this.repo.save(audit);
+    return repo.save(audit);
   }
 
   async list(
@@ -1642,6 +1659,11 @@ export class RepositoryService {
     return this.repo.find({
       relations: {
         folder: true,
+        /*
+         * Permite saber qué documentos ya están foliados
+         * (p. ej. al agregarlos a un expediente).
+         */
+        expediente: true,
       },
       order: {
         updatedAt:
@@ -1784,6 +1806,7 @@ export class RepositoryService {
         where: { id },
         relations: {
           folder: true,
+          expediente: true,
         },
       });
 
@@ -1792,6 +1815,28 @@ export class RepositoryService {
         'Documento no encontrado',
       );
     }
+
+    /*
+     * Un documento foliado en un expediente CERRADO
+     * es inmutable (REQ-EXP-002.1).
+     */
+    if (
+      item.expediente?.status ===
+      ExpedienteStatus.CERRADO
+    ) {
+      throw new ForbiddenException(
+        'El expediente está cerrado y no admite modificaciones',
+      );
+    }
+
+    /*
+     * Este método nunca escribe expediente/folio (solo
+     * ExpedientesService los asigna). Se quitan del objeto
+     * para que save() no reescriba valores leídos antes de
+     * un foliado concurrente (TypeORM omite undefined).
+     */
+    delete (item as any).expediente;
+    delete (item as any).folio;
 
     item.name =
       dto.name ?? item.name;

@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   JoinTable,
   ManyToMany,
@@ -59,6 +60,14 @@ export enum NewsAudience {
 export enum InstitutionalCorrespondenceDirection {
   ENTRADA = 'ENTRADA',
   SALIDA = 'SALIDA',
+}
+
+/*
+ * Expedientes: un expediente CERRADO es inmutable.
+ */
+export enum ExpedienteStatus {
+  ABIERTO = 'ABIERTO',
+  CERRADO = 'CERRADO',
 }
 
 export enum InstitutionalCorrespondenceStatus {
@@ -609,10 +618,92 @@ export class Folder {
 
 
 /* =========================================================
+   EXPEDIENTES
+   Agrupan documentos del repositorio con foliado
+   consecutivo. Se declara antes de RepositoryDocument
+   porque emitDecoratorMetadata referencia la clase.
+========================================================= */
+
+@Entity('expedientes')
+export class Expediente {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  /*
+   * Generado por el sistema: EXP-AAAA-NNNNN.
+   */
+  @Column({ length: 50, unique: true })
+  code: string;
+
+  @Column({ length: 200 })
+  name: string;
+
+  @Column({ type: 'text', nullable: true })
+  description: string | null;
+
+  @ManyToOne(() => Folder, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'folder_id' })
+  folder: Folder | null;
+
+  @Column({
+    type: 'enum',
+    enum: ExpedienteStatus,
+    default: ExpedienteStatus.ABIERTO,
+  })
+  status: ExpedienteStatus;
+
+  /*
+   * Las relaciones NO son eager: el foliado bloquea la fila
+   * con SELECT ... FOR UPDATE y PostgreSQL no lo permite
+   * sobre el lado nullable de un LEFT JOIN.
+   */
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'created_by_id' })
+  createdBy: User | null;
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'closed_by_id' })
+  closedBy: User | null;
+
+  @Column({ name: 'closed_at', type: 'timestamp', nullable: true })
+  closedAt: Date | null;
+
+  @Column({ name: 'close_reason', type: 'text', nullable: true })
+  closeReason: string | null;
+
+  /*
+   * Próximo folio a asignar. Solo se incrementa dentro de
+   * una transacción con bloqueo sobre el expediente.
+   */
+  @Column({ name: 'next_folio', type: 'int', default: 1 })
+  nextFolio: number;
+
+  @OneToMany(
+    () => RepositoryDocument,
+    (document) => document.expediente,
+  )
+  documents: RepositoryDocument[];
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
+}
+
+/* =========================================================
    REPOSITORIO DOCUMENTAL
 ========================================================= */
 
 @Entity('repository_documents')
+@Index(
+  'UQ_repository_documents_expediente_folio',
+  ['expediente', 'folio'],
+  { unique: true },
+)
 export class RepositoryDocument {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -683,6 +774,30 @@ export class RepositoryDocument {
     name: 'folder_id',
   })
   folder: Folder | null;
+
+  /*
+   * Expediente al que pertenece (como máximo uno) y su
+   * folio dentro de él. Solo los asigna ExpedientesService.
+   */
+  @ManyToOne(
+    () => Expediente,
+    (expediente) => expediente.documents,
+    {
+      nullable: true,
+      onDelete: 'RESTRICT',
+    },
+  )
+  @JoinColumn({
+    name: 'expediente_id',
+  })
+  expediente: Expediente | null;
+
+  @Column({
+    name: 'folio',
+    type: 'int',
+    nullable: true,
+  })
+  folio: number | null;
 
   @CreateDateColumn()
   createdAt: Date;

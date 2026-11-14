@@ -6014,6 +6014,7 @@ export function Audit() {
               {[
                 'Carpeta',
                 'Repositorio',
+                'Expediente',
                 'Procedimiento',
                 'Formulario',
                 'Correspondencia',

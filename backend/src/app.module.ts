@@ -15,6 +15,8 @@ import {
   TypeOrmModule,
 } from '@nestjs/typeorm';
 
+import { POSTGRES_UTC_SESSION } from './pg-utc';
+
 /* =========================================================
    ENTIDADES
 ========================================================= */
@@ -24,6 +26,7 @@ import {
   Correspondence,
   CorrespondenceAttachment,
   CorrespondenceComment,
+  Expediente,
   ExternalLink,
   Folder,
   InstitutionalCorrespondence,
@@ -89,6 +92,13 @@ import {
 import { LinksController } from './links/links.controller';
 import { LinksService } from './links/links.service';
 
+/* =========================================================
+   EXPEDIENTES (REQ-EXP-002.1)
+========================================================= */
+
+import { ExpedientesController } from './expedientes/expedientes.controller';
+import { ExpedientesService } from './expedientes/expedientes.service';
+
 import { MailService } from './mail.service';
 
 /* =========================================================
@@ -128,6 +138,9 @@ const entities = [
   Folder,
 
   RepositoryDocument,
+
+  /* EXPEDIENTES */
+  Expediente,
 
   Procedure,
   ProcedureStep,
@@ -207,6 +220,14 @@ const entities = [
          * + migraciones.
          */
         synchronize: true,
+
+        /*
+         * Sesión en UTC: now() guarda UTC, igual que los
+         * Date que escribe la app (ver pg-utc.ts).
+         */
+        extra: {
+          options: POSTGRES_UTC_SESSION,
+        },
       }),
     }),
 
@@ -255,6 +276,7 @@ const entities = [
     ProcedureController,
     FormsController,
     LinksController,
+    ExpedientesController,
     NewsController,
     AuditController,
   ],
@@ -285,6 +307,7 @@ const entities = [
     ProcedureService,
     FormsService,
     LinksService,
+    ExpedientesService,
     MailService,
     NewsService,
   ],

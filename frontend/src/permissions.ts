@@ -430,6 +430,48 @@ export function canDeactivateLinks(
 }
 
 /* =========================================================
+   EXPEDIENTES
+   Coincide con @Roles de
+   backend/src/expedientes/expedientes.controller.ts:
+   GET /expedientes, GET :id         ADMIN / EDITOR / CONSULTOR
+   POST, PATCH :id, POST :id/documents ADMIN / EDITOR
+   PATCH :id/close                   ADMIN
+========================================================= */
+
+export function canViewExpedientes(
+  user: UserLike,
+): boolean {
+  return hasAnyRole(
+    user,
+    [
+      ROLES.ADMIN,
+      ROLES.EDITOR,
+      ROLES.CONSULTOR,
+    ],
+  );
+}
+
+export function canManageExpedientes(
+  user: UserLike,
+): boolean {
+  return hasAnyRole(
+    user,
+    [
+      ROLES.ADMIN,
+      ROLES.EDITOR,
+    ],
+  );
+}
+
+export function canCloseExpediente(
+  user: UserLike,
+): boolean {
+  return isAdmin(
+    user,
+  );
+}
+
+/* =========================================================
    NOTICIAS
 ========================================================= */
 

@@ -18,6 +18,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import {
+  Expediente,
+  ExpedienteStatus,
   Folder,
   Procedure,
   RepositoryDocument,
@@ -53,6 +55,9 @@ export class FoldersService implements OnModuleInit {
     @InjectRepository(Procedure)
     private procedures: Repository<Procedure>,
 
+    @InjectRepository(Expediente)
+    private expedientes: Repository<Expediente>,
+
     private audit: AuditService,
     private folderImportService: FolderImportService,
   ) {}
@@ -81,9 +86,21 @@ export class FoldersService implements OnModuleInit {
       );
     }
 
+    /*
+     * Los documentos de un expediente CERRADO son inmutables:
+     * no se les reasigna carpeta aunque hayan quedado huérfanos.
+     */
     await this.repo.manager.query(
-      'UPDATE repository_documents SET folder_id = $1 WHERE folder_id IS NULL',
-      [defaultFolder.id],
+      `UPDATE repository_documents
+       SET folder_id = $1
+       WHERE folder_id IS NULL
+         AND (
+           expediente_id IS NULL
+           OR expediente_id NOT IN (
+             SELECT id FROM expedientes WHERE status = $2
+           )
+         )`,
+      [defaultFolder.id, ExpedienteStatus.CERRADO],
     );
 
     await this.repo.manager.query(
@@ -453,9 +470,18 @@ export class FoldersService implements OnModuleInit {
       where: { folder: { id } } as any,
     });
 
-    if (children || docs || procs) {
+    /*
+     * Borrar la carpeta pondría folder_id = NULL en sus
+     * expedientes (ON DELETE SET NULL), modificando incluso
+     * los CERRADOS. Por eso también cuentan como contenido.
+     */
+    const exps = await this.expedientes.count({
+      where: { folder: { id } } as any,
+    });
+
+    if (children || docs || procs || exps) {
       throw new BadRequestException(
-        'La carpeta no está vacía. Mueva o elimine primero sus subcarpetas, documentos y procedimientos',
+        'La carpeta no está vacía. Mueva o elimine primero sus subcarpetas, documentos, procedimientos y expedientes',
       );
     }
 

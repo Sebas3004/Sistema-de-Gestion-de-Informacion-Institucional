@@ -12,6 +12,8 @@ import {
 
 import {
 
+  Archive,
+
   BookOpen,
 
   ClipboardList,
@@ -204,6 +206,19 @@ export default function Layout() {
 
       ],
 
+    },
+
+
+
+    {
+      to: '/expedientes',
+      label: 'Expedientes',
+      icon: Archive,
+      roles: [
+        ROLES.ADMIN,
+        ROLES.EDITOR,
+        ROLES.CONSULTOR,
+      ],
     },
 
 

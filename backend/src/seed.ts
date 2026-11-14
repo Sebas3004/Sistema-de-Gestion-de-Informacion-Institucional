@@ -1,5 +1,7 @@
 import 'reflect-metadata';
 
+import { POSTGRES_UTC_SESSION } from './pg-utc';
+
 import {
   hash,
 } from 'bcrypt';
@@ -14,6 +16,7 @@ import {
   Correspondence,
   CorrespondenceAttachment,
   CorrespondenceComment,
+  Expediente,
   ExternalLink,
   Folder,
   InstitutionalCorrespondence,
@@ -76,6 +79,8 @@ const dataSource =
 
       RepositoryDocument,
 
+      Expediente,
+
       Procedure,
       ProcedureStep,
 
@@ -89,6 +94,11 @@ const dataSource =
     ],
 
     synchronize: true,
+
+    /* Sesión en UTC (ver pg-utc.ts) */
+    extra: {
+      options: POSTGRES_UTC_SESSION,
+    },
   });
 
 /* =========================================================
