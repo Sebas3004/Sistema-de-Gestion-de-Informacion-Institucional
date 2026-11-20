@@ -55,6 +55,8 @@ import {
 
 import { LinksPage } from './links/LinksPage';
 
+import EspurgoPage from './espurgo/EspurgoPage';
+
 import { ExpedientesPage } from './expedientes/ExpedientesPage';
 
 /* =========================================================
@@ -310,6 +312,23 @@ function App() {
             </RoleGuard>
           }
         />
+        {/* =================================================
+        ESPURGO DOCUMENTAL
+        ADMIN + EDITOR
+        ================================================= */}
+        <Route
+         path="espurgo"
+         element={
+           <RoleGuard
+             roles={[
+               ROLES.ADMIN,
+               ROLES.EDITOR,
+            ]}
+          >
+            <EspurgoPage />
+            </RoleGuard>
+  }
+/>
 
         {/* =================================================
             PROCEDIMIENTOS

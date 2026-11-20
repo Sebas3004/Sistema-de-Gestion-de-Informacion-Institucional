@@ -38,6 +38,7 @@ import {
   RepositoryDocument,
   Role,
   User,
+  EspurgoRequest,
 } from './entities';
 
 /* =========================================================
@@ -100,6 +101,18 @@ import { ExpedientesController } from './expedientes/expedientes.controller';
 import { ExpedientesService } from './expedientes/expedientes.service';
 
 /* =========================================================
+   ESPURGO DOCUMENTAL - REQ-ESP-003
+========================================================= */
+
+import {
+  EspurgoController,
+} from './espurgo/espurgo.controller';
+
+import {
+  EspurgoService,
+} from './espurgo/espurgo.service';
+
+/* =========================================================
    INMUTABILIDAD EN BD (REQ-EXP-002.2)
 ========================================================= */
 
@@ -160,6 +173,8 @@ const entities = [
   News,
 
   AuditLog,
+
+  EspurgoRequest,
 ];
 
 /* =========================================================
@@ -287,6 +302,7 @@ const entities = [
     ExpedientesController,
     NewsController,
     AuditController,
+    EspurgoController,
   ],
 
   providers: [
@@ -322,6 +338,7 @@ const entities = [
     ExpedientesService,
     MailService,
     NewsService,
+    EspurgoService,
   ],
 })
 export class AppModule {}

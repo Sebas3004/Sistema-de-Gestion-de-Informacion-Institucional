@@ -70,6 +70,21 @@ export enum ExpedienteStatus {
   CERRADO = 'CERRADO',
 }
 
+/*
+ * Espurgo documental (REQ-ESP-003).
+ *
+ * El flujo NO elimina físicamente documentos.
+ * Controla la solicitud, revisión CISET,
+ * aprobación de Dirección y registro del acta.
+ */
+export enum EspurgoStatus {
+  SOLICITADA = 'SOLICITADA',
+  PENDIENTE_DIRECCION = 'PENDIENTE_DIRECCION',
+  APROBADA = 'APROBADA',
+  RECHAZADA = 'RECHAZADA',
+  ACTA_REGISTRADA = 'ACTA_REGISTRADA',
+}
+
 export enum InstitutionalCorrespondenceStatus {
   RECIBIDA = 'RECIBIDA',
   ASIGNADA = 'ASIGNADA',
@@ -840,6 +855,290 @@ export class RepositoryDocument {
 
   @UpdateDateColumn()
   updatedAt: Date;
+}
+
+/* =========================================================
+   ESPURGO DOCUMENTAL - REQ-ESP-003
+
+   Controla el proceso de eliminación documental.
+
+   IMPORTANTE:
+   Registrar un proceso de espurgo NO elimina físicamente
+   ningún archivo ni modifica el documento original.
+
+   La eliminación digital definitiva depende del
+   procedimiento institucional que se defina con DATIC.
+========================================================= */
+
+@Entity('espurgo_requests')
+export class EspurgoRequest {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  /*
+   * Unidad productora o escuela responsable
+   * de los documentos.
+   */
+  @Column({
+    name: 'unit_name',
+    length: 200,
+  })
+  unitName: string;
+
+  /*
+   * Justificación archivística para solicitar
+   * la eliminación documental.
+   */
+  @Column({
+    type: 'text',
+  })
+  justification: string;
+
+  /*
+   * Estado actual del flujo.
+   */
+  @Column({
+    type: 'enum',
+    enum: EspurgoStatus,
+    default: EspurgoStatus.SOLICITADA,
+  })
+  status: EspurgoStatus;
+
+  /*
+   * Uno o más documentos pueden formar parte
+   * de una misma solicitud de espurgo.
+   *
+   * No hay cascade: SCRUM-80 nunca debe crear,
+   * modificar ni eliminar documentos existentes.
+   */
+  @ManyToMany(
+    () => RepositoryDocument,
+    {
+      eager: true,
+      cascade: false,
+    },
+  )
+  @JoinTable({
+    name:
+      'espurgo_request_documents',
+
+    joinColumn: {
+      name:
+        'espurgo_request_id',
+      referencedColumnName:
+        'id',
+    },
+
+    inverseJoinColumn: {
+      name:
+        'document_id',
+      referencedColumnName:
+        'id',
+    },
+  })
+  documents:
+    RepositoryDocument[];
+
+  /*
+   * Usuario que generó la solicitud.
+   */
+  @ManyToOne(
+    () => User,
+    {
+      eager: true,
+      nullable: false,
+    },
+  )
+  @JoinColumn({
+    name:
+      'requested_by_id',
+  })
+  requestedBy:
+    User;
+
+  /* =======================================================
+     REVISIÓN CISET
+  ======================================================= */
+
+  @ManyToOne(
+    () => User,
+    {
+      eager: true,
+      nullable: true,
+    },
+  )
+  @JoinColumn({
+    name:
+      'ciset_reviewed_by_id',
+  })
+  cisetReviewedBy:
+    User | null;
+
+  @Column({
+    name:
+      'ciset_reviewed_at',
+    type:
+      'timestamp',
+    nullable:
+      true,
+  })
+  cisetReviewedAt:
+    Date | null;
+
+  @Column({
+    name:
+      'ciset_notes',
+    type:
+      'text',
+    nullable:
+      true,
+  })
+  cisetNotes:
+    string | null;
+
+  /* =======================================================
+     DECISIÓN DE DIRECCIÓN
+  ======================================================= */
+
+  /*
+   * Nombre de la persona directora que autoriza
+   * o rechaza la eliminación.
+   *
+   * Se almacena explícitamente porque los roles actuales
+   * del sistema son ADMIN / EDITOR / CONSULTOR y no existe
+   * un rol específico DIRECCION.
+   */
+  @Column({
+    name:
+      'director_name',
+    length:
+      200,
+    nullable:
+      true,
+  })
+  directorName:
+    string | null;
+
+  /*
+   * Usuario del sistema que registra la decisión.
+   * Para esta versión debe ser ADMIN.
+   */
+  @ManyToOne(
+    () => User,
+    {
+      eager: true,
+      nullable: true,
+    },
+  )
+  @JoinColumn({
+    name:
+      'director_decision_by_id',
+  })
+  directorDecisionBy:
+    User | null;
+
+  @Column({
+    name:
+      'director_decision_at',
+    type:
+      'timestamp',
+    nullable:
+      true,
+  })
+  directorDecisionAt:
+    Date | null;
+
+  @Column({
+    name:
+      'director_notes',
+    type:
+      'text',
+    nullable:
+      true,
+  })
+  directorNotes:
+    string | null;
+
+  /* =======================================================
+     ACTA FORMAL FIRMADA
+  ======================================================= */
+
+  @Column({
+    name:
+      'act_original_name',
+    nullable:
+      true,
+  })
+  actOriginalName:
+    string | null;
+
+  @Column({
+    name:
+      'act_stored_name',
+    nullable:
+      true,
+  })
+  actStoredName:
+    string | null;
+
+  @Column({
+    name:
+      'act_mime_type',
+    nullable:
+      true,
+  })
+  actMimeType:
+    string | null;
+
+  @Column({
+    name:
+      'act_size',
+    type:
+      'bigint',
+    nullable:
+      true,
+  })
+  actSize:
+    number | null;
+
+  @ManyToOne(
+    () => User,
+    {
+      eager: true,
+      nullable: true,
+    },
+  )
+  @JoinColumn({
+    name:
+      'act_uploaded_by_id',
+  })
+  actUploadedBy:
+    User | null;
+
+  @Column({
+    name:
+      'act_uploaded_at',
+    type:
+      'timestamp',
+    nullable:
+      true,
+  })
+  actUploadedAt:
+    Date | null;
+
+  @CreateDateColumn({
+    name:
+      'created_at',
+  })
+  createdAt:
+    Date;
+
+  @UpdateDateColumn({
+    name:
+      'updated_at',
+  })
+  updatedAt:
+    Date;
 }
 
 /* =========================================================
