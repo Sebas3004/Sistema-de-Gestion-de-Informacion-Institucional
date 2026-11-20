@@ -907,97 +907,126 @@ export default function EspurgoPage() {
                 />
               </label>
 
-              <div className="full">
-                <strong>
-                  Documentos del repositorio
-                </strong>
+<div className="full">
+  <strong>
+    Documentos del repositorio
+  </strong>
 
-                {!availableDocuments.length ? (
-                  <Empty text="No hay documentos disponibles para una nueva solicitud." />
-                ) : (
-                  <div
-                    style={{
-                      marginTop:
-                        '12px',
-                      display:
-                        'grid',
-                      gap:
-                        '8px',
-                    }}
-                  >
-                    {availableDocuments.map(
-                      (
-                        document,
-                      ) => (
-                        <label
-                          key={
-                            document.id
-                          }
-                          style={{
-                            display:
-                              'flex',
-                            gap:
-                              '10px',
-                            alignItems:
-                              'center',
-                          }}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedDocumentIds.includes(
-                              document.id,
-                            )}
-                            onChange={(
-                              event,
-                            ) => {
-                              if (
-                                event
-                                  .target
-                                  .checked
-                              ) {
-                                setSelectedDocumentIds(
-                                  (
-                                    current,
-                                  ) => [
-                                    ...current,
-                                    document.id,
-                                  ],
-                                );
-                              } else {
-                                setSelectedDocumentIds(
-                                  (
-                                    current,
-                                  ) =>
-                                    current.filter(
-                                      (
-                                        id,
-                                      ) =>
-                                        id !==
-                                        document.id,
-                                    ),
-                                );
-                              }
-                            }}
-                          />
+  {!availableDocuments.length ? (
+    <Empty text="No hay documentos disponibles para una nueva solicitud." />
+  ) : (
+    <div
+      style={{
+        marginTop: '14px',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+        gap: '12px',
+      }}
+    >
+      {availableDocuments.map((document) => {
+        const checked =
+          selectedDocumentIds.includes(document.id);
 
-                          <span>
-                            <strong>
-                              {
-                                document.name
-                              }
-                            </strong>
-
-                            {' — '}
-
-                            {document.originalName ||
-                              'Sin archivo asociado'}
-                          </span>
-                        </label>
+        return (
+          <label
+            key={document.id}
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '12px',
+              padding: '14px 16px',
+              border: checked
+                ? '2px solid #1476c9'
+                : '1px solid #d5e2ee',
+              borderRadius: '10px',
+              background: checked
+                ? '#eef7ff'
+                : '#ffffff',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              minHeight: '78px',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={checked}
+              onChange={(event) => {
+                if (event.target.checked) {
+                  setSelectedDocumentIds(
+                    (current) => [
+                      ...current,
+                      document.id,
+                    ],
+                  );
+                } else {
+                  setSelectedDocumentIds(
+                    (current) =>
+                      current.filter(
+                        (id) =>
+                          id !== document.id,
                       ),
-                    )}
-                  </div>
-                )}
+                  );
+                }
+              }}
+              style={{
+                marginTop: '4px',
+                width: '17px',
+                height: '17px',
+                flexShrink: 0,
+              }}
+            />
+
+            <div
+              style={{
+                minWidth: 0,
+                flex: 1,
+              }}
+            >
+              <div
+                style={{
+                  fontWeight: 700,
+                  color: '#123f6d',
+                  fontSize: '14px',
+                  marginBottom: '5px',
+                }}
+              >
+                {document.name}
               </div>
+
+              <div
+                style={{
+                  color: '#6b8198',
+                  fontSize: '12px',
+                  lineHeight: 1.4,
+                  overflowWrap: 'anywhere',
+                }}
+              >
+                {document.originalName ||
+                  'Sin archivo asociado'}
+              </div>
+
+              {document.category && (
+                <div
+                  style={{
+                    marginTop: '7px',
+                    display: 'inline-block',
+                    padding: '3px 8px',
+                    borderRadius: '999px',
+                    background: '#edf3f8',
+                    color: '#48647f',
+                    fontSize: '11px',
+                  }}
+                >
+                  {document.category}
+                </div>
+              )}
+            </div>
+          </label>
+        );
+      })}
+    </div>
+  )}
+</div>
 
               <div className="full repository-form-actions">
                 <button
