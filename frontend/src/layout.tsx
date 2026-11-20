@@ -42,6 +42,8 @@ import {
 
   Users,
 
+  Trash2,
+
 } from 'lucide-react';
 
 
@@ -221,7 +223,15 @@ export default function Layout() {
       ],
     },
 
-
+    {
+      to: '/espurgo',
+      label: 'Espurgo',
+      icon: Trash2,
+      roles: [
+        ROLES.ADMIN,
+        ROLES.EDITOR,
+      ],
+    },
 
     {
 
